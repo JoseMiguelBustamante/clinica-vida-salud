@@ -1,0 +1,139 @@
+:root {
+    color-scheme: light;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #183b43;
+    background: #f4f8f7;
+    line-height: 1.65;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+a {
+    color: #075c57;
+    text-underline-offset: 0.2em;
+}
+
+a:hover {
+    color: #123c39;
+}
+
+:focus-visible {
+    outline: 3px solid #975000;
+    outline-offset: 5px;
+}
+
+.container {
+    width: min(100% - 3rem, 65rem);
+    margin-inline: auto;
+}
+
+.site-header {
+    background: #ffffff;
+    border-bottom: 1px solid #c3d5d0;
+}
+
+.header-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1.5rem;
+}
+
+.brand {
+    font-size: 1.25rem;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.status {
+    padding: 0.3rem 0.8rem;
+    border: 1px solid #c3d5d0;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+}
+
+.intro {
+    max-width: 48rem;
+    padding-block: 4rem 3rem;
+}
+
+.eyebrow {
+    font-weight: 700;
+    color: #075c57;
+}
+
+h1, h2, h3 {
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    margin-block: 0.5rem 1.5rem;
+}
+
+.lead {
+    font-size: 1.2rem;
+}
+
+.section-link {
+    display: inline-block;
+    padding-block: 0.5rem;
+    font-weight: 700;
+}
+
+.implementation {
+    padding: 2rem;
+    background: #ffffff;
+    border: 1px solid #c3d5d0;
+    border-radius: 1rem;
+    scroll-margin-top: 1rem;
+}
+
+.implementation h2 {
+    margin-top: 0;
+}
+
+.module-list {
+    padding-left: 1.5rem;
+}
+
+.module-list li {
+    margin-block: 0.75rem;
+}
+
+.site-footer {
+    padding-block: 2rem;
+    font-size: 0.875rem;
+}
+
+.skip-link {
+    position: absolute;
+    top: 0.5rem;
+    left: 1rem;
+    padding: 0.75rem;
+    background: #ffffff;
+    transform: translateY(-200%);
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+@media (max-width: 35rem) {
+    .intro {
+        padding-block: 2rem;
+    }
+
+    .implementation {
+        padding: 1.25rem;
+    }
+}

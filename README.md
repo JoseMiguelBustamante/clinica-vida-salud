@@ -96,11 +96,78 @@ create databases or migrate. `composer run dev` and `composer run test` retain t
 upstream behavior and require a provisioned environment. No frontend build or
 long-running development server was started in this slice.
 
+## Production container (Dokploy)
+
+The root `Dockerfile` uses PHP 8.3/Apache Bookworm and Composer 2. It installs
+`pdo_pgsql` and the application extensions, installs locked production dependencies
+with `--no-dev --no-scripts`, and serves only `/var/www/html/public` on port **80**.
+Apache rewrite rules route requests through the existing public entrypoint; the
+stylesheet at `/css/clinic.css` needs no Node/Vite build. PHP errors go to stderr,
+not HTTP responses. There is no debug, phpinfo or database administration endpoint.
+
+### Source upload contract
+
+Commit the reviewed Dockerfile, `.dockerignore`, `deploy/` configuration and
+application source before preparing a ZIP from `git archive` of that commit.
+Uncommitted/untracked files are not included. The upload must contain the project
+files at its root, including `composer.lock`, `artisan`, `app/`, `bootstrap/`,
+`config/`, `database/`, `public/` (including `.htaccess`), `resources/`, `routes/`
+and `deploy/`. No separate packaging script or frontend artifact is needed.
+
+`.dockerignore` is default-deny: only those application/build inputs are admitted.
+It keeps environment files, credentials, keys, logs, host caches, `.git`, `vendor`,
+`node_modules`, tests, ODD documents and agent configuration out of the build
+context/image. Docker ignore rules do **not** filter the uploaded ZIP: the operator
+must separately inspect its entry names and reject secret/environment files before
+upload. Never add guarded environment files to Git or the archive. Dependencies
+are installed inside the image rather than uploaded from the workstation.
+
+### Runtime configuration and persistence
+
+In Dokploy choose the Dockerfile build at the source root and container port 80.
+Provide `APP_ENV=production`, `APP_DEBUG=false`, a unique runtime `APP_KEY`, the
+public `APP_URL`, and the PostgreSQL variables listed above via deployment secrets.
+Do not place them in build arguments, source or transcripts. Keep `LOG_CHANNEL=stderr`,
+`SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync` and
+`QUEUE_FAILED_DRIVER=null`. Use a new isolated internal PostgreSQL service, not an
+existing application's database. No separate frontend service is required.
+
+Persist **`/var/www/html/storage`** for file sessions, cache and future application
+files. Before starting Apache, the mount must contain `app/private`, `app/public`,
+`framework/cache/data`, `framework/cache/locks`, `framework/sessions`,
+`framework/views` and `logs`, writable by `www-data` (Debian UID/GID 33).
+The image creates these paths; an empty bind mount can hide them, so the operator
+must initialize it or use a volume that copies the image's initial contents.
+`/var/www/html/bootstrap/cache` is also image-initialized and writable by `www-data`;
+keep it writable and deployment-local, not shared with older releases. A read-only
+root filesystem needs a separate writable mount there with correct ownership.
+No storage symlink is created: public user uploads are not implemented.
+
+Startup runs **Apache only**. It never copies environment files, generates a key,
+runs migrations, or caches configuration before runtime secrets exist. Composer
+scripts/package discovery are deliberately not run at build time. Laravel can
+create its package manifest on first runtime boot in writable `bootstrap/cache`.
+Do not enable upstream migrations: they have not been reconciled with the report's
+17-table schema.
+
+The image health check requests `http://127.0.0.1/up` with bounded timeouts. This
+checks Laravel boot, **not PostgreSQL readiness**. After deployment, verify `/`,
+`/css/clinic.css` and `/up` over HTTP and independently verify the isolated database
+connection. Local structural tests are not proof of a successful image build or
+live deployment; the actual Dokploy build/runtime checks remain required.
+
+```sh
+vendor/bin/phpunit --do-not-cache-result tests/Unit/DeploymentConfigurationTest.php
+vendor/bin/phpunit --do-not-cache-result
+composer validate --strict --no-check-publish
+```
+
 ## Database and delivery boundary
 
 The PostgreSQL service is **unverified**; no database functionality is proven.
 No database was created and no migration ran. The upstream business/infrastructure
 migration files remain unexecuted: do not run them during bootstrap. Reconcile
 future migrations with the report's 17-table schema before explicit authorization.
-Dokploy configuration/deployment, authentication and business workflows are later
-work, not part of this bootstrap.
+Authentication and business workflows remain later work. The container below
+packages only this foundation; infrastructure provisioning and live verification
+are separate deployment steps.

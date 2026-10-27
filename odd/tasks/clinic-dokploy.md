@@ -1,0 +1,22 @@
+# Clinic Dokploy deployment
+Objective: deploy the existing Laravel/Blade foundation and a new isolated PostgreSQL in Dokploy without touching Electrónica.
+Branch: feat/clinic-bootstrap | Delivery: auto-chain, feature-branch-chain (human selected); no Git push required via documented ZIP upload | Checks: packaging tests, PHPUnit, independent verifier, Dokploy build/runtime/HTTP and database readiness.
+
+## Specs
+S1. User: "Prepara uno nuevo  debemos desplegar el front y backend en dokploy". Deploy a new PostgreSQL service and the approved single PHP/Laravel modular application serving Blade/HTML/CSS/JS; no separate SPA or changes to Electrónica. Current foundation only; auth/business operations remain future work.
+S2. User: "Oki continúa". Continue previously authorized deployment. Configure runtime secrets in Dokploy, not Git/transcripts. Never run the upstream default Laravel migrations or replace the report17-table schema. Database is new/isolated; provisioning is authorized.
+S3. User supplied "http://187.127.19.244:3000/dashboard/home" and "Listo verifica" after saving the dedicated key at /home/agent/.config/clinica-vida-salud/dokploy-api-key. Use only this exact secret file with local authenticated Dokploy API; no secret output, no raw project/app/DB API response dumps. Guarded .env files remain excluded; no bypass.
+S4. User accepted PHP backend, HTML/CSS frontend and report modular layout. Build production image serving public/ with pdo_pgsql and APP_DEBUG=false, persistent required runtime files and health check. Do not automatically migrate/generate keys in image startup. Proposed temporary clinic hostname uses existing VPS sslip pattern; no ownership of custom domain assumed.
+
+## Tasks
+T1 | S1-S4 | delegated writer | done | Container+context+Apache+PHP config/tests/docs; RED exit1 then GREEN5tests107assertions; full20tests178assertions and independent static verifier passed | commit: pending
+T2 | S1-S3 | parent API orchestration | in_progress | Create clinic project/environment/new internal PostgreSQL with generated password and persistent volume; verify readiness without altering existing services | evidence: pending
+T3 | S1-S4 | parent + independent verifier | pending | Configure application/env/domain/persistence; upload approved source (upload triggers deployment), wait bounded build/runtime, verify HTTP/static assets/DB connectivity; assess review when due | evidence/commit: pending
+
+## Log
+L1. User original request verbatim: "Prepara uno nuevo  debemos desplegar el front y backend en dokploy"
+L2. User continuation verbatim: "Oki continúa"
+L3. Existing source commit dd52d8358371d996f2403f70f16ad1548eb38304. Bootstrap task bookkeeping has uncommitted updates; .env.example remains untracked and tool-guarded. Full suite15tests71assertions passed; independent bootstrap finding fixed. This deployment does not claim implemented auth/clinic workflows.
+L4. Credential verification job5 exit0: owner-only file, authenticated HTTP200 /api/project.all;5 existing projects,0 clinic-name matches. Docker socket permission denied; use Dokploy API rather than escalating permissions. No prior infrastructure changes.
+L5. Read-only official docs/source map: Dokploy v0.30.8 supports application.dropDeployment multipart applicationId+zip+optional dropBuildPath; upload itself deploys, sourceType drop. This avoids unapproved Git push. Existing app environments/runtime details must be read from installed contract; never dump raw responses containing passwords. API Swagger200 at local /swagger; locating schema route. Risk item5 (delivery/environment), item2 (secret handling); independent verification required. No local Docker build available; actual remote build is required proof, not inferred success.
+L6. Writer mvr0kqqn-8-7iup implemented Dockerfile,.dockerignore,deploy configs and5tests; RED exit1 then GREEN, full20tests178assertions exit0, Composer/Pint passed;245additions2deletions. Independent verifier mvr0r1u1-9-yuif static PASS for T1 S1-S4, current suite passed; actual build/persistence/live readiness remain T3. Parent read all deployment configs. Native ASSESS unavailable due undeclared untracked files; no approval claimed. Installed OpenAPI read from authenticated /api/trpc/settings.getOpenApiDocument (604paths); exact create/deploy/env/domain/upload/mount contracts confirmed. T2 will provision only clinic resources using in-memory generated password, PostgreSQL17 explicit image, no public port.

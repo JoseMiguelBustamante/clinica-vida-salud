@@ -1,0 +1,31 @@
+# Default deny: only application source and build configuration enter the image.
+**
+!app/
+!app/**
+!bootstrap/
+!bootstrap/*.php
+!config/
+!config/**
+!database/
+!database/**
+!public/
+!public/**
+!resources/
+!resources/**
+!routes/
+!routes/**
+!deploy/
+!deploy/**
+!artisan
+!composer.json
+!composer.lock
+
+# Override allowlists for secrets or generated state inside application paths.
+**/.env*
+**/auth.json
+**/*.key
+**/*.pem
+**/*.log
+public/storage
+public/hot
+bootstrap/cache

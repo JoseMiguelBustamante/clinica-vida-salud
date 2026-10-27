@@ -164,10 +164,19 @@ composer validate --strict --no-check-publish
 
 ## Database and delivery boundary
 
-The PostgreSQL service is **unverified**; no database functionality is proven.
-No database was created and no migration ran. The upstream business/infrastructure
-migration files remain unexecuted: do not run them during bootstrap. Reconcile
-future migrations with the report's 17-table schema before explicit authorization.
-Authentication and business workflows remain later work. The container below
-packages only this foundation; infrastructure provisioning and live verification
-are separate deployment steps.
+A dedicated PostgreSQL 17 service and the Laravel application have been deployed
+in Dokploy. Its runtime health check extends the image check with an authenticated
+PDO `SELECT 1`: the application container is healthy and database login is proven.
+Both services have named persistent volumes; PostgreSQL has no published external
+port. Persistence across a subsequent redeployment has not been tested.
+
+**Public access is blocked.** The configured hostname is
+`https://clinica.187.127.19.244.sslip.io`, but public ports 80/443 refuse connections
+and the read-only Dokploy inventory shows no Traefik container. Do not treat the
+hostname as live or restart the shared proxy without operator authorization;
+Electrónica may also depend on it. Public HTTP/TLS/CSS and browser checks are pending.
+
+No migration ran. Reconcile the upstream migration files with the report's
+17-table schema before explicit authorization. Authentication and clinic business
+workflows are not yet implemented. See `odd/tasks/clinic-dokploy.md` for deployment
+evidence and the open blocker.

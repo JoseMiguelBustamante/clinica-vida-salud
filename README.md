@@ -239,10 +239,13 @@ the 24 database-independent tests. Missing Docker access is a blocker, not a pas
 
 ### 2. Apply only the deployed report migration
 
-**Stop if the isolated test fails.** The application must first be deployed from
-the same committed source: its current older image may not contain this migration.
-The following preflight fails rather than falling back to upstream migrations if
-the expected source files are absent. Do not copy files into a running container.
+**Stop if the isolated test fails.** Source `9881a62` has been deployed successfully
+with these inactive migration files; the new container is healthy and public `/`
+and `/up` return HTTPS 200. No migration command was issued during deployment.
+The following preflight checks source digests and stops rather than falling back
+to upstream migrations if files differ or are absent. Do not copy files into a
+running container. Live PostgreSQL integration proof and production schema
+application still require operator execution; container health does not prove them.
 
 ```sh
 (

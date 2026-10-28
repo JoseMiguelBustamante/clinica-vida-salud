@@ -170,11 +170,18 @@ PDO `SELECT 1`: the application container is healthy and database login is prove
 Both services have named persistent volumes; PostgreSQL has no published external
 port. Persistence across a subsequent redeployment has not been tested.
 
-**Public access is blocked.** The configured hostname is
-`https://clinica.187.127.19.244.sslip.io`, but public ports 80/443 refuse connections
-and the read-only Dokploy inventory shows no Traefik container. Do not treat the
-hostname as live or restart the shared proxy without operator authorization;
-Electrónica may also depend on it. Public HTTP/TLS/CSS and browser checks are pending.
+**Public URL:** <https://clinica.187.127.19.244.sslip.io/>.
+HTTPS `/`, `/css/clinic.css` and `/up` returned 200 with certificate validation;
+the stylesheet matched the committed source. HTTP redirects to HTTPS (301), and
+private environment/source/log paths return 404. Browser visual and keyboard
+checks remain manual; HTTP checks do not prove appearance.
+
+The operator restored missing shared Traefik from its existing configuration after
+creating a private backup at `/etc/dokploy/backups/traefik-20261028T135937Z`.
+Configuration hashes stayed unchanged; Electrónica's frontend and API `/health`
+also returned HTTPS 200. Proxy ports bind only to `187.127.19.244` so Tailscale can
+retain `100.125.224.92:443`. Preserve those explicit binds during future proxy
+re-creation; do not replace them with wildcard bindings without checking conflicts.
 
 No migration ran. Reconcile the upstream migration files with the report's
 17-table schema before explicit authorization. Authentication and clinic business

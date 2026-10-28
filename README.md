@@ -86,9 +86,10 @@ Local defaults are `SESSION_DRIVER=file`, `CACHE_STORE=file`,
 `QUEUE_CONNECTION=sync`, `QUEUE_FAILED_DRIVER=null`: no sessions/cache/jobs tables
 are needed. Files are local to one instance; durable queues, shared storage,
 batching and failed-job retention require a later infrastructure/schema decision.
-Tests use array sessions/cache, sync queues and PostgreSQL configuration; the current
-tests do not connect to a database and never load environment files. Any future
-DB tests require an explicitly authorized, isolated PostgreSQL database, not SQLite.
+The default tests use array sessions/cache, sync queues and PostgreSQL configuration;
+they do not connect to a database or load environment files. Opt-in migration tests
+live outside the default suite in `tests/Integration`; they require the owned,
+disposable PostgreSQL fixture described below, never SQLite or production credentials.
 
 After manual provisioning, `composer run setup` retains dependency installation and
 frontend install/build only; it does not copy environment files, generate keys,
@@ -147,8 +148,8 @@ Startup runs **Apache only**. It never copies environment files, generates a key
 runs migrations, or caches configuration before runtime secrets exist. Composer
 scripts/package discovery are deliberately not run at build time. Laravel can
 create its package manifest on first runtime boot in writable `bootstrap/cache`.
-Do not enable upstream migrations: they have not been reconciled with the report's
-17-table schema.
+The three unused upstream migrations have been replaced by the report-aligned
+migration described below. Migration execution remains explicit, never automatic.
 
 The image health check requests `http://127.0.0.1/up` with bounded timeouts. This
 checks Laravel boot, **not PostgreSQL readiness**. After deployment, verify `/`,
@@ -183,7 +184,104 @@ also returned HTTPS 200. Proxy ports bind only to `187.127.19.244` so Tailscale 
 retain `100.125.224.92:443`. Preserve those explicit binds during future proxy
 re-creation; do not replace them with wildcard bindings without checking conflicts.
 
-No migration ran. Reconcile the upstream migration files with the report's
-17-table schema before explicit authorization. Authentication and clinic business
-workflows are not yet implemented. See `odd/tasks/clinic-dokploy.md` for deployment
-evidence and the open blocker.
+The report migration is implemented in source but has not been applied to the
+clinic database. PostgreSQL integration execution requires the operator's Docker
+access; passing structural tests alone does not prove a successful migration.
+Authentication and clinic business workflows are not yet implemented.
+See `odd/tasks/clinic-dokploy.md` for deployment evidence and
+`odd/tasks/clinic-migrations.md` for schema implementation and execution evidence.
+
+## Report-aligned backend migrations
+
+`database/migrations/2026_10_28_000000_create_clinic_schema.php` executes
+`database/schema/clinic.sql` inside Laravel's PostgreSQL transaction. The SQL
+preserves the report's physical script (PDF pages 126–135), including identity
+columns, nullability, named PK/FK/unique/check constraints and 11 explicit indexes:
+
+- Identity: `rol`, `permiso`, `usuario`, `rol_permiso`.
+- People/staff: `paciente`, `medico`, `especialidad`, `medico_especialidad`.
+- Scheduling: `horario_atencion`, `cita_medica`.
+- Supporting records: `informacion_medica`, `contacto_emergencia`,
+  `preferencias_notificacion`, `preferencias_privacidad`, `registro_atencion`,
+  `recordatorio_cita`, `evento_cita`.
+
+Laravel also creates its **`migrations` bookkeeping table**; it is not an eighteenth
+business table. No users, passwords, roles or clinical records are seeded. The
+report's deferred rules (such as preventing overlapping bookings transactionally)
+remain future backend work. No authentication or frontend feature is included.
+Rollback drops clinic tables without `CASCADE`: use it only on the disposable test
+fixture, not on a database containing real records. Never run `migrate:fresh`,
+`migrate:reset`, `db:wipe`, `--seed` or the removed scaffold migrations in production.
+
+### 1. Run the isolated PostgreSQL proof
+
+On this VPS, the operator can run the committed test runner with administrator
+Docker access, without changing socket permissions or exposing the clinic database:
+
+```sh
+sudo bash /home/agent/projects/clinica-vida-salud/tests/Integration/run-postgres.sh
+```
+
+Run `bash tests/Integration/run-postgres.sh --help` for requirements. It creates a
+randomly named PostgreSQL 17 container with no persistent volumes, a temporary
+in-memory data directory and an ephemeral port bound **only to 127.0.0.1**. Its
+random credentials stay in process variables, not arguments/files/output. It stops
+only its own fixture on exit; Docker removes that fixture automatically. Existing
+containers, networks and volumes are not removed. It refuses cached Laravel
+configuration. PHP, `pdo_pgsql`, Docker and the installed development dependencies
+must already be present; it installs nothing.
+
+The opt-in test checks the public Artisan migration/rollback commands, every
+column's type/nullability/identity, constraint and index names, idempotent migrate,
+valid related rows, rejected updates leaving rows and sequences unchanged, rollback
+and atomic failure on a conflicting fixture table. These tests are **not** part of
+the 24 database-independent tests. Missing Docker access is a blocker, not a pass.
+
+### 2. Apply only the deployed report migration
+
+**Stop if the isolated test fails.** The application must first be deployed from
+the same committed source: its current older image may not contain this migration.
+The following preflight fails rather than falling back to upstream migrations if
+the expected source files are absent. Do not copy files into a running container.
+
+```sh
+(
+  set -eu
+  ids=$(sudo docker ps -q --filter 'label=com.docker.swarm.service.name=clinica-vida-salud-web-yn2epv')
+  set -- $ids
+  if [ "$#" -ne 1 ]; then
+    echo 'STOP: expected exactly one running clinic application container.' >&2
+    exit 1
+  fi
+  app="$1"
+  sudo docker exec -w /var/www/html "$app" test -f database/migrations/2026_10_28_000000_create_clinic_schema.php
+  sudo docker exec -w /var/www/html "$app" test -f database/schema/clinic.sql
+  printf '%s\n' \
+    'f29dfeed3f044f6655b65f6f0752bbcfcf087fda4084be57fb1e450e8d157e84  database/migrations/2026_10_28_000000_create_clinic_schema.php' \
+    '09032b51e4ca0a59d1bcd652bad276e112f2fe655a7cdcf9c749e582c69a657a  database/schema/clinic.sql' \
+    | sudo docker exec -i -w /var/www/html "$app" sha256sum --check -
+  sudo docker exec -w /var/www/html "$app" php -r '
+    if (getenv("DB_CONNECTION") !== "pgsql"
+        || getenv("DB_DATABASE") !== "clinica_vida_salud"
+        || getenv("DB_HOST") !== "clinica-vida-salud-postgres-gze97v"
+        || getenv("DB_URL") || getenv("APP_CONFIG_CACHE")
+        || is_file("bootstrap/cache/config.php")) {
+        fwrite(STDERR, "STOP: unexpected clinic database configuration.\n"); exit(1);
+    }
+    $pdo = new PDO("pgsql:host=".getenv("DB_HOST").";port=".(getenv("DB_PORT") ?: "5432").";dbname=".getenv("DB_DATABASE"), getenv("DB_USERNAME"), getenv("DB_PASSWORD"), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $tables = $pdo->query("SELECT tablename FROM pg_tables WHERE schemaname = '\''public'\'' AND tablename <> '\''migrations'\''")->fetchAll(PDO::FETCH_COLUMN);
+    if ($tables !== []) {
+        fwrite(STDERR, "STOP: database is not empty; inspect schema before proceeding.\n"); exit(1);
+    }
+    echo "Clinic database target verified; no business tables exist.\n";
+  '
+  sudo docker exec -w /var/www/html "$app" php artisan migrate --force --no-interaction \
+    --path=database/migrations/2026_10_28_000000_create_clinic_schema.php
+  sudo docker exec -w /var/www/html "$app" php artisan migrate:status --no-interaction \
+    --path=database/migrations/2026_10_28_000000_create_clinic_schema.php
+)
+```
+
+Do not print runtime environment, raw Docker inspect data, connection strings or
+passwords when sharing results. Send only test/migration status. If a preflight
+fails, stop rather than retrying with broader paths or destructive commands.

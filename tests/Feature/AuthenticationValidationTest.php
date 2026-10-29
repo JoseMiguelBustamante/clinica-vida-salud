@@ -58,6 +58,7 @@ class AuthenticationValidationTest extends TestCase
         $repository = Mockery::mock(IdentityRepository::class);
         $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'contrasena_hash' => 'stored hash']);
         $repository->shouldReceive('matching')->once()->with(' Mixed@Example.test ')->andReturn(new Collection([$user]));
+        Hash::shouldReceive('make')->once()->with(Mockery::type('string'))->andReturn('dummy hash');
         Hash::shouldReceive('check')->once()->with(' password ', 'stored hash')->andReturn(false);
         $this->app->instance(IdentityRepository::class, $repository);
         $this->postJson('/auth/login', ['identifier' => ' Mixed@Example.test ', 'password' => ' password '])

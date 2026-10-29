@@ -2,6 +2,7 @@
 
 namespace App\Modules\Identity;
 
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,7 @@ class AuthenticationController
 
         $matches = $this->identities->matching($input['identifier']);
         $user = $matches->count() === 1 ? $matches->first() : null;
-        if (! $user || ! $user->activo || ! Hash::check($input['password'], $user->getAuthPassword())) {
+        if (! $this->verifyPassword($user, $input['password'])) {
             RateLimiter::hit($key, 60);
 
             return response()->json($failure, 401);
@@ -48,6 +49,16 @@ class AuthenticationController
         Auth::guard('web')->login($user);
 
         return response()->json(['user' => $representation, 'csrf_token' => $request->session()->token()]);
+    }
+
+    private function verifyPassword(?User $user, string $password): bool
+    {
+        // Generate uniformly, even for eligible accounts, so dummy setup never reveals account state.
+        $dummyHash = Hash::make(bin2hex(random_bytes(32)));
+        $eligible = $user !== null && $user->activo;
+        $verified = Hash::check($password, $eligible ? $user->getAuthPassword() : $dummyHash);
+
+        return $eligible && $verified;
     }
 
     public function session(Request $request): JsonResponse

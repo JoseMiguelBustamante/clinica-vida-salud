@@ -34,6 +34,14 @@ there are no HTML views or authentication redirects.
 - Missing/malformed fields produce Laravel validation JSON (`422`) before SQL or
   throttle access. Wrong, unknown, inactive and ambiguous accounts all return
   `401 {message:"Invalid credentials or account unavailable."}`.
+  Each well-formed, within-72-byte, non-throttled attempt generates a dummy hash
+  with the configured Laravel algorithm/cost, then performs one password check.
+  Eligible accounts use their stored hash; unknown, inactive and ambiguous
+  accounts use the dummy, whose result can never authorize access. Generation
+  runs for eligible accounts too, avoiding account-dependent setup or cache
+  misses. This intentionally adds one hash-generation operation per attempt;
+  it uses no sleeps or cached dummy profiles. Comparable hash work reduces the
+  account-state timing oracle, but is not a constant-time HTTP guarantee.
 - Five failed credential attempts within 60 seconds block subsequent attempts
   with `429 {message:"Too many login attempts. Try again later."}` and
   `Retry-After`. Cache keys contain SHA-256(identifier + IP), not plaintext

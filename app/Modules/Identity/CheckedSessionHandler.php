@@ -32,7 +32,10 @@ class CheckedSessionHandler implements SessionHandlerInterface
 
     public function write(string $id, string $data): bool
     {
-        if (! $this->inner->write($id, $data) || $this->inner->read($id) !== $data) {
+        $written = $this->inner->write($id, $data);
+        // Refresh cached expiry metadata before checking the just-written session.
+        clearstatcache();
+        if (! $written || $this->inner->read($id) !== $data) {
             throw new RuntimeException('Session write failed.');
         }
 

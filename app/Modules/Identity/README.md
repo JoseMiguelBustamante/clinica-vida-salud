@@ -53,11 +53,17 @@ there are no HTML views or authentication redirects.
   Debug exception details are suppressed. An uncertain logout is never confirmed.
 - Responses disable caching. Session storage writes and destruction are checked,
   including read-back, rather than trusting Laravel's ignored handler booleans.
+  Writes refresh PHP's cached filesystem metadata before read-back so rewriting
+  an expired file is not mistaken for a storage failure. Expired cookies produce
+  anonymous `401` protected reads and `419` stale-CSRF mutations; `GET /auth/csrf`
+  can bootstrap a fresh token. Genuine storage failures still produce `503`.
 
 ## Verification and deployment limits
 
-DB-independent tests cover validation, generic failures and middleware behavior.
-Actual queries, constraints, cookie fixation, expiration and invalidation require
+DB-independent tests cover validation, generic failures and middleware behavior,
+including expired-file recovery, real encrypted cookies and CSRF with only the
+identity repository mocked. Database-backed queries, constraints and the complete
+cookie/session lifecycle still require
 `tests/Integration/run-postgres.sh --identity` on its disposable PostgreSQL service.
 The integration tests use fresh file-session stores outside the repository and
 real encrypted cookies with the testing CSRF bypass disabled. They do not claim

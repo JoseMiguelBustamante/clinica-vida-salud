@@ -26,19 +26,31 @@ class ClinicSchemaTest extends TestCase
         $process->run();
 
         $this->assertSame(0, $process->getExitCode());
-        $this->assertSame("Usage: bash tests/Integration/run-postgres.sh\nRuns the clinic migration integration test on an owned disposable PostgreSQL 17 container.\nRequires Docker access, PHP pdo_pgsql and installed development dependencies.\nPublishes only a random loopback port; never connects to the clinic database.\n", $process->getOutput());
+        $this->assertSame("Usage: bash tests/Integration/run-postgres.sh\nRuns the clinic migration integration test on an owned disposable PostgreSQL 17 container.\nRequires Docker access, PHP pdo_pgsql and installed development dependencies.\nPublishes only a random loopback port; never connects to the clinic database.\nUse --identity to run backend authentication and private administrator bootstrap tests.\n", $process->getOutput());
         $this->assertSame('', $process->getErrorOutput());
     }
 
     public function test_opt_in_integration_test_is_discoverable_without_connecting_to_postgresql(): void
     {
-        $process = new Process([PHP_BINARY, dirname(__DIR__, 2).'/vendor/bin/phpunit', '--do-not-cache-result', '--list-tests', dirname(__DIR__).'/Integration/ClinicMigrationTest.php']);
+        $process = new Process([PHP_BINARY, dirname(__DIR__, 2).'/vendor/bin/phpunit', '--do-not-cache-result', '--list-tests', dirname(__DIR__).'/Integration']);
         $process->setTimeout(5);
         $process->run();
 
         $this->assertSame(0, $process->getExitCode());
         $this->assertSame('', $process->getErrorOutput());
         $this->assertStringContainsString('test_report_schema_is_atomic_repeatable_constrained_and_reversible_on_an_empty_fixture', $process->getOutput());
+    }
+
+    public function test_identity_fixture_base_loads_without_bootstrapping_a_database_connection(): void
+    {
+        $code = 'require '.var_export(dirname(__DIR__, 2).'/vendor/autoload.php', true).'; exit(class_exists(Tests\\Integration\\IdentityPostgresTestCase::class) ? 0 : 1);';
+        $process = new Process([PHP_BINARY, '-r', $code]);
+        $process->setTimeout(5);
+        $process->run();
+
+        $this->assertSame(0, $process->getExitCode());
+        $this->assertSame('', $process->getOutput());
+        $this->assertSame('', $process->getErrorOutput());
     }
 
     public function test_sql_matches_the_report_physical_schema_without_an_independent_transaction(): void

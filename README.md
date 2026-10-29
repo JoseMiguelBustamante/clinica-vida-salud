@@ -6,6 +6,30 @@ Identity, Patients, MedicalStaff, Schedules and Appointments under `app/Modules`
 The current slice registers module routes and serves a public clinic landing page;
 no authentication or business operations are implemented.
 
+## Backend authentication source (not deployed yet)
+
+CU01/CU02 backend source is implemented with Laravel web sessions and CSRF.
+The currently deployed site still serves the foundation: authentication
+deployment waits for operator-owned
+PostgreSQL integration proof. No frontend screens or real account were created.
+
+- Contract and limitations: `app/Modules/Identity/README.md`.
+- Tracking and evidence: `odd/tasks/clinic-authentication.md`.
+
+Run the existing owned/disposable PostgreSQL fixture in Identity mode:
+
+```sh
+sudo bash /home/agent/projects/clinica-vida-salud/tests/Integration/run-postgres.sh --identity
+```
+
+This targets the authored Identity integration cases for sessions/CSRF, active
+accounts and exact identifiers. Discovery alone is not a pass. The default runner without `--identity` still runs only the
+migration test. The default DB-independent suite remains separate.
+Never point these tests at the clinic database or seed a default administrator.
+After operator proof and security review, production must explicitly set
+`SESSION_SECURE_COOKIE=true` before authentication deployment; HttpOnly and
+SameSite protection remain enabled. Do not weaken cookies to make login work.
+
 ## Modular foundation
 
 | Surface | Responsibility |

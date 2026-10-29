@@ -6,7 +6,8 @@ if [[ "${1:-}" == '--help' ]]; then
         'Usage: bash tests/Integration/run-postgres.sh' \
         'Runs the clinic migration integration test on an owned disposable PostgreSQL 17 container.' \
         'Requires Docker access, PHP pdo_pgsql and installed development dependencies.' \
-        'Publishes only a random loopback port; never connects to the clinic database.'
+        'Publishes only a random loopback port; never connects to the clinic database.' \
+        'Use --identity to run backend authentication and private administrator bootstrap tests.'
     exit 0
 fi
 
@@ -61,4 +62,8 @@ address=$(docker port "$created" 5432/tcp)
 [[ "$address" == 127.0.0.1:* ]]
 export ISOLATED_PG_PORT="${address##*:}"
 echo 'Testing migrations on disposable PostgreSQL; production is not connected.'
-php vendor/bin/phpunit --do-not-cache-result tests/Integration/ClinicMigrationTest.php
+target='tests/Integration/ClinicMigrationTest.php'
+if [[ "${1:-}" == '--identity' ]]; then
+    target='tests/Integration/Identity'
+fi
+php vendor/bin/phpunit --do-not-cache-result "$target"

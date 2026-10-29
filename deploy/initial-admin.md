@@ -22,13 +22,29 @@ No real administrator has been created by the implementation/tests.
 
 ## Manual operator command
 
-With `app` identifying the verified application container, run exactly:
+The deployed clinic uses the exact Swarm service label below. This guarded block
+selects its single running application container and stops on zero/multiple
+matches; it never chooses the first unrelated Docker result. Run it manually in
+the private terminal only:
 
 ```sh
-sudo docker exec -it --user www-data -w /var/www/html "$app" php artisan clinic:bootstrap-admin
+(
+  set -eu
+  ids=$(sudo docker ps -q --filter 'label=com.docker.swarm.service.name=clinica-vida-salud-web-yn2epv')
+  set -- $ids
+  if [ "$#" -ne 1 ]; then
+    echo 'STOP: expected exactly one running clinic application container.' >&2
+    exit 1
+  fi
+  app="$1"
+  sudo docker exec -it --user www-data -w /var/www/html "$app" php artisan clinic:bootstrap-admin
+)
+resultado=$?
+printf '\nExit code: %s\n' "$resultado"
 ```
 
-For non-mutating command help, use the same Docker form with `--help` appended.
+For non-mutating command help, use the same guarded block with `--help` appended
+to the Artisan command.
 Do not pipe input, supply a password option, use `--no-interaction`, or automate
 this invocation. The command has no custom options or arguments.
 
@@ -50,6 +66,9 @@ Success exits **0** and prints only this result after the prompts:
 ```text
 Initial administrator created. Permissions were not changed.
 ```
+
+Share only that final message and the exit code, not the prompt transcript,
+username, email or password.
 
 It creates one active `usuario` using `Hash::make`, creating or reusing the exact
 `Administrador` role. It does not change existing users, role descriptions,

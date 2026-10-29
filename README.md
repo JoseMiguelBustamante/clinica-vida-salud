@@ -1,17 +1,27 @@
 # Clínica Vida Salud — bootstrap
 
 PHP 8.3+ / Laravel 13, PostgreSQL only. The accepted architecture is a modular
-monolith with server-rendered Blade, HTML, CSS and JavaScript. Future modules:
+monolith with server-rendered Blade, HTML, CSS and JavaScript. Approved modules:
 Identity, Patients, MedicalStaff, Schedules and Appointments under `app/Modules`.
-The current slice registers module routes and serves a public clinic landing page;
-no authentication or business operations are implemented.
+Identity now provides the session-authentication backend; Appointments still owns
+only the public foundation page. Clinical workflows and authentication screens
+are not implemented.
 
-## Backend authentication source (not deployed yet)
+## Backend authentication (deployed; private bootstrap pending)
 
-CU01/CU02 backend source is implemented with Laravel web sessions and CSRF,
-plus a private manually invoked initial-administrator command. The currently deployed site still serves the foundation: authentication
-deployment waits for operator-owned
-PostgreSQL integration proof. No frontend screens or real account were created.
+CU01/CU02 backend is deployed with Laravel web sessions and CSRF, plus the private,
+manually invoked initial-administrator command. The operator's post-fix disposable
+PostgreSQL run passed **43 tests, 521 assertions, exit 0**. Production deployment
+`dv-kYtsvHlGP-jE32gpot` completed from source `f1de786` (the tested `c70b298`
+application code plus tracking documentation). No migration or seed ran during
+deployment, and no real account or authentication screen was created.
+
+Live HTTPS checks passed for CSRF bootstrap, a Secure/HttpOnly/SameSite=Lax session
+cookie, private/no-store responses, guest-session rejection, CSRF rejection, and a
+valid-CSRF login attempt for a random nonexistent identity against PostgreSQL.
+Public routes/assets and private-file isolation remained intact. **Operator-only
+administrator creation and positive production login/session/logout checks remain
+pending**; an anonymous/failed login is not proof of successful authentication.
 
 - Contract and limitations: `app/Modules/Identity/README.md`.
 - Hidden-password operator command: `deploy/initial-admin.md`.
@@ -28,9 +38,10 @@ accounts, exact identifiers and private bootstrap/transaction/lock behavior.
 Discovery alone is not a pass. The default runner without `--identity` still runs only the
 migration test. The default DB-independent suite remains separate.
 Never point these tests at the clinic database or seed a default administrator.
-After operator proof and security review, production must explicitly set
-`SESSION_SECURE_COOKIE=true` before authentication deployment; HttpOnly and
-SameSite protection remain enabled. Do not weaken cookies to make login work.
+Production already had `SESSION_SECURE_COOKIE=true`; it was verified before
+upload without changing runtime variables. Actual HTTPS response cookies confirmed
+Secure, HttpOnly and SameSite=Lax. Retain these settings; do not weaken cookies to
+make login work.
 
 ## Modular foundation
 
@@ -43,8 +54,8 @@ SameSite protection remain enabled. Do not weaken cookies to make login work.
 | `resources/views/home.blade.php` | Public foundation status; no patient or medical data. |
 | `public/css/clinic.css` | Local responsive stylesheet, served directly without a frontend build. |
 
-Only Appointments has a module directory because it currently owns a route.
-Add other module directories only when implementing their approved behavior; the
+Identity and Appointments now have module directories for their implemented routes.
+Add remaining module directories only when implementing their approved behavior; the
 provider already recognizes their exact names. Module route files must explicitly
 apply their middleware (such as `web`) and choose unique route names and URLs.
 `routes/web.php` is reserved for future cross-module routes; it does not duplicate
@@ -195,7 +206,10 @@ A dedicated PostgreSQL 17 service and the Laravel application have been deployed
 in Dokploy. Its runtime health check extends the image check with an authenticated
 PDO `SELECT 1`: the application container is healthy and database login is proven.
 Both services have named persistent volumes; PostgreSQL has no published external
-port. Persistence across a subsequent redeployment has not been tested.
+port. The authentication application redeployment retained its configured database
+and successfully queried the existing `usuario` table. Persistence of real
+accounts, authenticated sessions or clinical records across redeployment remains
+untested; deployment did not create any such records.
 
 **Public URL:** <https://clinica.187.127.19.244.sslip.io/>.
 HTTPS `/`, `/css/clinic.css` and `/up` returned 200 with certificate validation;
@@ -217,9 +231,11 @@ execution finished `DONE`, and migration status reports `[1] Ran`. This creates
 The operator's disposable PostgreSQL integration output showed a pass marker and
 1/1 completed; its final assertion count/exit code were not supplied. The parent
 also verified public `/` and `/up` return HTTPS 200 after the schema change.
-Authentication and clinic business workflows are not yet implemented.
-See `odd/tasks/clinic-dokploy.md` for deployment evidence and
-`odd/tasks/clinic-migrations.md` for schema implementation and execution evidence.
+The session-authentication backend is now deployed as described above; clinical
+business workflows remain unimplemented. Initial administrator provisioning is
+still manual and pending. See `odd/tasks/clinic-authentication.md` for current
+authentication/deployment evidence, `odd/tasks/clinic-dokploy.md` for infrastructure,
+and `odd/tasks/clinic-migrations.md` for schema execution evidence.
 
 ## Report-aligned backend migrations
 
@@ -238,7 +254,9 @@ columns, nullability, named PK/FK/unique/check constraints and 11 explicit index
 Laravel also creates its **`migrations` bookkeeping table**; it is not an eighteenth
 business table. No users, passwords, roles or clinical records are seeded. The
 report's deferred rules (such as preventing overlapping bookings transactionally)
-remain future backend work. No authentication or frontend feature is included.
+remain future backend work. This migration unit itself adds no authentication or
+frontend feature; the separately implemented authentication backend uses these
+existing tables.
 Rollback drops clinic tables without `CASCADE`: use it only on the disposable test
 fixture, not on a database containing real records. Never run `migrate:fresh`,
 `migrate:reset`, `db:wipe`, `--seed` or the removed scaffold migrations in production.
@@ -264,8 +282,9 @@ must already be present; it installs nothing.
 The opt-in test checks the public Artisan migration/rollback commands, every
 column's type/nullability/identity, constraint and index names, idempotent migrate,
 valid related rows, rejected updates leaving rows and sequences unchanged, rollback
-and atomic failure on a conflicting fixture table. These tests are **not** part of
-the 24 database-independent tests. Missing Docker access is a blocker, not a pass.
+and atomic failure on a conflicting fixture table. These opt-in tests are **not**
+part of the default database-independent suite. Missing Docker access is a
+blocker, not a pass.
 
 ### 2. Apply only the deployed report migration
 

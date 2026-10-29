@@ -184,9 +184,13 @@ also returned HTTPS 200. Proxy ports bind only to `187.127.19.244` so Tailscale 
 retain `100.125.224.92:443`. Preserve those explicit binds during future proxy
 re-creation; do not replace them with wildcard bindings without checking conflicts.
 
-The report migration is implemented in source but has not been applied to the
-clinic database. PostgreSQL integration execution requires the operator's Docker
-access; passing structural tests alone does not prove a successful migration.
+The report migration has been applied to the clinic database by the authorized
+operator: both source digests matched, the target/empty-schema preflight passed,
+execution finished `DONE`, and migration status reports `[1] Ran`. This creates
+17 business tables plus Laravel's `migrations` bookkeeping table, without seeds.
+The operator's disposable PostgreSQL integration output showed a pass marker and
+1/1 completed; its final assertion count/exit code were not supplied. The parent
+also verified public `/` and `/up` return HTTPS 200 after the schema change.
 Authentication and clinic business workflows are not yet implemented.
 See `odd/tasks/clinic-dokploy.md` for deployment evidence and
 `odd/tasks/clinic-migrations.md` for schema implementation and execution evidence.
@@ -244,8 +248,12 @@ with these inactive migration files; the new container is healthy and public `/`
 and `/up` return HTTPS 200. No migration command was issued during deployment.
 The following preflight checks source digests and stops rather than falling back
 to upstream migrations if files differ or are absent. Do not copy files into a
-running container. Live PostgreSQL integration proof and production schema
-application still require operator execution; container health does not prove them.
+running container. The operator subsequently executed the guarded migration and
+reported `[1] Ran`; the commands below are retained as the initial-provisioning
+procedure, **not a request to run them again**. Their empty-schema check should
+now stop on this already-provisioned database. Do not bypass that check or reset
+any tables. Container health alone does not prove schema execution; the operator's
+migration/status output provides that evidence.
 
 ```sh
 (

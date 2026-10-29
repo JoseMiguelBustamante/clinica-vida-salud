@@ -18,7 +18,8 @@ class BootstrapAdministrator extends Command
     protected $help = <<<'HELP'
         Requires an interactive terminal with hidden input and an already migrated PostgreSQL database.
         Prompts for username (required, at most 100 characters), optional email (at most 255 characters),
-        password (at least 12 characters, at most 72 bytes), and hidden confirmation. Input is not trimmed.
+        password (at least 12 characters, at most 72 bytes), and hidden confirmation.
+        Only terminal line delimiters are removed; input spaces are not trimmed.
         Identifiers reject surrounding whitespace and control characters; passwords reject control characters.
         No password arguments, options, defaults, environment writes, migrations, or automatic invocation.
         Creates/reuses Administrador and creates one active usuario with a password hash in a transaction.
@@ -105,14 +106,22 @@ class BootstrapAdministrator extends Command
     /** Preserve password bytes rather than the framework's default trimming. */
     public function secret($question, $fallback = true): mixed
     {
-        $prompt = (new Question($question))->setTrimmable(false)->setHidden(true)->setHiddenFallback($fallback);
+        $prompt = $this->untrimmedQuestion($question)->setHidden(true)->setHiddenFallback($fallback);
 
         return $this->output->askQuestion($prompt);
     }
 
     private function promptUntrimmed(string $label): mixed
     {
-        return $this->output->askQuestion((new Question($label))->setTrimmable(false));
+        return $this->output->askQuestion($this->untrimmedQuestion($label));
+    }
+
+    private function untrimmedQuestion(string $label): Question
+    {
+        return (new Question($label))->setTrimmable(false)->setNormalizer(static function ($value) {
+            // The console reader can retain Enter's delimiter when trimming is disabled.
+            return is_string($value) ? preg_replace('/\r?\n\z/', '', $value) : $value;
+        });
     }
 
     private function validIdentifier(mixed $value, int $maximum, bool $optional): bool

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -17,7 +18,7 @@ class AdminBootstrapCommandTest extends TestCase
     {
         $this->assertSame(0, Artisan::call('help', ['command_name' => 'clinic:bootstrap-admin']));
         $help = Artisan::output();
-        foreach (['interactive terminal', 'already migrated PostgreSQL', 'Administrador', 'permissions', 'No password arguments', '12 characters', '72 bytes'] as $text) {
+        foreach (['interactive terminal', 'already migrated PostgreSQL', 'Administrador', 'permissions', 'No password arguments', '12 characters', '72 bytes', 'Only terminal line delimiters'] as $text) {
             $this->assertStringContainsString($text, $help);
         }
         $this->assertSame([], $this->app['db']->getConnections());
@@ -73,6 +74,49 @@ class AdminBootstrapCommandTest extends TestCase
         $cases[] = [array_replace($valid, [2 => ' twelve-characters', 3 => 'twelve-characters'])];
 
         return $cases;
+    }
+
+    #[DataProvider('terminalInputs')]
+    public function test_real_question_reader_handles_only_transport_line_endings(array $answers, bool $valid): void
+    {
+        $database = $this->app['db'];
+        $this->assertSame([], $database->getConnections());
+        if ($valid) {
+            // Observe validation success without opening a connection or writing any rows.
+            DB::shouldReceive('connection')->once()->andThrow(new RuntimeException('Synthetic database boundary'));
+        } else {
+            DB::shouldReceive('connection')->never();
+        }
+
+        $tester = new CommandTester(Artisan::all()['clinic:bootstrap-admin']);
+        $tester->setInputs($answers);
+        $tester->execute([], ['interactive' => true, 'capture_stderr_separately' => true]);
+
+        $this->assertSame(1, $tester->getStatusCode());
+        $expected = $valid
+            ? 'Unable to bootstrap administrator; stop and contact the operator.'
+            : 'Invalid administrator input; no changes made.';
+        $this->assertStringEndsWith($expected."\n", $tester->getDisplay());
+        $this->assertSame('', $tester->getErrorOutput());
+        $this->assertStringNotContainsString(rtrim($answers[2], "\r"), $tester->getDisplay());
+        $this->assertSame([], $database->getConnections());
+    }
+
+    public static function terminalInputs(): array
+    {
+        $password = 'synthetic-terminal-password';
+
+        return [
+            'LF and optional empty email' => [['operator', '', $password, $password], true],
+            'CRLF on every prompt' => [["operator\r", "\r", $password."\r", $password."\r"], true],
+            'password boundary spaces are preserved' => [['operator', 'operator@example.test', '  '.$password.'  ', '  '.$password.'  '], true],
+            'exact 72 byte password' => [['operator', '', str_repeat('x', 72), str_repeat('x', 72)], true],
+            'identifier spaces remain invalid' => [[' operator ', '', $password, $password], false],
+            'short password remains invalid' => [['operator', '', '12345678901', '12345678901'], false],
+            '73 byte password remains invalid' => [['operator', '', str_repeat('x', 73), str_repeat('x', 73)], false],
+            'confirmation spaces are not normalized' => [['operator', '', ' '.$password, $password], false],
+            'embedded control remains invalid' => [['operator', '', "synthetic\0password", "synthetic\0password"], false],
+        ];
     }
 
     public function test_hidden_input_failure_is_safe_and_does_not_connect(): void

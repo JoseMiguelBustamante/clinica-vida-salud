@@ -55,8 +55,12 @@ this invocation. The command has no custom options or arguments.
 | `Password` | Hidden; at least 12 characters and at most 72 UTF-8 bytes. |
 | `Confirm password` | Hidden; exactly the same password, including any spaces. |
 
-Identifiers reject surrounding whitespace and control characters; nothing is
-trimmed or normalized. Passwords reject control characters and are not trimmed.
+Prompts remove only the final LF/CRLF line delimiter supplied by Enter; this is
+transport framing, not part of the identifier or password. All user-supplied
+spaces remain intact. Identifiers reject surrounding whitespace and control
+characters; no other normalization occurs. Passwords reject control characters
+and are not trimmed. The real console reader, not just mocked prompt answers,
+is covered by regression tests.
 Both identifiers are compared case-sensitively against existing usernames AND
 emails to avoid ambiguous login identifiers. Choose identifiers privately.
 If hidden entry is unavailable, the command fails instead of echoing the password.

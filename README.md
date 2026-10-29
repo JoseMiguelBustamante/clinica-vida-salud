@@ -8,12 +8,13 @@ no authentication or business operations are implemented.
 
 ## Backend authentication source (not deployed yet)
 
-CU01/CU02 backend source is implemented with Laravel web sessions and CSRF.
-The currently deployed site still serves the foundation: authentication
+CU01/CU02 backend source is implemented with Laravel web sessions and CSRF,
+plus a private manually invoked initial-administrator command. The currently deployed site still serves the foundation: authentication
 deployment waits for operator-owned
 PostgreSQL integration proof. No frontend screens or real account were created.
 
 - Contract and limitations: `app/Modules/Identity/README.md`.
+- Hidden-password operator command: `deploy/initial-admin.md`.
 - Tracking and evidence: `odd/tasks/clinic-authentication.md`.
 
 Run the existing owned/disposable PostgreSQL fixture in Identity mode:
@@ -22,8 +23,9 @@ Run the existing owned/disposable PostgreSQL fixture in Identity mode:
 sudo bash /home/agent/projects/clinica-vida-salud/tests/Integration/run-postgres.sh --identity
 ```
 
-This targets the authored Identity integration cases for sessions/CSRF, active
-accounts and exact identifiers. Discovery alone is not a pass. The default runner without `--identity` still runs only the
+This targets 43 authored Identity integration cases for sessions/CSRF, active
+accounts, exact identifiers and private bootstrap/transaction/lock behavior.
+Discovery alone is not a pass. The default runner without `--identity` still runs only the
 migration test. The default DB-independent suite remains separate.
 Never point these tests at the clinic database or seed a default administrator.
 After operator proof and security review, production must explicitly set

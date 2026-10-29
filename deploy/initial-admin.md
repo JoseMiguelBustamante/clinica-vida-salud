@@ -37,10 +37,14 @@ the private terminal only:
     exit 1
   fi
   app="$1"
-  sudo docker exec -it --user www-data -w /var/www/html "$app" php artisan clinic:bootstrap-admin
+  if sudo docker exec -it --user www-data -w /var/www/html "$app" php artisan clinic:bootstrap-admin; then
+    printf '\nExit code: 0\n'
+  else
+    result=$?
+    printf '\nExit code: %s\n' "$result"
+    exit "$result"
+  fi
 )
-resultado=$?
-printf '\nExit code: %s\n' "$resultado"
 ```
 
 For non-mutating command help, use the same guarded block with `--help` appended

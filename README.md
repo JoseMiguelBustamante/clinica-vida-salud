@@ -12,9 +12,13 @@ are not implemented.
 CU01/CU02 backend is deployed with Laravel web sessions and CSRF, plus the private,
 manually invoked initial-administrator command. The operator's post-fix disposable
 PostgreSQL run passed **43 tests, 521 assertions, exit 0**. Production deployment
-`dv-kYtsvHlGP-jE32gpot` completed from source `f1de786` (the tested `c70b298`
-application code plus tracking documentation). No migration or seed ran during
-deployment, and no real account or authentication screen was created.
+`kRaBGJACL0JXrZvUhKNNe` completed from source `5f1553b`, including the private
+console Enter-delimiter correction. That adapter-only fix passed the real-reader
+regression, the 89-test default suite (1,012 assertions), and independent CLI
+verification (34 tests, 479 assertions). The earlier PostgreSQL proof remains
+applicable because database/authentication logic is unchanged; no new PostgreSQL
+run is claimed. No migration or seed ran during deployment, and no real account
+or authentication screen was created.
 
 Live HTTPS checks passed for CSRF bootstrap, a Secure/HttpOnly/SameSite=Lax session
 cookie, private/no-store responses, guest-session rejection, CSRF rejection, and a

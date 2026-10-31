@@ -1,8 +1,9 @@
 # Backend session authentication
 
 Identity exposes JSON session authentication against the report's `usuario`,
-`rol`, `permiso` and `rol_permiso` tables. It does not provide screens, registration,
-password recovery, user management or clinical authorization endpoints.
+`rol`, `permiso` and `rol_permiso` tables, plus HTML screens for staff sign-in
+and the signed-in panel. It does not provide registration, password recovery,
+user management or clinical authorization endpoints.
 
 ## HTTP contract
 
@@ -21,9 +22,19 @@ Laravel's web request-forgery middleware remains enabled.
 `user` contains only `id`, `username`, `email`, `role:{id,name}` and
 `permissions:[codes]`. Permissions come only from existing role-permission
 links, sorted by code. An administrator role does not bypass those links.
-Protected requests query the active account again rather than trusting a cached
-user. Deactivation invalidates the existing session. `/login` remains absent;
-there are no HTML views or authentication redirects.
+Protected JSON requests query the active account again rather than trusting a
+cached user. Deactivation invalidates the existing session.
+
+HTML screens (same session cookie, CSRF on mutations):
+
+| Request | Response |
+| --- | --- |
+| `GET /login` | `200` login form, or `302` to `/panel` when a session id is already present |
+| `POST /login` | `302` to `/panel`, or `302` back with a generic error |
+| `POST /logout` | `302` to `/login`; session invalidated |
+| `GET /panel` | `200` role shell, or `302` to `/login` for guests |
+
+`/auth/*` stays JSON. Do not send Idempotency-Key on login or logout.
 
 ## Rejections and availability
 

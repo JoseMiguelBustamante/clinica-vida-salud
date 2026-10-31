@@ -128,6 +128,93 @@ h1 {
     transform: translateY(0);
 }
 
+.site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+}
+
+.inline-form {
+    display: inline;
+    margin: 0;
+}
+
+.text-button,
+.button {
+    font: inherit;
+    cursor: pointer;
+}
+
+.text-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #075c57;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.text-button:hover {
+    color: #123c39;
+}
+
+.auth-panel {
+    max-width: 36rem;
+    padding-block: 3rem;
+}
+
+.auth-form,
+.form-errors {
+    padding: 1.25rem;
+    background: #ffffff;
+    border: 1px solid #c3d5d0;
+    border-radius: 1rem;
+}
+
+.form-errors {
+    margin-bottom: 1rem;
+    border-color: #975000;
+}
+
+.field {
+    display: grid;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+}
+
+.field input {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #c3d5d0;
+    border-radius: 0.5rem;
+    font: inherit;
+}
+
+.button {
+    padding: 0.7rem 1.2rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: #075c57;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.button:hover {
+    background: #123c39;
+}
+
+.role-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin-block: 1.5rem;
+}
+
+.pending {
+    color: #5a6f6c;
+}
+
 @media (max-width: 35rem) {
     .intro {
         padding-block: 2rem;

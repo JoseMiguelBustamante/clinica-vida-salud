@@ -12,6 +12,17 @@
     <header class="site-header">
         <div class="container header-content">
             <a class="brand" href="{{ route('home') }}">Clínica Vida Salud</a>
+            <nav class="site-nav" aria-label="Principal">
+                @if (session()->has(\Illuminate\Support\Facades\Auth::guard('web')->getName()))
+                    <a href="{{ route('panel') }}">Panel</a>
+                    <form class="inline-form" method="post" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="text-button" type="submit">Cerrar sesión</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}">Iniciar sesión</a>
+                @endif
+            </nav>
             <span class="status">Foundation in progress</span>
         </div>
     </header>

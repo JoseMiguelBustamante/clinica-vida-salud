@@ -3,8 +3,8 @@
 PHP 8.3+ / Laravel 13, PostgreSQL only. The accepted architecture is a modular
 monolith with server-rendered Blade, HTML, CSS and JavaScript. Approved modules:
 Identity, Patients, MedicalStaff, Schedules and Appointments under `app/Modules`.
-Identity now provides the session-authentication backend; Appointments still owns
-only the public foundation page. Clinical workflows and authentication screens
+Identity provides the session-authentication backend and the staff login/panel
+screens. Appointments still owns the public foundation page. Clinical workflows
 are not implemented.
 
 ## Backend authentication (deployed; private bootstrap pending)

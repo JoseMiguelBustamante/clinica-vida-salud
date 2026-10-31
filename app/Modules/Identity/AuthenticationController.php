@@ -2,17 +2,14 @@
 
 namespace App\Modules\Identity;
 
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticationController
 {
-    public function __construct(private IdentityRepository $identities) {}
+    public function __construct(private IdentitySessionService $sessions) {}
 
     public function csrf(Request $request): JsonResponse
     {
@@ -22,28 +19,18 @@ class AuthenticationController
     public function login(Request $request): JsonResponse
     {
         $input = $request->validate(['identifier' => ['required', 'string', 'max:255'], 'password' => ['required', 'string']]);
-        $failure = ['message' => 'Invalid credentials or account unavailable.'];
-        if (strlen($input['password']) > 72) {
-            return response()->json($failure, 401);
-        }
 
-        $key = 'identity:'.hash('sha256', $input['identifier'].$request->ip());
-        if (RateLimiter::tooManyAttempts($key, 5)) {
+        try {
+            $user = $this->sessions->authenticate($input['identifier'], $input['password'], (string) $request->ip());
+            $representation = $this->sessions->representation($user);
+        } catch (TooManyLoginAttempts $exception) {
             return response()->json(['message' => 'Too many login attempts. Try again later.'], 429,
-                ['Retry-After' => (string) RateLimiter::availableIn($key)]);
+                ['Retry-After' => (string) $exception->retryAfter]);
+        } catch (AuthenticationRejected) {
+            return response()->json(['message' => 'Invalid credentials or account unavailable.'], 401);
         }
 
-        $matches = $this->identities->matching($input['identifier']);
-        $user = $matches->count() === 1 ? $matches->first() : null;
-        if (! $this->verifyPassword($user, $input['password'])) {
-            RateLimiter::hit($key, 60);
-
-            return response()->json($failure, 401);
-        }
-
-        // Resolve the existing grants before establishing authentication.
-        $representation = $this->identities->representation($user);
-        RateLimiter::clear($key);
+        $this->sessions->forgetLoginAttempts($input['identifier'], (string) $request->ip());
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         Auth::guard('web')->login($user);
@@ -51,19 +38,9 @@ class AuthenticationController
         return response()->json(['user' => $representation, 'csrf_token' => $request->session()->token()]);
     }
 
-    private function verifyPassword(?User $user, string $password): bool
-    {
-        // Generate uniformly, even for eligible accounts, so dummy setup never reveals account state.
-        $dummyHash = Hash::make(bin2hex(random_bytes(32)));
-        $eligible = $user !== null && $user->activo;
-        $verified = Hash::check($password, $eligible ? $user->getAuthPassword() : $dummyHash);
-
-        return $eligible && $verified;
-    }
-
     public function session(Request $request): JsonResponse
     {
-        return response()->json(['user' => $this->identities->representation($request->attributes->get('identity')),
+        return response()->json(['user' => $this->sessions->representation($request->attributes->get('identity')),
             'csrf_token' => $request->session()->token()]);
     }
 

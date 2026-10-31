@@ -37,7 +37,6 @@ class AuthenticationValidationTest extends TestCase
             $response = $path === '/auth/logout' ? $this->post($path) : $this->get($path);
             $response->assertUnauthorized()->assertExactJson(['message' => 'Unauthenticated.']);
         }
-        $this->get('/login')->assertNotFound();
         $this->assertSame(['web'], $this->app['router']->getRoutes()->getByName('home')->middleware());
         $this->assertSame([], $this->app['db']->getConnections());
     }

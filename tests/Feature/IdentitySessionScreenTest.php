@@ -1,0 +1,122 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use App\Modules\Identity\IdentityRepository;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Mockery;
+use Tests\TestCase;
+
+class IdentitySessionScreenTest extends TestCase
+{
+    public function test_the_login_form_is_public_and_does_not_query_sql(): void
+    {
+        $this->get('/login')->assertOk()->assertViewIs('identity.login')
+            ->assertSee('Iniciar sesión')->assertSee('name="identifier"', false)
+            ->assertSee('name="password"', false)->assertDontSee('<script', false);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_json_auth_contract_is_unchanged_alongside_the_html_form(): void
+    {
+        $this->get('/auth/session')->assertUnauthorized()->assertExactJson(['message' => 'Unauthenticated.']);
+        $this->get('/login')->assertOk();
+        $this->get('/panel')->assertRedirect(route('login'));
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_malformed_html_login_is_redirected_without_queries_or_throttle(): void
+    {
+        RateLimiter::shouldReceive('tooManyAttempts')->never();
+        $this->from('/login')->post('/login', [])->assertRedirect('/login')
+            ->assertSessionHasErrors('identifier');
+        $this->assertGuest();
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_html_identifier_and_password_are_not_trimmed(): void
+    {
+        $repository = Mockery::mock(IdentityRepository::class);
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'contrasena_hash' => 'stored hash']);
+        $repository->shouldReceive('matching')->once()->with(' Mixed@Example.test ')->andReturn(new Collection([$user]));
+        Hash::shouldReceive('make')->once()->with(Mockery::type('string'))->andReturn('dummy hash');
+        Hash::shouldReceive('check')->once()->with(' password ', 'stored hash')->andReturn(false);
+        $this->app->instance(IdentityRepository::class, $repository);
+        $this->from('/login')->post('/login', ['identifier' => ' Mixed@Example.test ', 'password' => ' password '])
+            ->assertRedirect('/login')->assertSessionHasErrors('identifier');
+        $this->assertGuest();
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_html_over_72_bytes_is_generic_and_never_queries(): void
+    {
+        RateLimiter::shouldReceive('tooManyAttempts')->never();
+        $this->from('/login')->post('/login', ['identifier' => 'someone', 'password' => str_repeat('x', 73)])
+            ->assertRedirect('/login')->assertSessionHasErrors('identifier');
+        $this->assertGuest();
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_html_login_establishes_a_session_and_opens_the_panel(): void
+    {
+        $password = ' exact password ';
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'contrasena_hash' => Hash::make($password)]);
+        $representation = ['id' => 17, 'username' => 'candidate', 'email' => null,
+            'role' => ['id' => 9, 'name' => 'Recepcionista'], 'permissions' => ['pacientes.registrar']];
+        $repository = Mockery::mock(IdentityRepository::class);
+        $repository->shouldReceive('matching')->once()->with('candidate')->andReturn(new Collection([$user]));
+        $repository->shouldReceive('representation')->once()->with($user)->andReturn($representation);
+        $this->app->instance(IdentityRepository::class, $repository);
+
+        $this->post('/login', ['identifier' => 'candidate', 'password' => $password])
+            ->assertRedirect(route('panel'));
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_the_panel_shows_the_role_shell_for_an_active_session(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true]);
+        $representation = ['id' => 17, 'username' => 'candidate', 'email' => null,
+            'role' => ['id' => 9, 'name' => 'Recepcionista'], 'permissions' => ['pacientes.registrar']];
+        $repository = Mockery::mock(IdentityRepository::class);
+        $repository->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $repository->shouldReceive('representation')->once()->with($user)->andReturn($representation);
+        $this->app->instance(IdentityRepository::class, $repository);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/panel')->assertOk()->assertViewIs('identity.panel')
+            ->assertSee('candidate')->assertSee('Recepcionista')->assertSee('pacientes.registrar');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_html_logout_returns_to_the_login_form(): void
+    {
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->post('/logout')->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_html_csrf_rejects_login_without_querying(): void
+    {
+        $this->app->instance('env', 'csrf-verification');
+        $this->post('/login', ['identifier' => 'someone', 'password' => 'password'])->assertStatus(419);
+        $this->assertSame([], $this->app['db']->getConnections());
+        $this->assertGuest();
+    }
+
+    public function test_html_operational_failures_are_generic(): void
+    {
+        $repository = Mockery::mock(IdentityRepository::class);
+        $repository->shouldReceive('matching')->once()->andThrow(new \RuntimeException('SQL secret hash'));
+        $this->app->instance(IdentityRepository::class, $repository);
+        $this->from('/login')->post('/login', ['identifier' => 'someone', 'password' => 'password'])
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors(['identifier' => 'No fue posible completar el acceso.']);
+        $this->assertGuest();
+    }
+}

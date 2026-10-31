@@ -27,8 +27,8 @@ class ModuleFoundationTest extends TestCase
         $response->assertOk()
             ->assertSee('Clínica Vida Salud')
             ->assertSee('Foundation in progress')
-            ->assertSee('Authentication, patient records, staff schedules and appointment booking are not available yet.')
-            ->assertDontSee('href="/login"', false);
+            ->assertSee('Staff sign-in is available. Patient records, staff schedules and appointment booking are not available yet.')
+            ->assertSee('href="'.url('/login').'"', false);
 
         $document = new DOMDocument;
         @$document->loadHTML($response->getContent());
@@ -56,7 +56,7 @@ class ModuleFoundationTest extends TestCase
 
     public function test_business_endpoints_are_not_exposed_by_the_foundation(): void
     {
-        foreach (['/login', '/patients', '/medical-staff', '/schedules', '/appointments'] as $path) {
+        foreach (['/patients', '/medical-staff', '/schedules', '/appointments'] as $path) {
             $this->get($path)->assertNotFound();
         }
 

@@ -24,7 +24,11 @@ class RequireActiveSession
                 $request->session()->regenerateToken();
             }
 
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+            if ($request->is('auth/*')) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+
+            return redirect()->guest(route('login'));
         }
 
         $guard->setUser($user);

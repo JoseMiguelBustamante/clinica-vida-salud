@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Clínica Vida Salud application foundation and implementation status.">
     <title>@yield('title', 'Clínica Vida Salud')</title>
-    <link rel="stylesheet" href="{{ asset('css/clinic.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/clinic.css') }}?v={{ filemtime(public_path('css/clinic.css')) }}">
 </head>
-<body>
+<body class="@yield('body_class')">
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="site-header">
         <div class="container header-content">
@@ -19,8 +19,8 @@
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>
                     </form>
-                @else
-                    <a href="{{ route('login') }}">Iniciar sesión</a>
+                @elseif (! request()->routeIs('login'))
+                    <a class="nav-login" href="{{ route('login') }}">Iniciar sesión</a>
                 @endif
             </nav>
             <span class="status">Foundation in progress</span>

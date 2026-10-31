@@ -7,7 +7,7 @@
     <title>@yield('title', 'Clínica Vida Salud')</title>
     <link rel="stylesheet" href="{{ asset('css/clinic.css') }}?v={{ filemtime(public_path('css/clinic.css')) }}">
 </head>
-<body class="@yield('body_class')">
+<body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <header class="site-header">
         <div class="container header-content">

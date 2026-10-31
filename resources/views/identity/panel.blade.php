@@ -1,34 +1,55 @@
 @extends('layouts.clinic')
 
 @section('title', 'Panel — Clínica Vida Salud')
-@section('body_class', 'is-auth')
 
 @section('content')
-    <section class="auth-panel" aria-labelledby="page-title">
-        <div class="auth-card">
-            <h1 id="page-title">Panel de acceso</h1>
-            <p class="auth-lead">Sesión activa para {{ $user['username'] }}
-                @if ($user['role']['name'] ?? null)
-                    · {{ $user['role']['name'] }}
-                @endif
-            </p>
-
-            <nav class="role-menu" aria-label="Módulos según el rol">
-                <a href="{{ route('home') }}">Inicio</a>
-                <a href="{{ route('panel') }}" aria-current="page">Panel</a>
-                <span class="pending">Pacientes, personal, horarios y citas siguen pendientes.</span>
-            </nav>
-
-            @if ($user['permissions'] !== [])
-                <h2>Permisos del rol</h2>
-                <ul class="module-list">
-                    @foreach ($user['permissions'] as $permission)
-                        <li><code>{{ $permission }}</code></li>
-                    @endforeach
-                </ul>
-            @else
-                <p>Este rol no tiene permisos clínicos asignados.</p>
+    <section class="page-head" aria-labelledby="page-title">
+        <p class="eyebrow">Sesión activa</p>
+        <h1 id="page-title">Panel de acceso</h1>
+        <p class="lead">{{ $user['username'] }}
+            @if ($user['role']['name'] ?? null)
+                · {{ $user['role']['name'] }}
             @endif
-        </div>
+        </p>
+    </section>
+
+    <nav class="module-grid" aria-label="Módulos según el rol">
+        <a class="module-tile" href="{{ route('home') }}">
+            <strong>Inicio</strong>
+            <span>Portada pública de la clínica.</span>
+        </a>
+        <a class="module-tile is-current" href="{{ route('panel') }}" aria-current="page">
+            <strong>Panel</strong>
+            <span>Resumen de la sesión y del rol.</span>
+        </a>
+        <span class="module-tile is-pending">
+            <strong>Pacientes</strong>
+            <span>Pendiente — aún no está implementado.</span>
+        </span>
+        <span class="module-tile is-pending">
+            <strong>Personal médico</strong>
+            <span>Pendiente — aún no está implementado.</span>
+        </span>
+        <span class="module-tile is-pending">
+            <strong>Horarios</strong>
+            <span>Pendiente — aún no está implementado.</span>
+        </span>
+        <span class="module-tile is-pending">
+            <strong>Citas</strong>
+            <span>Pendiente — aún no está implementado.</span>
+        </span>
+    </nav>
+
+    <section class="implementation" aria-labelledby="permissions-title">
+        <h2 id="permissions-title">Permisos del rol</h2>
+        @if ($user['permissions'] !== [])
+            <ul class="module-list">
+                @foreach ($user['permissions'] as $permission)
+                    <li><code>{{ $permission }}</code></li>
+                @endforeach
+            </ul>
+        @else
+            <p>Este rol no tiene permisos clínicos asignados.</p>
+        @endif
     </section>
 @endsection

@@ -1,15 +1,17 @@
 @extends('layouts.clinic')
 
 @section('title', 'Iniciar sesión — Clínica Vida Salud')
-@section('body_class', 'is-auth')
 
 @section('content')
-    <section class="auth-panel" aria-labelledby="page-title">
-        <div class="auth-card">
+    <section class="page-split" aria-labelledby="page-title">
+        <div class="page-copy">
             <p class="eyebrow">Personal de la clínica</p>
             <h1 id="page-title">Iniciar sesión</h1>
-            <p class="auth-lead">Use el usuario o el correo de acceso. Las credenciales no se recortan ni se cambian de mayúsculas.</p>
+            <p class="lead">Acceso del personal para coordinar pacientes, horarios y citas.
+                El usuario o el correo y la contraseña no se recortan ni se cambian de mayúsculas.</p>
+        </div>
 
+        <div class="page-form">
             @if ($errors->any())
                 <div class="form-errors" role="alert">
                     <p>{{ $errors->first() }}</p>

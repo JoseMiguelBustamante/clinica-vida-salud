@@ -112,10 +112,18 @@ There is no public registration or recovery in this private-bootstrap procedure.
 
 ## Permission catalog (after the first administrator)
 
-`clinic:bootstrap-admin` still grants no permissions. To enable CU03 screens,
-run `clinic:sync-permissions` once in the same application container. It is not
-interactive: no password prompt, no `-it`, and it does not change accounts.
-Do not reuse a bare `$app` unless you just assigned it in this shell.
+`clinic:bootstrap-admin` still grants no permissions. After this source is
+deployed, the first signed-in request applies missing `rol`, `permiso` and
+`rol_permiso` rows from `PermissionCatalog` (including later codes such as
+`pacientes.gestionar`, `especialidades.gestionar`, `medicos.gestionar` and
+`horarios.gestionar`).
+No docker exec is required on each catalog change. Sign out and back in, or
+reload `/panel`, so the session reads the new links.
+
+`clinic:sync-permissions` remains a non-interactive manual repair: no password
+prompt, no `-it`, and it does not change accounts. Use it only if a signed-in
+request could not apply the catalog. Do not reuse a bare `$app` unless you just
+assigned it in this shell.
 
 ```sh
 (
@@ -132,10 +140,6 @@ Do not reuse a bare `$app` unless you just assigned it in this shell.
 ```
 
 Success prints `Roles and permission codes are defined. Existing accounts were not changed.`
-Until that catalog exists, an administrator can sign in and still receive 403 on `/usuarios`.
-Rerun the same block after deploying new catalog codes such as `pacientes.gestionar`,
-`especialidades.gestionar` and `medicos.gestionar`; it adds missing `rol_permiso`
-links and does not change passwords.
 If the block prints STOP, list clinic app containers with
 `sudo docker ps --filter name=clinica --format 'table {{.ID}}\t{{.Names}}\t{{.Label "com.docker.swarm.service.name"}}'`
 and stop; do not pick the first unrelated result. If Artisan says the command

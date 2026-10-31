@@ -14,6 +14,8 @@ final class PermissionCatalog
 
     public const MANAGE_PHYSICIANS = 'medicos.gestionar';
 
+    public const MANAGE_SCHEDULES = 'horarios.gestionar';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -30,6 +32,7 @@ final class PermissionCatalog
             ['codigo' => self::MANAGE_PATIENTS, 'descripcion' => 'Registrar, consultar, modificar y desactivar pacientes'],
             ['codigo' => self::MANAGE_SPECIALTIES, 'descripcion' => 'Administrar el catálogo de especialidades'],
             ['codigo' => self::MANAGE_PHYSICIANS, 'descripcion' => 'Administrar médicos y sus especialidades'],
+            ['codigo' => self::MANAGE_SCHEDULES, 'descripcion' => 'Configurar horarios de atención de los médicos'],
         ];
     }
 
@@ -56,9 +59,24 @@ final class PermissionCatalog
                 self::MANAGE_PATIENTS,
                 self::MANAGE_SPECIALTIES,
                 self::MANAGE_PHYSICIANS,
+                self::MANAGE_SCHEDULES,
             ],
             self::RECEPTIONIST_ROLE => [self::MANAGE_PATIENTS],
             default => [],
         };
+    }
+
+    public static function fingerprint(): string
+    {
+        $assignments = [];
+        foreach (self::roles() as $role) {
+            $assignments[$role['nombre']] = self::codesForRole($role['nombre']);
+        }
+
+        return hash('sha256', json_encode([
+            self::roles(),
+            self::permissions(),
+            $assignments,
+        ], JSON_THROW_ON_ERROR));
     }
 }

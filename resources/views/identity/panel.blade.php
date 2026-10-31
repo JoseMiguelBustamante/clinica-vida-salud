@@ -46,10 +46,12 @@
                 <span>Catálogo clínico con nombre único y estado.</span>
             </a>
         @endif
-        <span class="module-tile is-pending">
-            <strong>Horarios</strong>
-            <span>Pendiente — aún no está implementado.</span>
-        </span>
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_SCHEDULES, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('schedules.index') }}">
+                <strong>Horarios</strong>
+                <span>Días, franjas y duración de citas de cada médico.</span>
+            </a>
+        @endif
         <span class="module-tile is-pending">
             <strong>Citas</strong>
             <span>Pendiente — aún no está implementado.</span>

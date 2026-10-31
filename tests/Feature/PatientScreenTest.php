@@ -86,7 +86,8 @@ class PatientScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/panel')->assertOk()->assertSee('Pacientes')->assertSee('pacientes.gestionar')
-            ->assertDontSee('Usuarios y roles')->assertDontSee('Médicos')->assertDontSee('Especialidades');
+            ->assertDontSee('Usuarios y roles')->assertDontSee('Médicos')->assertDontSee('Especialidades')
+            ->assertDontSee('Horarios');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 }

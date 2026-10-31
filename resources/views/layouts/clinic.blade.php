@@ -27,6 +27,9 @@
                     @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_SPECIALTIES, $identityPermissions ?? [], true))
                         <a href="{{ route('specialties.index') }}">Especialidades</a>
                     @endif
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_SCHEDULES, $identityPermissions ?? [], true))
+                        <a href="{{ route('schedules.index') }}">Horarios</a>
+                    @endif
                     <form class="inline-form" method="post" action="{{ route('logout', absolute: false) }}">
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>

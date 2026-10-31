@@ -25,11 +25,18 @@
         <p>Intervalo: {{ \Illuminate\Support\Carbon::parse((string) $appointment->inicio)->timezone('UTC')->format('Y-m-d H:i') }}
             – {{ \Illuminate\Support\Carbon::parse((string) $appointment->fin)->timezone('UTC')->format('H:i') }} UTC</p>
         <p>Motivo: {{ $appointment->motivo_consulta ?: '—' }}</p>
-        <p>Programar o reprogramar no confirma la asistencia.</p>
+        @if ($appointment->estado === 'Cancelada')
+            <p>Motivo de cancelación: {{ $appointment->motivo_cancelacion ?: '—' }}</p>
+        @endif
+        <p>Programar o reprogramar no confirma la asistencia. Cancelar libera el horario y conserva el registro.</p>
         <p>
             @if (in_array(\App\Modules\Identity\PermissionCatalog::RESCHEDULE_APPOINTMENTS, $identityPermissions ?? [], true)
                 && in_array($appointment->estado, ['Programada', 'Confirmada'], true))
                 <a class="button button-inline" href="{{ route('appointments.reschedule', $appointment->id_cita) }}">Reprogramar cita</a>
+            @endif
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::CANCEL_APPOINTMENTS, $identityPermissions ?? [], true)
+                && in_array($appointment->estado, ['Programada', 'Confirmada'], true))
+                <a class="button button-inline" href="{{ route('appointments.cancel', $appointment->id_cita) }}">Cancelar cita</a>
             @endif
             @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
                 <a href="{{ route('appointments.create') }}">Programar otra cita</a>

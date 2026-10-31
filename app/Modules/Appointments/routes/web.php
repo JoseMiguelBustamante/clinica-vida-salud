@@ -40,3 +40,14 @@ Route::middleware([
     Route::post('/citas/{cita}/reprogramar', [AppointmentController::class, 'rescheduleAppointment'])
         ->name('appointments.reschedule.store')->whereNumber('cita');
 });
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::CANCEL_APPOINTMENTS,
+])->group(function (): void {
+    Route::get('/citas/{cita}/cancelar', [AppointmentController::class, 'showCancelAppointmentForm'])
+        ->name('appointments.cancel')->whereNumber('cita');
+    Route::post('/citas/{cita}/cancelar', [AppointmentController::class, 'cancelAppointment'])
+        ->name('appointments.cancel.store')->whereNumber('cita');
+});

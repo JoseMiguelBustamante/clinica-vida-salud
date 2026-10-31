@@ -39,6 +39,7 @@ class PermissionCatalogServiceTest extends TestCase
                         PermissionCatalog::CONSULT_AVAILABILITY,
                         PermissionCatalog::BOOK_APPOINTMENTS,
                         PermissionCatalog::RESCHEDULE_APPOINTMENTS,
+                        PermissionCatalog::CANCEL_APPOINTMENTS,
                     ];
             }),
         );

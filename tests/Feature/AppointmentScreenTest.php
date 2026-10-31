@@ -205,4 +205,52 @@ class AppointmentScreenTest extends TestCase
             ->assertRedirect('/citas/21/reprogramar')->assertSessionHasErrors('fecha');
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_a_session_without_cancel_permission_is_denied(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::RESCHEDULE_APPOINTMENTS]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/citas/21/cancelar')->assertForbidden()->assertSee('No tiene permiso para realizar esta operación.');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_the_cancel_form_opens_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::CANCEL_APPOINTMENTS]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn((object) [
+            'id_cita' => 21,
+            'codigo' => 'CIT-20261101080000ab',
+            'inicio' => '2026-11-01T08:00:00+00:00',
+            'fin' => '2026-11-01T08:30:00+00:00',
+            'motivo_consulta' => null,
+            'modalidad' => 'Presencial',
+            'estado' => 'Programada',
+            'id_medico' => 4,
+            'id_especialidad' => 3,
+            'paciente_nombres' => 'Ana',
+            'paciente_apellidos' => 'Rojas',
+            'paciente_ci' => '123',
+            'medico_nombres' => 'Luis',
+            'medico_apellidos' => 'Soto',
+            'registro_profesional' => 'MP-1',
+            'especialidad_nombre' => 'Pediatría',
+        ]);
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/citas/21/cancelar')->assertOk()->assertSee('Cancelar CIT-20261101080000ab')
+            ->assertSee('Confirmar cancelación')->assertSee('No cancelar');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

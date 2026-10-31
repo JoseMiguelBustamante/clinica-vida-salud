@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Modules\Appointments\AppointmentNotCancellable;
 use App\Modules\Appointments\AppointmentNotReschedulable;
 use App\Modules\Appointments\AppointmentRepository;
 use App\Modules\Appointments\AppointmentService;
@@ -246,6 +247,60 @@ class AppointmentServiceTest extends TestCase
             $this->fail('Expected SlotUnavailable');
         } catch (SlotUnavailable) {
         }
+    }
+
+    public function test_an_attended_appointment_cannot_be_cancelled(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Atendida'));
+        $appointments->shouldReceive('cancelAppointment')->never();
+
+        try {
+            $this->service($appointments, $patients)->cancelAppointment(21, 'Cambio de planes', 17);
+            $this->fail('Expected AppointmentNotCancellable');
+        } catch (AppointmentNotCancellable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_cancelled_appointment_cannot_be_cancelled_again(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Cancelada'));
+        $appointments->shouldReceive('cancelAppointment')->never();
+
+        try {
+            $this->service($appointments, $patients)->cancelAppointment(21, null, 17);
+            $this->fail('Expected AppointmentNotCancellable');
+        } catch (AppointmentNotCancellable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_programada_appointment_is_cancelled_and_frees_the_slot(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $row = $this->storedAppointment('Programada');
+        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($row);
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn (callable $callback) => $callback());
+        $appointments->shouldReceive('lockPhysicianAppointments')->once()->with(4);
+        $appointments->shouldReceive('cancelAppointment')->once()->with(21, 'Cambio de planes');
+        $appointments->shouldReceive('discardPendingReminders')->once()->with(21);
+        $appointments->shouldReceive('createAppointmentEvent')->once()->with(Mockery::on(function (array $values): bool {
+            return $values['tipo'] === 'Cancelacion'
+                && $values['id_cita'] === 21
+                && $values['motivo'] === 'Cambio de planes'
+                && $values['id_usuario'] === 17;
+        }));
+
+        $this->service($appointments, $patients)->cancelAppointment(21, 'Cambio de planes', 17);
     }
 
     /**

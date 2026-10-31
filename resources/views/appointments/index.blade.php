@@ -6,7 +6,7 @@
     <section class="page-head" aria-labelledby="page-title">
         <p class="eyebrow">Citas</p>
         <h1 id="page-title">Citas registradas</h1>
-        <p class="lead">Busque por código, paciente o médico. Reprogramar conserva el mismo identificador.</p>
+        <p class="lead">Busque por código, paciente o médico. Reprogramar conserva el identificador; cancelar libera el horario.</p>
         <p>
             @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
                 <a class="button button-inline" href="{{ route('appointments.create') }}">Programar cita</a>
@@ -58,11 +58,16 @@
                             @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
                                 <a href="{{ route('appointments.show', $appointment->id_cita) }}">Ver</a>
                             @endif
-                            @if (in_array($appointment->estado, ['Programada', 'Confirmada'], true))
+                            @if (in_array($appointment->estado, ['Programada', 'Confirmada'], true)
+                                && in_array(\App\Modules\Identity\PermissionCatalog::RESCHEDULE_APPOINTMENTS, $identityPermissions ?? [], true))
                                 @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
                                     ·
                                 @endif
                                 <a href="{{ route('appointments.reschedule', $appointment->id_cita) }}">Reprogramar</a>
+                            @endif
+                            @if (in_array($appointment->estado, ['Programada', 'Confirmada'], true)
+                                && in_array(\App\Modules\Identity\PermissionCatalog::CANCEL_APPOINTMENTS, $identityPermissions ?? [], true))
+                                · <a href="{{ route('appointments.cancel', $appointment->id_cita) }}">Cancelar</a>
                             @endif
                         </td>
                     </tr>

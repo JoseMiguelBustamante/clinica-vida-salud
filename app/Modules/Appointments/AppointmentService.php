@@ -118,6 +118,35 @@ final class AppointmentService
         });
     }
 
+    public function cancelAppointment(int $id, ?string $reason, int $actorUserId): void
+    {
+        $current = $this->getAppointmentById($id);
+        $this->assertCancellable($current);
+        $note = $this->optionalReason($reason);
+
+        DB::transaction(function () use ($id, $current, $note, $actorUserId): void {
+            $this->appointments->lockPhysicianAppointments((int) $current->id_medico);
+            $verified = $this->getAppointmentById($id);
+            $this->assertCancellable($verified);
+            $this->appointments->cancelAppointment($id, $note);
+            $this->appointments->discardPendingReminders($id);
+            $this->appointments->createAppointmentEvent([
+                'tipo' => 'Cancelacion',
+                'fecha_hora' => Carbon::now('UTC')->toIso8601String(),
+                'motivo' => $note,
+                'id_cita' => $id,
+                'id_usuario' => $actorUserId,
+            ]);
+        });
+    }
+
+    private function assertCancellable(object $appointment): void
+    {
+        if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {
+            throw new AppointmentNotCancellable;
+        }
+    }
+
     private function assertReschedulable(object $appointment): void
     {
         if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {

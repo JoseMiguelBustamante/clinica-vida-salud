@@ -55,7 +55,7 @@
         @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AVAILABILITY, $user['permissions'], true))
             <a class="module-tile" href="{{ route('availability.consult') }}">
                 <strong>Citas</strong>
-                <span>Consultar intervalos, programar y reprogramar citas.</span>
+                <span>Consultar intervalos, programar, reprogramar y cancelar citas.</span>
             </a>
         @elseif (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $user['permissions'], true))
             <a class="module-tile" href="{{ route('appointments.create') }}">

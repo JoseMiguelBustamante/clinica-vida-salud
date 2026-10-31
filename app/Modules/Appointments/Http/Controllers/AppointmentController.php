@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Appointments\Http\Controllers;
 
+use App\Modules\Appointments\AppointmentNotCancellable;
 use App\Modules\Appointments\AppointmentNotFound;
 use App\Modules\Appointments\AppointmentNotReschedulable;
 use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
+use App\Modules\Appointments\Http\Requests\CancelAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\PrepareAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\PrepareRescheduleRequest;
 use App\Modules\Appointments\Http\Requests\RescheduleAppointmentRequest;
@@ -196,5 +198,49 @@ final class AppointmentController
             : 'La cita quedó reprogramada.';
 
         return redirect()->route('appointments.show', $cita)->with('status', $message);
+    }
+
+    public function showCancelAppointmentForm(int $cita): View|RedirectResponse
+    {
+        try {
+            $appointment = $this->appointments->getAppointmentById($cita);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        }
+        if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {
+            return redirect()->route('appointments.show', $cita)
+                ->withErrors(['motivo_cancelacion' => 'El estado de esta cita no permite cancelarla.']);
+        }
+
+        return view('appointments.cancel', [
+            'appointment' => $appointment,
+        ]);
+    }
+
+    public function cancelAppointment(CancelAppointmentRequest $request, int $cita): RedirectResponse
+    {
+        $input = $request->validated();
+        $actor = $request->attributes->get('identity');
+        try {
+            $this->appointments->cancelAppointment(
+                $cita,
+                $input['motivo_cancelacion'] ?? null,
+                (int) $actor->id_usuario,
+            );
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentNotCancellable) {
+            return redirect()->route('appointments.show', $cita)
+                ->withErrors(['motivo_cancelacion' => 'El estado de esta cita no permite cancelarla.']);
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - cancelAppointment] '.$exception::class);
+
+            return back()->withInput()->withErrors(['motivo_cancelacion' => 'No fue posible cancelar la cita.']);
+        }
+
+        return redirect()->route('appointments.show', $cita)
+            ->with('status', 'La cita quedó cancelada. El intervalo queda libre para otra programación.');
     }
 }

@@ -109,6 +109,22 @@ class AppointmentRepository
         ]);
     }
 
+    public function cancelAppointment(int $id, ?string $reason): void
+    {
+        DB::table('cita_medica')->where('id_cita', $id)->update([
+            'estado' => 'Cancelada',
+            'motivo_cancelacion' => $reason,
+        ]);
+    }
+
+    public function discardPendingReminders(int $appointmentId): void
+    {
+        DB::table('recordatorio_cita')
+            ->where('id_cita', $appointmentId)
+            ->whereIn('estado', ['Pendiente', 'EnProceso'])
+            ->update(['estado' => 'Descartado']);
+    }
+
     public function lockPhysicianAppointments(int $physicianId): void
     {
         DB::select('SELECT pg_advisory_xact_lock(847201, ?)', [$physicianId]);
@@ -147,6 +163,7 @@ class AppointmentRepository
                 'cita_medica.inicio',
                 'cita_medica.fin',
                 'cita_medica.motivo_consulta',
+                'cita_medica.motivo_cancelacion',
                 'cita_medica.modalidad',
                 'cita_medica.estado',
                 'cita_medica.fecha_creacion',

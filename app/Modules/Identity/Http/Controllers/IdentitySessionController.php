@@ -67,8 +67,9 @@ final class IdentitySessionController
 
     public function showIdentityPanel(Request $request): View
     {
-        return view('identity.panel', [
-            'user' => $this->sessions->representation($request->attributes->get('identity')),
-        ]);
+        $user = $this->sessions->representation($request->attributes->get('identity'));
+        view()->share('identityPermissions', $user['permissions']);
+
+        return view('identity.panel', ['user' => $user]);
     }
 }

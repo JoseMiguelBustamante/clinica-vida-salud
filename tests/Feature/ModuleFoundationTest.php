@@ -46,7 +46,7 @@ class ModuleFoundationTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertOk()->assertSee(asset('css/clinic.css'), false);
+        $response->assertOk()->assertSee('/css/clinic.css', false);
         $this->assertFileExists(public_path('css/clinic.css'));
         $stylesheet = file_get_contents(public_path('css/clinic.css'));
         $this->assertStringContainsString(':focus-visible', $stylesheet);

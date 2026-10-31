@@ -1,9 +1,9 @@
 # Backend session authentication
 
 Identity exposes JSON session authentication against the report's `usuario`,
-`rol`, `permiso` and `rol_permiso` tables, plus HTML screens for staff sign-in
-and the signed-in panel. It does not provide registration, password recovery,
-user management or clinical authorization endpoints.
+`rol`, `permiso` and `rol_permiso` tables, HTML screens for staff sign-in and
+the signed-in panel, and CU03 account administration. It does not provide public
+registration, password recovery or clinical modules.
 
 ## HTTP contract
 
@@ -33,6 +33,18 @@ HTML screens (same session cookie, CSRF on mutations):
 | `POST /login` | `302` to `/panel`, or `302` back with a generic error |
 | `POST /logout` | `302` to `/login`; session invalidated |
 | `GET /panel` | `200` role shell, or `302` to `/login` for guests |
+
+HTML account administration (CU03), session required plus `usuarios.administrar`:
+
+| Request | Response |
+| --- | --- |
+| `GET /usuarios` | list/search |
+| `GET /usuarios/registrar` + `POST /usuarios` | register |
+| `GET /usuarios/{id}` | consult |
+| `GET /usuarios/{id}/editar` + `POST /usuarios/{id}` | update (password optional) |
+| `POST /usuarios/{id}/desactivar` / `activar` | change state |
+
+Roles and permission codes are defined with `php artisan clinic:sync-permissions`. That command does not create accounts or change passwords. The first administrator still comes from `clinic:bootstrap-admin`.
 
 `/auth/*` stays JSON. Do not send Idempotency-Key on login or logout.
 
@@ -86,4 +98,6 @@ SameSite defaults remain unchanged. Storage read-back is an availability check,
 not a distributed-session concurrency guarantee. Login throttling uses Laravel's
 cache limiter and is not an atomic cross-process admission lock. Account and
 permission provisioning is a separate, explicit operator responsibility; this
-module never seeds accounts or grants.
+module never seeds default credentials.
+`clinic:bootstrap-admin` creates the first administrator without permission rows.
+`clinic:sync-permissions` defines the role/permission catalog without changing passwords.

@@ -22,6 +22,12 @@
             <strong>Panel</strong>
             <span>Resumen de la sesión y del rol.</span>
         </a>
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_ACCOUNTS, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('accounts.index') }}">
+                <strong>Usuarios y roles</strong>
+                <span>Registrar, consultar, modificar y activar o desactivar cuentas.</span>
+            </a>
+        @endif
         <span class="module-tile is-pending">
             <strong>Pacientes</strong>
             <span>Pendiente — aún no está implementado.</span>

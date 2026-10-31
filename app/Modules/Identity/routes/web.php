@@ -1,8 +1,11 @@
 <?php
 
 use App\Modules\Identity\AuthenticationController;
+use App\Modules\Identity\Http\Controllers\IdentityAccountController;
 use App\Modules\Identity\Http\Controllers\IdentitySessionController;
+use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Identity\RequireActiveSession;
+use App\Modules\Identity\RequirePermission;
 use App\Modules\Identity\SessionBoundary;
 use Illuminate\Support\Facades\Route;
 
@@ -23,4 +26,24 @@ Route::middleware('web')->group(function (): void {
 
 Route::middleware(['web', RequireActiveSession::class])->group(function (): void {
     Route::get('/panel', [IdentitySessionController::class, 'showIdentityPanel'])->name('panel');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::MANAGE_ACCOUNTS,
+])->group(function (): void {
+    Route::get('/usuarios', [IdentityAccountController::class, 'getAllAccounts'])->name('accounts.index');
+    Route::get('/usuarios/registrar', [IdentityAccountController::class, 'showCreateAccountForm'])->name('accounts.create');
+    Route::post('/usuarios', [IdentityAccountController::class, 'createAccount'])->name('accounts.store');
+    Route::get('/usuarios/{usuario}', [IdentityAccountController::class, 'getAccountById'])->name('accounts.show')
+        ->whereNumber('usuario');
+    Route::get('/usuarios/{usuario}/editar', [IdentityAccountController::class, 'showEditAccountForm'])->name('accounts.edit')
+        ->whereNumber('usuario');
+    Route::post('/usuarios/{usuario}', [IdentityAccountController::class, 'updateAccount'])->name('accounts.update')
+        ->whereNumber('usuario');
+    Route::post('/usuarios/{usuario}/desactivar', [IdentityAccountController::class, 'deactivateAccount'])->name('accounts.deactivate')
+        ->whereNumber('usuario');
+    Route::post('/usuarios/{usuario}/activar', [IdentityAccountController::class, 'activateAccount'])->name('accounts.activate')
+        ->whereNumber('usuario');
 });

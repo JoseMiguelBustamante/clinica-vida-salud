@@ -3,9 +3,9 @@
 PHP 8.3+ / Laravel 13, PostgreSQL only. The accepted architecture is a modular
 monolith with server-rendered Blade, HTML, CSS and JavaScript. Approved modules:
 Identity, Patients, MedicalStaff, Schedules and Appointments under `app/Modules`.
-Identity provides the session-authentication backend and the staff login/panel
-screens. Appointments still owns the public foundation page. Clinical workflows
-are not implemented.
+Identity provides the session-authentication backend, the staff login/panel
+screens, and CU03 account administration. Appointments still owns the public
+foundation page. Clinical workflows are not implemented.
 
 ## Backend authentication (deployed; private bootstrap pending)
 
@@ -110,7 +110,8 @@ with bootstrap commands. An authorized operator must provision process environme
 variables through their local secret manager or, later, deployment configuration.
 Supply a unique secret `APP_KEY` generated outside this repository; never use the
 public, fixed PHPUnit key outside tests. Set `APP_ENV=local`, `APP_DEBUG=true` only
-locally, and an appropriate `APP_URL`. Use `APP_DEBUG=false` for production.
+locally, and an appropriate `APP_URL`. Production `APP_URL` must be the public
+`https://` origin (the TLS hostname). Use `APP_DEBUG=false` for production.
 
 Set `DB_CONNECTION=pgsql`, `DB_HOST`, `DB_PORT` (normally 5432), `DB_DATABASE`,
 `DB_USERNAME`, `DB_PASSWORD` and the appropriate `DB_SSLMODE`. Keep credentials out

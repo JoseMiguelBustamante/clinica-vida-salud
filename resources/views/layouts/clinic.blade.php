@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Clínica Vida Salud application foundation and implementation status.">
     <title>@yield('title', 'Clínica Vida Salud')</title>
-    <link rel="stylesheet" href="{{ asset('css/clinic.css') }}?v={{ filemtime(public_path('css/clinic.css')) }}">
+    <link rel="stylesheet" href="/css/clinic.css?v={{ filemtime(public_path('css/clinic.css')) }}">
 </head>
 <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -15,7 +15,10 @@
             <nav class="site-nav" aria-label="Principal">
                 @if (session()->has(\Illuminate\Support\Facades\Auth::guard('web')->getName()))
                     <a href="{{ route('panel') }}">Panel</a>
-                    <form class="inline-form" method="post" action="{{ route('logout') }}">
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_ACCOUNTS, $identityPermissions ?? [], true))
+                        <a href="{{ route('accounts.index') }}">Usuarios</a>
+                    @endif
+                    <form class="inline-form" method="post" action="{{ route('logout', absolute: false) }}">
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>
                     </form>

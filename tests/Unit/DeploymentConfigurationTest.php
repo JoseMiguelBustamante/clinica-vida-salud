@@ -84,5 +84,7 @@ class DeploymentConfigurationTest extends TestCase
         }
         $this->assertStringContainsString('RewriteRule ^ index.php [L]', $this->source('public/.htaccess'));
         $this->assertStringContainsString("health: '/up'", $this->source('bootstrap/app.php'));
+        $this->assertStringContainsString("trustProxies(at: '*')", $this->source('bootstrap/app.php'));
+        $this->assertStringContainsString("URL::forceScheme('https')", $this->source('app/Providers/AppServiceProvider.php'));
     }
 }

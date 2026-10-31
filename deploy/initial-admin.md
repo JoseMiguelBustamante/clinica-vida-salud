@@ -108,5 +108,32 @@ The lock is not a general account-management synchronization protocol.
 
 After a success, do not run this command again. Continue with the approved
 backend authentication checks without placing the password in a shell command.
-There are no authentication screens, public registration, recovery, or user CRUD
-in this private-bootstrap procedure.
+There is no public registration or recovery in this private-bootstrap procedure.
+
+## Permission catalog (after the first administrator)
+
+`clinic:bootstrap-admin` still grants no permissions. To enable CU03 screens,
+run `clinic:sync-permissions` once in the same application container. It is not
+interactive: no password prompt, no `-it`, and it does not change accounts.
+Do not reuse a bare `$app` unless you just assigned it in this shell.
+
+```sh
+(
+  set -eu
+  ids=$(sudo docker ps -q --filter 'label=com.docker.swarm.service.name=clinica-vida-salud-web-yn2epv')
+  set -- $ids
+  if [ "$#" -ne 1 ]; then
+    echo 'STOP: expected exactly one running clinic application container.' >&2
+    exit 1
+  fi
+  app="$1"
+  sudo docker exec --user www-data -w /var/www/html "$app" php artisan clinic:sync-permissions
+)
+```
+
+Success prints `Roles and permission codes are defined. Existing accounts were not changed.`
+Until that catalog exists, an administrator can sign in and still receive 403 on `/usuarios`.
+If the block prints STOP, list clinic app containers with
+`sudo docker ps --filter name=clinica --format 'table {{.ID}}\t{{.Names}}\t{{.Label "com.docker.swarm.service.name"}}'`
+and stop; do not pick the first unrelated result. If Artisan says the command
+is missing, this source is not deployed yet.

@@ -299,6 +299,64 @@ h1 {
     background: #123c39;
 }
 
+.button-inline {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+}
+
+.search-bar {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-bar .button {
+    width: auto;
+    justify-self: start;
+}
+
+.field select {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid #c3d5d0;
+    border-radius: 0.65rem;
+    background: #f4f8f7;
+    font: inherit;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    background: #ffffff;
+    border: 1px solid #c3d5d0;
+    border-radius: 1rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #c3d5d0;
+    vertical-align: top;
+}
+
+.data-table th {
+    font-size: 0.9rem;
+}
+
+@media (min-width: 52rem) {
+    .search-bar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+    }
+}
+
 @media (min-width: 52rem) {
     .page-split {
         grid-template-columns: minmax(0, 1fr) minmax(22rem, 32rem);

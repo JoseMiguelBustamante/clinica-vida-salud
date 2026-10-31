@@ -17,7 +17,17 @@ class IdentitySessionScreenTest extends TestCase
     {
         $this->get('/login')->assertOk()->assertViewIs('identity.login')
             ->assertSee('Iniciar sesión')->assertSee('name="identifier"', false)
-            ->assertSee('name="password"', false)->assertDontSee('<script', false);
+            ->assertSee('name="password"', false)->assertSee('action="/login"', false)
+            ->assertDontSee('action="http:', false)->assertDontSee('<script', false);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_tls_terminating_proxy_keeps_redirects_on_https(): void
+    {
+        $this->call('GET', '/panel', server: [
+            'HTTP_X_FORWARDED_PROTO' => 'https',
+            'HTTP_X_FORWARDED_FOR' => '203.0.113.10',
+        ])->assertRedirect('https://localhost/login');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
@@ -90,7 +100,8 @@ class IdentitySessionScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/panel')->assertOk()->assertViewIs('identity.panel')
-            ->assertSee('candidate')->assertSee('Recepcionista')->assertSee('pacientes.registrar');
+            ->assertSee('candidate')->assertSee('Recepcionista')->assertSee('pacientes.registrar')
+            ->assertDontSee('Usuarios y roles');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

@@ -27,7 +27,7 @@ class ModuleFoundationTest extends TestCase
         $response->assertOk()
             ->assertSee('Clínica Vida Salud')
             ->assertSee('Foundation in progress')
-            ->assertSee('Staff sign-in is available. Patient records, staff schedules and appointment booking are not available yet.')
+            ->assertSee('Staff sign-in, account administration and patient records are available. Medical staff, schedules and appointment booking are not available yet.')
             ->assertSee('href="'.url('/login').'"', false);
 
         $document = new DOMDocument;

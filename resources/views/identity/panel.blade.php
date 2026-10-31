@@ -28,10 +28,12 @@
                 <span>Registrar, consultar, modificar y activar o desactivar cuentas.</span>
             </a>
         @endif
-        <span class="module-tile is-pending">
-            <strong>Pacientes</strong>
-            <span>Pendiente — aún no está implementado.</span>
-        </span>
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_PATIENTS, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('patients.index') }}">
+                <strong>Pacientes</strong>
+                <span>Registrar, consultar, modificar y desactivar fichas de pacientes.</span>
+            </a>
+        @endif
         <span class="module-tile is-pending">
             <strong>Personal médico</strong>
             <span>Pendiente — aún no está implementado.</span>

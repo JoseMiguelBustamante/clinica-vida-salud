@@ -18,6 +18,9 @@
                     @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_ACCOUNTS, $identityPermissions ?? [], true))
                         <a href="{{ route('accounts.index') }}">Usuarios</a>
                     @endif
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_PATIENTS, $identityPermissions ?? [], true))
+                        <a href="{{ route('patients.index') }}">Pacientes</a>
+                    @endif
                     <form class="inline-form" method="post" action="{{ route('logout', absolute: false) }}">
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>

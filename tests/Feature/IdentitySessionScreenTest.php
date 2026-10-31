@@ -101,7 +101,7 @@ class IdentitySessionScreenTest extends TestCase
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/panel')->assertOk()->assertViewIs('identity.panel')
             ->assertSee('candidate')->assertSee('Recepcionista')->assertSee('pacientes.registrar')
-            ->assertDontSee('Usuarios y roles');
+            ->assertDontSee('Usuarios y roles')->assertDontSee('Registrar paciente');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

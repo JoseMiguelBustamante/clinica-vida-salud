@@ -18,8 +18,8 @@ class SyncPermissionCatalog extends Command
     protected $help = <<<'HELP'
         Requires an already migrated PostgreSQL database. Creates missing rol, permiso and
         rol_permiso rows from the clinic catalog. Existing usernames, emails and password hashes
-        are not changed. Administrador receives usuarios.administrar; other catalog roles receive
-        no extra codes yet. Idempotent: safe to rerun. No password prompts, arguments, defaults
+        are not changed.         Administrador receives usuarios.administrar and pacientes.gestionar;
+        Recepcionista receives pacientes.gestionar. Idempotent: safe to rerun. No password prompts, arguments, defaults
         or environment writes. On any error, stop and contact the operator.
         HELP;
 

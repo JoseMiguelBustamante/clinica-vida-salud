@@ -44,7 +44,11 @@ HTML account administration (CU03), session required plus `usuarios.administrar`
 | `GET /usuarios/{id}/editar` + `POST /usuarios/{id}` | update (password optional) |
 | `POST /usuarios/{id}/desactivar` / `activar` | change state |
 
-Roles and permission codes are defined with `php artisan clinic:sync-permissions`. That command does not create accounts or change passwords. The first administrator still comes from `clinic:bootstrap-admin`.
+Roles and permission codes come from `PermissionCatalog`. A signed-in request
+applies any missing `rol` / `permiso` / `rol_permiso` rows automatically.
+`php artisan clinic:sync-permissions` remains a manual repair and does not
+create accounts or change passwords. The first administrator still comes from
+`clinic:bootstrap-admin`.
 
 `/auth/*` stays JSON. Do not send Idempotency-Key on login or logout.
 
@@ -100,4 +104,5 @@ cache limiter and is not an atomic cross-process admission lock. Account and
 permission provisioning is a separate, explicit operator responsibility; this
 module never seeds default credentials.
 `clinic:bootstrap-admin` creates the first administrator without permission rows.
-`clinic:sync-permissions` defines the role/permission catalog without changing passwords.
+The next signed-in request defines the role/permission catalog. `clinic:sync-permissions`
+is optional after that and does not change passwords.

@@ -268,7 +268,8 @@ h1 {
     font-weight: 650;
 }
 
-.field input {
+.field input,
+.field textarea {
     width: 100%;
     min-height: 2.75rem;
     padding: 0.7rem 0.85rem;
@@ -278,7 +279,13 @@ h1 {
     font: inherit;
 }
 
-.field input:focus {
+.field textarea {
+    min-height: 6rem;
+    resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
     outline: 3px solid #975000;
     outline-offset: 2px;
     background: #ffffff;
@@ -341,6 +348,11 @@ h1 {
     border-radius: 0.65rem;
     padding: 0.45rem 0.75rem;
     background: #f4f8f7;
+}
+
+.slot-list a {
+    text-decoration: none;
+    font-weight: 650;
 }
 
 .field select {

@@ -18,6 +18,8 @@ final class PermissionCatalog
 
     public const CONSULT_AVAILABILITY = 'citas.consultar';
 
+    public const BOOK_APPOINTMENTS = 'citas.programar';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -36,6 +38,7 @@ final class PermissionCatalog
             ['codigo' => self::MANAGE_PHYSICIANS, 'descripcion' => 'Administrar médicos y sus especialidades'],
             ['codigo' => self::MANAGE_SCHEDULES, 'descripcion' => 'Configurar horarios de atención de los médicos'],
             ['codigo' => self::CONSULT_AVAILABILITY, 'descripcion' => 'Consultar médicos habilitados e intervalos disponibles'],
+            ['codigo' => self::BOOK_APPOINTMENTS, 'descripcion' => 'Programar citas médicas en intervalos disponibles'],
         ];
     }
 
@@ -64,8 +67,13 @@ final class PermissionCatalog
                 self::MANAGE_PHYSICIANS,
                 self::MANAGE_SCHEDULES,
                 self::CONSULT_AVAILABILITY,
+                self::BOOK_APPOINTMENTS,
             ],
-            self::RECEPTIONIST_ROLE => [self::MANAGE_PATIENTS, self::CONSULT_AVAILABILITY],
+            self::RECEPTIONIST_ROLE => [
+                self::MANAGE_PATIENTS,
+                self::CONSULT_AVAILABILITY,
+                self::BOOK_APPOINTMENTS,
+            ],
             default => [],
         };
     }

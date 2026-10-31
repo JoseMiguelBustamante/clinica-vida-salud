@@ -48,7 +48,7 @@ class AvailabilityScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/disponibilidad')->assertOk()->assertSee('Médicos y disponibilidad')
-            ->assertSee('Pediatría')->assertSee('no reserva', false);
+            ->assertSee('Pediatría')->assertSee('no lo reserva', false);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

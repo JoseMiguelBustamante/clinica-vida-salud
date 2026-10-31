@@ -37,6 +37,7 @@ class PermissionCatalogServiceTest extends TestCase
                     && $assignments[PermissionCatalog::RECEPTIONIST_ROLE] === [
                         PermissionCatalog::MANAGE_PATIENTS,
                         PermissionCatalog::CONSULT_AVAILABILITY,
+                        PermissionCatalog::BOOK_APPOINTMENTS,
                     ];
             }),
         );

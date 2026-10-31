@@ -29,6 +29,27 @@ class PatientRepository
         return $query->get();
     }
 
+    /** @return Collection<int, object> */
+    public function getActivePatients(?string $fragment): Collection
+    {
+        $query = DB::table('paciente')
+            ->select('id_paciente', 'ci', 'nombres', 'apellidos', 'fecha_nacimiento', 'sexo',
+                'telefono', 'correo_contacto', 'direccion', 'activo', 'fecha_registro')
+            ->where('activo', true)
+            ->orderBy('apellidos')->orderBy('nombres');
+
+        if ($fragment !== null && $fragment !== '') {
+            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $fragment).'%';
+            $query->where(function ($inner) use ($like): void {
+                $inner->whereRaw('paciente.ci ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw('paciente.nombres ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw('paciente.apellidos ILIKE ? ESCAPE \'!\'', [$like]);
+            });
+        }
+
+        return $query->get();
+    }
+
     public function getPatientById(int $id): ?object
     {
         return DB::table('paciente')

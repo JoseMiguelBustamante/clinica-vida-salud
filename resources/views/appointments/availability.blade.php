@@ -6,7 +6,10 @@
     <section class="page-head" aria-labelledby="page-title">
         <p class="eyebrow">Citas</p>
         <h1 id="page-title">Médicos y disponibilidad</h1>
-        <p class="lead">Consulte intervalos libres. Esta pantalla no reserva ni registra una cita.</p>
+        <p class="lead">Consulte intervalos libres. Ver un hueco no lo reserva; la programación vuelve a comprobarlo.</p>
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
+            <p><a class="button button-inline" href="{{ route('appointments.create') }}">Programar cita</a></p>
+        @endif
     </section>
 
     @if ($status)
@@ -57,10 +60,22 @@
             @else
                 <ul class="slot-list">
                     @foreach ($slots as $slot)
-                        <li>{{ $slot['hora_inicio'] }}–{{ $slot['hora_fin'] }}</li>
+                        <li>
+                            @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
+                                <a href="{{ route('appointments.create', [
+                                    'especialidad' => $especialidad,
+                                    'medico' => $medico,
+                                    'fecha' => $fecha,
+                                    'hora_inicio' => $slot['hora_inicio'],
+                                    'hora_fin' => $slot['hora_fin'],
+                                ], false) }}">{{ $slot['hora_inicio'] }}–{{ $slot['hora_fin'] }}</a>
+                            @else
+                                {{ $slot['hora_inicio'] }}–{{ $slot['hora_fin'] }}
+                            @endif
+                        </li>
                     @endforeach
                 </ul>
-                <p>Seleccionar un intervalo aquí no lo reserva. La programación de citas aún no está implementada.</p>
+                <p>Seleccionar un intervalo no lo reserva. La cita se registra solo al confirmar la programación.</p>
             @endif
         </section>
     @endif

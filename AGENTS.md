@@ -29,3 +29,9 @@ See `README.md` for safe provisioning requirements and current limitations.
 Run focused tests first with `vendor/bin/phpunit --do-not-cache-result <path>`;
 then the available DB-independent suite with `vendor/bin/phpunit --do-not-cache-result`.
 Validate Composer using `composer validate --strict --no-check-publish`.
+
+## Skills
+
+Before adding or editing PHP (controllers, services, repositories, FormRequests,
+routes or `app/Modules`), read `skills/php/SKILL.md`. It keeps Controller →
+Service → Repository practices and rejects the generic `BACKEND/src` / JWT stack.

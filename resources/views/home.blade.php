@@ -15,14 +15,14 @@
         <h2 id="status-title">Implementation status</h2>
         <p>The public landing page and modular route registration are in place.
             Clinical workflows are still pending implementation.</p>
-            <p>Staff sign-in, accounts, patients, physicians, specialties and schedules are available. Appointment booking is not available yet.</p>
+            <p>Staff sign-in, accounts, patients, physicians, specialties, schedules and availability lookup are available. Appointment booking is not available yet.</p>
         <h3>Planned module boundaries</h3>
         <ul class="module-list">
             <li><strong>Identity</strong> — staff sign-in, panel and account administration.</li>
             <li><strong>Patients</strong> — patient identification and contact records.</li>
             <li><strong>MedicalStaff</strong> — physicians and specialty catalog.</li>
             <li><strong>Schedules</strong> — physician weekly hours and slot duration.</li>
-            <li><strong>Appointments</strong> — landing route only; booking is not implemented.</li>
+            <li><strong>Appointments</strong> — availability lookup; booking is not implemented.</li>
         </ul>
     </section>
 @endsection

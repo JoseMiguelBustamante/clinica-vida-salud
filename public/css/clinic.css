@@ -328,6 +328,21 @@ h1 {
     font-weight: 450;
 }
 
+.slot-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+.slot-list li {
+    border: 1px solid #c3d5d0;
+    border-radius: 0.65rem;
+    padding: 0.45rem 0.75rem;
+    background: #f4f8f7;
+}
+
 .field select {
     width: 100%;
     min-height: 2.75rem;

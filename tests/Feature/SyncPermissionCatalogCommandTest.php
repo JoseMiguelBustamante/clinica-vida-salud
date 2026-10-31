@@ -14,7 +14,7 @@ class SyncPermissionCatalogCommandTest extends TestCase
     {
         $this->assertSame(0, Artisan::call('help', ['command_name' => 'clinic:sync-permissions']));
         $help = Artisan::output();
-        foreach (['already migrated PostgreSQL', 'usuarios.administrar', 'pacientes.gestionar', 'medicos.gestionar', 'horarios.gestionar', 'password hashes', 'Idempotent'] as $text) {
+        foreach (['already migrated PostgreSQL', 'usuarios.administrar', 'pacientes.gestionar', 'medicos.gestionar', 'horarios.gestionar', 'citas.consultar', 'password hashes', 'Idempotent'] as $text) {
             $this->assertStringContainsString($text, $help);
         }
         $this->assertSame([], $this->app['db']->getConnections());

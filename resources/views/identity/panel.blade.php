@@ -52,10 +52,12 @@
                 <span>Días, franjas y duración de citas de cada médico.</span>
             </a>
         @endif
-        <span class="module-tile is-pending">
-            <strong>Citas</strong>
-            <span>Pendiente — aún no está implementado.</span>
-        </span>
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AVAILABILITY, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('availability.consult') }}">
+                <strong>Citas</strong>
+                <span>Consultar médicos e intervalos libres. No reserva la cita.</span>
+            </a>
+        @endif
     </nav>
 
     <section class="implementation" aria-labelledby="permissions-title">

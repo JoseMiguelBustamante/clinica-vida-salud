@@ -115,8 +115,8 @@ There is no public registration or recovery in this private-bootstrap procedure.
 `clinic:bootstrap-admin` still grants no permissions. After this source is
 deployed, the first signed-in request applies missing `rol`, `permiso` and
 `rol_permiso` rows from `PermissionCatalog` (including later codes such as
-`pacientes.gestionar`, `especialidades.gestionar`, `medicos.gestionar` and
-`horarios.gestionar`).
+`pacientes.gestionar`, `especialidades.gestionar`, `medicos.gestionar`,
+`horarios.gestionar` and `citas.consultar`).
 No docker exec is required on each catalog change. Sign out and back in, or
 reload `/panel`, so the session reads the new links.
 

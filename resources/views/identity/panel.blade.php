@@ -67,7 +67,7 @@
                 @endforeach
             </ul>
         @else
-            <p>Este rol no tiene permisos clínicos asignados.</p>
+            <p>Este rol no tiene permisos clínicos asignados. Configurar horarios corresponde al administrador; la agenda del médico se habilita con las citas.</p>
         @endif
     </section>
 @endsection

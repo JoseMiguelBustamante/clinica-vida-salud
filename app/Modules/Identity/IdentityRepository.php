@@ -5,6 +5,7 @@ namespace App\Modules\Identity;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class IdentityRepository
 {
@@ -109,5 +110,104 @@ class IdentityRepository
     public function setAccountActive(int $id, bool $active): void
     {
         DB::table('usuario')->where('id_usuario', $id)->update(['activo' => $active]);
+    }
+
+    /**
+     * @param  list<string>  $permissionCodes
+     * @param  array<string, list<string>>  $codesByRole
+     */
+    public function permissionCatalogIsApplied(array $permissionCodes, array $codesByRole): bool
+    {
+        if ($permissionCodes === []) {
+            return true;
+        }
+
+        $stored = DB::table('permiso')->whereIn('codigo', $permissionCodes)->pluck('codigo')->all();
+        if (count($stored) !== count($permissionCodes)) {
+            return false;
+        }
+
+        foreach ($codesByRole as $roleName => $codes) {
+            if ($codes === []) {
+                continue;
+            }
+            $linked = (int) DB::table('rol_permiso')
+                ->join('rol', 'rol.id_rol', '=', 'rol_permiso.id_rol')
+                ->join('permiso', 'permiso.id_permiso', '=', 'rol_permiso.id_permiso')
+                ->whereRaw('rol.nombre COLLATE "C" = ?', [$roleName])
+                ->whereIn('permiso.codigo', $codes)
+                ->selectRaw('count(distinct permiso.codigo) as total')
+                ->value('total');
+            if ($linked !== count($codes)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  list<array{nombre: string, descripcion: string}>  $roles
+     * @param  list<array{codigo: string, descripcion: string}>  $permissions
+     * @param  array<string, list<string>>  $codesByRole
+     */
+    public function upsertPermissionCatalog(array $roles, array $permissions, array $codesByRole): void
+    {
+        $connection = DB::connection();
+        if ($connection->getDriverName() !== 'pgsql') {
+            throw new RuntimeException('Permission catalog requires PostgreSQL.');
+        }
+
+        $connection->transaction(function () use ($connection, $roles, $permissions, $codesByRole): void {
+            $connection->select('SELECT pg_advisory_xact_lock(1129072974, 2)');
+            $roleIds = [];
+            foreach ($roles as $role) {
+                $existing = $connection->table('rol')->whereRaw('nombre COLLATE "C" = ?', [$role['nombre']])->first();
+                if ($existing) {
+                    $roleIds[$role['nombre']] = $existing->id_rol;
+                    $connection->table('rol')->where('id_rol', $existing->id_rol)
+                        ->update(['descripcion' => $role['descripcion']]);
+
+                    continue;
+                }
+
+                $roleIds[$role['nombre']] = $connection->table('rol')->insertGetId([
+                    'nombre' => $role['nombre'],
+                    'descripcion' => $role['descripcion'],
+                ], 'id_rol');
+            }
+
+            $permissionIds = [];
+            foreach ($permissions as $permission) {
+                $existing = $connection->table('permiso')->whereRaw('codigo COLLATE "C" = ?', [$permission['codigo']])->first();
+                if ($existing) {
+                    $permissionIds[$permission['codigo']] = $existing->id_permiso;
+                    $connection->table('permiso')->where('id_permiso', $existing->id_permiso)
+                        ->update(['descripcion' => $permission['descripcion']]);
+
+                    continue;
+                }
+
+                $permissionIds[$permission['codigo']] = $connection->table('permiso')->insertGetId([
+                    'codigo' => $permission['codigo'],
+                    'descripcion' => $permission['descripcion'],
+                ], 'id_permiso');
+            }
+
+            foreach ($codesByRole as $roleName => $codes) {
+                $roleId = $roleIds[$roleName];
+                foreach ($codes as $code) {
+                    $permissionId = $permissionIds[$code];
+                    $linked = $connection->table('rol_permiso')
+                        ->where('id_rol', $roleId)->where('id_permiso', $permissionId)->exists();
+                    if (! $linked) {
+                        $connection->table('rol_permiso')->insert([
+                            'id_rol' => $roleId,
+                            'id_permiso' => $permissionId,
+                        ]);
+                    }
+                }
+            }
+        });
     }
 }

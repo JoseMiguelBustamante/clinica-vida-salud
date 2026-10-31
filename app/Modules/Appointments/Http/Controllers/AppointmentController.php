@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Modules\Appointments\Http\Controllers;
 
 use App\Modules\Appointments\AppointmentNotFound;
+use App\Modules\Appointments\AppointmentNotReschedulable;
 use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
 use App\Modules\Appointments\Http\Requests\PrepareAppointmentRequest;
+use App\Modules\Appointments\Http\Requests\PrepareRescheduleRequest;
+use App\Modules\Appointments\Http\Requests\RescheduleAppointmentRequest;
+use App\Modules\Appointments\Http\Requests\SearchAppointmentsRequest;
 use App\Modules\Appointments\Http\Requests\StoreAppointmentRequest;
 use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PatientNotEligible;
@@ -24,6 +28,16 @@ final class AppointmentController
         private AppointmentService $appointments,
         private AvailabilityService $availability,
     ) {}
+
+    public function getAllAppointments(SearchAppointmentsRequest $request): View
+    {
+        $input = $request->validated();
+
+        return view('appointments.index', [
+            'appointments' => $this->appointments->getAllAppointments($input['q'] ?? null),
+            'q' => $input['q'] ?? '',
+        ]);
+    }
 
     public function showCreateAppointmentForm(PrepareAppointmentRequest $request): View
     {
@@ -100,5 +114,87 @@ final class AppointmentController
             return redirect()->route('appointments.create')
                 ->withErrors(['id_paciente' => 'No puede realizarse la operación solicitada.']);
         }
+    }
+
+    public function showRescheduleAppointmentForm(PrepareRescheduleRequest $request, int $cita): View|RedirectResponse
+    {
+        try {
+            $appointment = $this->appointments->getAppointmentById($cita);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        }
+        if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {
+            return redirect()->route('appointments.show', $cita)
+                ->withErrors(['fecha' => 'El estado de esta cita no permite reprogramarla.']);
+        }
+
+        $input = $request->validated();
+        $date = $input['fecha'] ?? '';
+        $startClock = $input['hora_inicio'] ?? '';
+        $endClock = $input['hora_fin'] ?? '';
+        $slots = null;
+        $status = null;
+        try {
+            if ($date !== '') {
+                $slots = $this->availability->getAvailableSlots(
+                    (int) $appointment->id_especialidad,
+                    (int) $appointment->id_medico,
+                    $date,
+                    $cita,
+                );
+            }
+        } catch (InvalidAvailabilityInput) {
+            $status = 'Revise la fecha consultada.';
+        } catch (PhysicianNotEligible) {
+            $status = 'El médico no está habilitado para esa especialidad.';
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - showRescheduleAppointmentForm] '.$exception::class);
+            $status = 'No fue posible obtener la disponibilidad.';
+        }
+
+        return view('appointments.reschedule', [
+            'appointment' => $appointment,
+            'fecha' => $date,
+            'hora_inicio' => $startClock,
+            'hora_fin' => $endClock,
+            'slots' => $slots,
+            'status' => $status,
+        ]);
+    }
+
+    public function rescheduleAppointment(RescheduleAppointmentRequest $request, int $cita): RedirectResponse
+    {
+        $input = $request->validated();
+        $actor = $request->attributes->get('identity');
+        try {
+            $result = $this->appointments->rescheduleAppointment($cita, [
+                'fecha' => $input['fecha'],
+                'hora_inicio' => $input['hora_inicio'],
+                'hora_fin' => $input['hora_fin'],
+            ], (int) $actor->id_usuario);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentNotReschedulable) {
+            return redirect()->route('appointments.show', $cita)
+                ->withErrors(['fecha' => 'El estado de esta cita no permite reprogramarla.']);
+        } catch (PhysicianNotEligible) {
+            return back()->withInput()->withErrors(['fecha' => 'El médico no está habilitado para esa especialidad.']);
+        } catch (SlotUnavailable) {
+            return back()->withInput()->withErrors(['hora_inicio' => 'Ese intervalo ya no está disponible. Consulte otra fecha u hora.']);
+        } catch (InvalidAvailabilityInput) {
+            return back()->withInput()->withErrors(['fecha' => 'Indique un intervalo distinto, válido y no pasado.']);
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - rescheduleAppointment] '.$exception::class);
+
+            return back()->withInput()->withErrors(['fecha' => 'No fue posible reprogramar la cita.']);
+        }
+
+        $message = $result['required_new_confirmation']
+            ? 'La cita quedó reprogramada. Requiere una nueva confirmación de asistencia.'
+            : 'La cita quedó reprogramada.';
+
+        return redirect()->route('appointments.show', $cita)->with('status', $message);
     }
 }

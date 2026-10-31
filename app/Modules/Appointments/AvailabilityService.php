@@ -33,7 +33,7 @@ final class AvailabilityService
     /**
      * @return list<array{hora_inicio: string, hora_fin: string}>
      */
-    public function getAvailableSlots(int $specialtyId, int $physicianId, string $date): array
+    public function getAvailableSlots(int $specialtyId, int $physicianId, string $date, ?int $exceptAppointmentId = null): array
     {
         $this->requireEligiblePhysician($physicianId, $specialtyId);
         $day = $this->normalizedDate($date);
@@ -49,6 +49,7 @@ final class AvailabilityService
             $physicianId,
             $rangeStart->toIso8601String(),
             $rangeEnd->toIso8601String(),
+            $exceptAppointmentId,
         );
         $now = Carbon::now('UTC');
         $slots = [];
@@ -66,8 +67,13 @@ final class AvailabilityService
      *
      * @return array{available: true}|never
      */
-    public function validateRequestedSlot(int $specialtyId, int $physicianId, string $start, string $end): array
-    {
+    public function validateRequestedSlot(
+        int $specialtyId,
+        int $physicianId,
+        string $start,
+        string $end,
+        ?int $exceptAppointmentId = null,
+    ): array {
         $this->requireEligiblePhysician($physicianId, $specialtyId);
         try {
             $from = Carbon::parse($start, 'UTC');
@@ -89,6 +95,7 @@ final class AvailabilityService
             $physicianId,
             $from->toIso8601String(),
             $until->toIso8601String(),
+            $exceptAppointmentId,
         );
         if ($this->overlaps($from, $until, $occupying)) {
             throw new SlotUnavailable;

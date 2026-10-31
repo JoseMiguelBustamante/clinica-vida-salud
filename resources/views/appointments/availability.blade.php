@@ -7,9 +7,14 @@
         <p class="eyebrow">Citas</p>
         <h1 id="page-title">Médicos y disponibilidad</h1>
         <p class="lead">Consulte intervalos libres. Ver un hueco no lo reserva; la programación vuelve a comprobarlo.</p>
-        @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
-            <p><a class="button button-inline" href="{{ route('appointments.create') }}">Programar cita</a></p>
-        @endif
+        <p>
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
+                <a class="button button-inline" href="{{ route('appointments.create') }}">Programar cita</a>
+            @endif
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::RESCHEDULE_APPOINTMENTS, $identityPermissions ?? [], true))
+                · <a href="{{ route('appointments.index') }}">Citas registradas</a>
+            @endif
+        </p>
     </section>
 
     @if ($status)

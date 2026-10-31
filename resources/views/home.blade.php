@@ -15,14 +15,14 @@
         <h2 id="status-title">Implementation status</h2>
         <p>The public landing page and modular route registration are in place.
             Clinical workflows are still pending implementation.</p>
-            <p>Staff sign-in, accounts, patients, physicians, specialties, schedules, availability lookup and appointment booking are available.</p>
+            <p>Staff sign-in, accounts, patients, physicians, specialties, schedules, availability lookup, appointment booking and rescheduling are available.</p>
         <h3>Planned module boundaries</h3>
         <ul class="module-list">
             <li><strong>Identity</strong> — staff sign-in, panel and account administration.</li>
             <li><strong>Patients</strong> — patient identification and contact records.</li>
             <li><strong>MedicalStaff</strong> — physicians and specialty catalog.</li>
             <li><strong>Schedules</strong> — physician weekly hours and slot duration.</li>
-            <li><strong>Appointments</strong> — availability lookup and booking a Programada appointment.</li>
+            <li><strong>Appointments</strong> — availability lookup, booking and rescheduling a Programada appointment.</li>
         </ul>
     </section>
 @endsection

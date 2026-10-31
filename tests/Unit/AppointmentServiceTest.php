@@ -2,9 +2,11 @@
 
 namespace Tests\Unit;
 
+use App\Modules\Appointments\AppointmentNotReschedulable;
 use App\Modules\Appointments\AppointmentRepository;
 use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
+use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PatientNotEligible;
 use App\Modules\Appointments\SlotUnavailable;
 use App\Modules\MedicalStaff\PhysicianRepository;
@@ -131,6 +133,121 @@ class AppointmentServiceTest extends TestCase
         $this->assertSame(21, $id);
     }
 
+    public function test_a_cancelled_appointment_cannot_be_rescheduled(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Cancelada'));
+        $appointments->shouldReceive('updateAppointmentSchedule')->never();
+
+        try {
+            $this->service($appointments, $patients)->rescheduleAppointment(21, $this->reschedulePayload(), 17);
+            $this->fail('Expected AppointmentNotReschedulable');
+        } catch (AppointmentNotReschedulable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_the_same_interval_is_rejected_before_writes(): void
+    {
+        $day = Carbon::now('UTC')->addDays(10)->startOfDay();
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Programada', $day));
+        $appointments->shouldReceive('lockPhysicianAppointments')->never();
+        $appointments->shouldReceive('updateAppointmentSchedule')->never();
+
+        try {
+            $this->service($appointments, $patients)->rescheduleAppointment(21, [
+                'fecha' => $day->toDateString(),
+                'hora_inicio' => '08:00',
+                'hora_fin' => '08:30',
+            ], 17);
+            $this->fail('Expected InvalidAvailabilityInput');
+        } catch (InvalidAvailabilityInput) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_confirmed_appointment_returns_to_programada(): void
+    {
+        $day = Carbon::now('UTC')->addDays(10)->startOfDay();
+        $weekday = ScheduleService::WEEKDAYS[$day->isoWeekday() - 1];
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $row = $this->storedAppointment('Confirmada', $day);
+        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($row);
+        $specialties->shouldReceive('getSpecialtyById')->once()->with(3)
+            ->andReturn((object) ['id_especialidad' => 3, 'activo' => true]);
+        $physicians->shouldReceive('getPhysicianById')->once()->with(4)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true]);
+        $appointments->shouldReceive('physicianAttendsSpecialty')->once()->with(4, 3)->andReturn(true);
+        $appointments->shouldReceive('getActiveSchedulesForPhysicianOnDay')->once()->with(4, $weekday)
+            ->andReturn(collect([
+                (object) ['hora_inicio' => '08:00:00', 'hora_fin' => '09:00:00', 'duracion_cita_minutos' => 30],
+            ]));
+        $appointments->shouldReceive('getOccupyingAppointments')->once()
+            ->withArgs(fn (int $physicianId, string $start, string $end, ?int $except): bool => $physicianId === 4 && $except === 21)
+            ->andReturn(collect());
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn (callable $callback) => $callback());
+        $appointments->shouldReceive('lockPhysicianAppointments')->once()->with(4);
+        $appointments->shouldReceive('updateAppointmentSchedule')->once()
+            ->with(21, Mockery::type('string'), Mockery::type('string'), 'Programada');
+        $appointments->shouldReceive('createAppointmentEvent')->once()->with(Mockery::on(function (array $values): bool {
+            return $values['tipo'] === 'Reprogramacion'
+                && $values['id_cita'] === 21
+                && $values['id_usuario'] === 17;
+        }));
+
+        $result = $this->service($appointments, $patients, $physicians, $specialties)
+            ->rescheduleAppointment(21, $this->reschedulePayload($day->toDateString()), 17);
+
+        $this->assertSame(21, $result['appointment_id']);
+        $this->assertTrue($result['required_new_confirmation']);
+    }
+
+    public function test_an_occupied_new_slot_does_not_change_the_appointment(): void
+    {
+        $day = Carbon::now('UTC')->addDays(10)->startOfDay();
+        $weekday = ScheduleService::WEEKDAYS[$day->isoWeekday() - 1];
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)
+            ->andReturn($this->storedAppointment('Confirmada', $day));
+        $specialties->shouldReceive('getSpecialtyById')->once()->with(3)
+            ->andReturn((object) ['id_especialidad' => 3, 'activo' => true]);
+        $physicians->shouldReceive('getPhysicianById')->once()->with(4)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true]);
+        $appointments->shouldReceive('physicianAttendsSpecialty')->once()->with(4, 3)->andReturn(true);
+        $appointments->shouldReceive('getActiveSchedulesForPhysicianOnDay')->once()->with(4, $weekday)
+            ->andReturn(collect([
+                (object) ['hora_inicio' => '08:00:00', 'hora_fin' => '09:00:00', 'duracion_cita_minutos' => 30],
+            ]));
+        $from = $day->copy()->setTime(8, 30);
+        $until = $day->copy()->setTime(9, 0);
+        $appointments->shouldReceive('getOccupyingAppointments')->once()->andReturn(collect([
+            (object) ['id_cita' => 99, 'inicio' => $from->toIso8601String(), 'fin' => $until->toIso8601String(), 'estado' => 'Programada'],
+        ]));
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn (callable $callback) => $callback());
+        $appointments->shouldReceive('lockPhysicianAppointments')->once()->with(4);
+        $appointments->shouldReceive('updateAppointmentSchedule')->never();
+
+        try {
+            $this->service($appointments, $patients, $physicians, $specialties)
+                ->rescheduleAppointment(21, $this->reschedulePayload($day->toDateString()), 17);
+            $this->fail('Expected SlotUnavailable');
+        } catch (SlotUnavailable) {
+        }
+    }
+
     /**
      * @return array{id_paciente: int, id_especialidad: int, id_medico: int, fecha: string, hora_inicio: string, hora_fin: string, modalidad: string, motivo_consulta: ?string}
      */
@@ -145,6 +262,34 @@ class AppointmentServiceTest extends TestCase
             'hora_fin' => '08:30',
             'modalidad' => 'Presencial',
             'motivo_consulta' => 'Control',
+        ];
+    }
+
+    /**
+     * @return array{fecha: string, hora_inicio: string, hora_fin: string}
+     */
+    private function reschedulePayload(?string $date = null): array
+    {
+        return [
+            'fecha' => $date ?? Carbon::now('UTC')->addDays(10)->toDateString(),
+            'hora_inicio' => '08:30',
+            'hora_fin' => '09:00',
+        ];
+    }
+
+    private function storedAppointment(string $status, ?Carbon $day = null): object
+    {
+        $day ??= Carbon::now('UTC')->addDays(10)->startOfDay();
+
+        return (object) [
+            'id_cita' => 21,
+            'codigo' => 'CIT-1',
+            'inicio' => $day->copy()->setTime(8, 0)->toIso8601String(),
+            'fin' => $day->copy()->setTime(8, 30)->toIso8601String(),
+            'estado' => $status,
+            'id_paciente' => 8,
+            'id_medico' => 4,
+            'id_especialidad' => 3,
         ];
     }
 

@@ -28,3 +28,15 @@ Route::middleware([
     Route::post('/citas', [AppointmentController::class, 'createAppointment'])->name('appointments.store');
     Route::get('/citas/{cita}', [AppointmentController::class, 'getAppointmentById'])->name('appointments.show')->whereNumber('cita');
 });
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::RESCHEDULE_APPOINTMENTS,
+])->group(function (): void {
+    Route::get('/citas', [AppointmentController::class, 'getAllAppointments'])->name('appointments.index');
+    Route::get('/citas/{cita}/reprogramar', [AppointmentController::class, 'showRescheduleAppointmentForm'])
+        ->name('appointments.reschedule')->whereNumber('cita');
+    Route::post('/citas/{cita}/reprogramar', [AppointmentController::class, 'rescheduleAppointment'])
+        ->name('appointments.reschedule.store')->whereNumber('cita');
+});

@@ -22,6 +22,11 @@ final class AppointmentService
         return $this->patients->getActivePatients($fragment === '' ? null : $fragment);
     }
 
+    public function getAllAppointments(?string $fragment): Collection
+    {
+        return $this->appointments->getAllAppointments($fragment === '' ? null : $fragment);
+    }
+
     public function getAppointmentById(int $id): object
     {
         $appointment = $this->appointments->getAppointmentById($id);
@@ -72,6 +77,66 @@ final class AppointmentService
 
             return $appointmentId;
         });
+    }
+
+    /**
+     * @param  array{fecha: string, hora_inicio: string, hora_fin: string}  $input
+     * @return array{appointment_id: int, required_new_confirmation: bool}
+     */
+    public function rescheduleAppointment(int $id, array $input, int $actorUserId): array
+    {
+        $current = $this->getAppointmentById($id);
+        $this->assertReschedulable($current);
+        $interval = $this->normalizedInterval((string) $input['fecha'], (string) $input['hora_inicio'], (string) $input['hora_fin']);
+        $this->assertDifferentInterval($current, $interval);
+
+        return DB::transaction(function () use ($id, $current, $interval, $actorUserId): array {
+            $this->appointments->lockPhysicianAppointments((int) $current->id_medico);
+            $locked = $this->getAppointmentById($id);
+            $this->assertReschedulable($locked);
+            $this->availability->validateRequestedSlot(
+                (int) $locked->id_especialidad,
+                (int) $locked->id_medico,
+                $interval['inicio'],
+                $interval['fin'],
+                $id,
+            );
+            $wasConfirmed = $locked->estado === 'Confirmada';
+            $this->appointments->updateAppointmentSchedule($id, $interval['inicio'], $interval['fin'], 'Programada');
+            $this->appointments->createAppointmentEvent([
+                'tipo' => 'Reprogramacion',
+                'fecha_hora' => Carbon::now('UTC')->toIso8601String(),
+                'motivo' => null,
+                'id_cita' => $id,
+                'id_usuario' => $actorUserId,
+            ]);
+
+            return [
+                'appointment_id' => $id,
+                'required_new_confirmation' => $wasConfirmed,
+            ];
+        });
+    }
+
+    private function assertReschedulable(object $appointment): void
+    {
+        if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {
+            throw new AppointmentNotReschedulable;
+        }
+    }
+
+    /**
+     * @param  array{inicio: string, fin: string}  $interval
+     */
+    private function assertDifferentInterval(object $appointment, array $interval): void
+    {
+        $currentStart = Carbon::parse((string) $appointment->inicio, 'UTC');
+        $currentEnd = Carbon::parse((string) $appointment->fin, 'UTC');
+        $requestedStart = Carbon::parse($interval['inicio'], 'UTC');
+        $requestedEnd = Carbon::parse($interval['fin'], 'UTC');
+        if ($currentStart->eq($requestedStart) && $currentEnd->eq($requestedEnd)) {
+            throw new InvalidAvailabilityInput;
+        }
     }
 
     private function requireActivePatient(int $patientId): void

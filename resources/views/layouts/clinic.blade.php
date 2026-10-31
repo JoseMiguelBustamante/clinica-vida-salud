@@ -30,7 +30,9 @@
                     @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_SCHEDULES, $identityPermissions ?? [], true))
                         <a href="{{ route('schedules.index') }}">Horarios</a>
                     @endif
-                    @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AVAILABILITY, $identityPermissions ?? [], true))
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::RESCHEDULE_APPOINTMENTS, $identityPermissions ?? [], true))
+                        <a href="{{ route('appointments.index') }}">Citas</a>
+                    @elseif (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AVAILABILITY, $identityPermissions ?? [], true))
                         <a href="{{ route('availability.consult') }}">Citas</a>
                     @elseif (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
                         <a href="{{ route('appointments.create') }}">Citas</a>

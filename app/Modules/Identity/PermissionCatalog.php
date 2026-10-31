@@ -20,6 +20,8 @@ final class PermissionCatalog
 
     public const BOOK_APPOINTMENTS = 'citas.programar';
 
+    public const RESCHEDULE_APPOINTMENTS = 'citas.reprogramar';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -39,6 +41,7 @@ final class PermissionCatalog
             ['codigo' => self::MANAGE_SCHEDULES, 'descripcion' => 'Configurar horarios de atención de los médicos'],
             ['codigo' => self::CONSULT_AVAILABILITY, 'descripcion' => 'Consultar médicos habilitados e intervalos disponibles'],
             ['codigo' => self::BOOK_APPOINTMENTS, 'descripcion' => 'Programar citas médicas en intervalos disponibles'],
+            ['codigo' => self::RESCHEDULE_APPOINTMENTS, 'descripcion' => 'Reprogramar citas médicas existentes'],
         ];
     }
 
@@ -68,11 +71,13 @@ final class PermissionCatalog
                 self::MANAGE_SCHEDULES,
                 self::CONSULT_AVAILABILITY,
                 self::BOOK_APPOINTMENTS,
+                self::RESCHEDULE_APPOINTMENTS,
             ],
             self::RECEPTIONIST_ROLE => [
                 self::MANAGE_PATIENTS,
                 self::CONSULT_AVAILABILITY,
                 self::BOOK_APPOINTMENTS,
+                self::RESCHEDULE_APPOINTMENTS,
             ],
             default => [],
         };

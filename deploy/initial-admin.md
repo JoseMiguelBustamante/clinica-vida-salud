@@ -133,8 +133,9 @@ Do not reuse a bare `$app` unless you just assigned it in this shell.
 
 Success prints `Roles and permission codes are defined. Existing accounts were not changed.`
 Until that catalog exists, an administrator can sign in and still receive 403 on `/usuarios`.
-Rerun the same block after deploying new catalog codes such as `pacientes.gestionar`;
-it adds missing `rol_permiso` links and does not change passwords.
+Rerun the same block after deploying new catalog codes such as `pacientes.gestionar`,
+`especialidades.gestionar` and `medicos.gestionar`; it adds missing `rol_permiso`
+links and does not change passwords.
 If the block prints STOP, list clinic app containers with
 `sudo docker ps --filter name=clinica --format 'table {{.ID}}\t{{.Names}}\t{{.Label "com.docker.swarm.service.name"}}'`
 and stop; do not pick the first unrelated result. If Artisan says the command

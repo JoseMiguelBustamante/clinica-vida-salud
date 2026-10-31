@@ -316,6 +316,18 @@ h1 {
     justify-self: start;
 }
 
+.choice-list {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.choice-list label {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-weight: 450;
+}
+
 .field select {
     width: 100%;
     min-height: 2.75rem;

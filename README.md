@@ -5,8 +5,9 @@ monolith with server-rendered Blade, HTML, CSS and JavaScript. Approved modules:
 Identity, Patients, MedicalStaff, Schedules and Appointments under `app/Modules`.
 Identity provides the session-authentication backend, the staff login/panel
 screens, and CU03 account administration. Patients provides CU04 record
-administration. Appointments still owns the public foundation page. Booking and
-medical-staff workflows are not implemented.
+administration. MedicalStaff provides CU05 physicians and CU06 specialties.
+Appointments still owns the public foundation page. Booking and schedules are
+not implemented.
 
 ## Backend authentication (deployed; private bootstrap pending)
 

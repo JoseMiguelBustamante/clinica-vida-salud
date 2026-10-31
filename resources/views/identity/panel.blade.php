@@ -34,10 +34,18 @@
                 <span>Registrar, consultar, modificar y desactivar fichas de pacientes.</span>
             </a>
         @endif
-        <span class="module-tile is-pending">
-            <strong>Personal médico</strong>
-            <span>Pendiente — aún no está implementado.</span>
-        </span>
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_PHYSICIANS, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('physicians.index') }}">
+                <strong>Médicos</strong>
+                <span>Registro profesional, contacto, estado y especialidades.</span>
+            </a>
+        @endif
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_SPECIALTIES, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('specialties.index') }}">
+                <strong>Especialidades</strong>
+                <span>Catálogo clínico con nombre único y estado.</span>
+            </a>
+        @endif
         <span class="module-tile is-pending">
             <strong>Horarios</strong>
             <span>Pendiente — aún no está implementado.</span>

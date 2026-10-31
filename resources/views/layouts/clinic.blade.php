@@ -21,6 +21,12 @@
                     @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_PATIENTS, $identityPermissions ?? [], true))
                         <a href="{{ route('patients.index') }}">Pacientes</a>
                     @endif
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_PHYSICIANS, $identityPermissions ?? [], true))
+                        <a href="{{ route('physicians.index') }}">Médicos</a>
+                    @endif
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_SPECIALTIES, $identityPermissions ?? [], true))
+                        <a href="{{ route('specialties.index') }}">Especialidades</a>
+                    @endif
                     <form class="inline-form" method="post" action="{{ route('logout', absolute: false) }}">
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>

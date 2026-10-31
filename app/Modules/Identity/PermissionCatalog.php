@@ -10,6 +10,10 @@ final class PermissionCatalog
 
     public const MANAGE_PATIENTS = 'pacientes.gestionar';
 
+    public const MANAGE_SPECIALTIES = 'especialidades.gestionar';
+
+    public const MANAGE_PHYSICIANS = 'medicos.gestionar';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -24,6 +28,8 @@ final class PermissionCatalog
         return [
             ['codigo' => self::MANAGE_ACCOUNTS, 'descripcion' => 'Administrar cuentas de acceso y roles'],
             ['codigo' => self::MANAGE_PATIENTS, 'descripcion' => 'Registrar, consultar, modificar y desactivar pacientes'],
+            ['codigo' => self::MANAGE_SPECIALTIES, 'descripcion' => 'Administrar el catálogo de especialidades'],
+            ['codigo' => self::MANAGE_PHYSICIANS, 'descripcion' => 'Administrar médicos y sus especialidades'],
         ];
     }
 
@@ -45,7 +51,12 @@ final class PermissionCatalog
     public static function codesForRole(string $roleName): array
     {
         return match ($roleName) {
-            self::ADMINISTRATOR_ROLE => [self::MANAGE_ACCOUNTS, self::MANAGE_PATIENTS],
+            self::ADMINISTRATOR_ROLE => [
+                self::MANAGE_ACCOUNTS,
+                self::MANAGE_PATIENTS,
+                self::MANAGE_SPECIALTIES,
+                self::MANAGE_PHYSICIANS,
+            ],
             self::RECEPTIONIST_ROLE => [self::MANAGE_PATIENTS],
             default => [],
         };

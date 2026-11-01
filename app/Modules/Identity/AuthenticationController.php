@@ -9,7 +9,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticationController
 {
-    public function __construct(private IdentitySessionService $sessions) {}
+    public function __construct(
+        private IdentitySessionService $sessions,
+        private ActivityLogService $activity,
+    ) {}
 
     public function csrf(Request $request): JsonResponse
     {
@@ -27,6 +30,8 @@ class AuthenticationController
             return response()->json(['message' => 'Too many login attempts. Try again later.'], 429,
                 ['Retry-After' => (string) $exception->retryAfter]);
         } catch (AuthenticationRejected) {
+            $this->activity->recordFailedLogin($input['identifier'], (string) $request->ip());
+
             return response()->json(['message' => 'Invalid credentials or account unavailable.'], 401);
         }
 
@@ -34,6 +39,7 @@ class AuthenticationController
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         Auth::guard('web')->login($user);
+        $this->activity->recordLogin($representation, (string) $request->ip());
 
         return response()->json(['user' => $representation, 'csrf_token' => $request->session()->token()]);
     }
@@ -46,6 +52,21 @@ class AuthenticationController
 
     public function logout(Request $request): Response
     {
+        $user = $request->attributes->get('identity');
+        if (is_object($user)) {
+            $this->activity->record(
+                'Cierre de sesión',
+                'Acceso',
+                'Sesión cerrada',
+                null,
+                null,
+                isset($user->id_usuario) ? (int) $user->id_usuario : null,
+                isset($user->nombre_usuario) ? (string) $user->nombre_usuario : null,
+                null,
+                (string) $request->ip(),
+            );
+        }
+
         // No remember-me cookies are issued by this backend.
         Auth::guard('web')->forgetUser();
         $request->session()->invalidate();

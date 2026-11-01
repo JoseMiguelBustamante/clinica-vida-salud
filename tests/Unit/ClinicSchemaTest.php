@@ -11,12 +11,16 @@ class ClinicSchemaTest extends TestCase
     public function test_only_the_report_migration_is_available_instead_of_laravel_scaffolding(): void
     {
         $paths = glob(dirname(__DIR__, 2).'/database/migrations/*.php');
+        sort($paths);
 
-        $this->assertCount(1, $paths);
+        $this->assertCount(2, $paths);
         $this->assertSame('2026_10_28_000000_create_clinic_schema.php', basename($paths[0]));
-        $migration = require $paths[0];
-        $this->assertInstanceOf(Migration::class, $migration);
-        $this->assertTrue($migration->withinTransaction);
+        $this->assertSame('2026_11_01_120000_add_bitacora.php', basename($paths[1]));
+        foreach ($paths as $path) {
+            $migration = require $path;
+            $this->assertInstanceOf(Migration::class, $migration);
+            $this->assertTrue($migration->withinTransaction);
+        }
     }
 
     public function test_isolated_runner_explains_its_scope_without_contacting_docker(): void
@@ -60,9 +64,9 @@ class ClinicSchemaTest extends TestCase
         $sql = file_get_contents($path);
         $canonical = trim(preg_replace('/\s+/', ' ', preg_replace('/--[^\n]*/', '', $sql)));
 
-        $this->assertSame('a65a5b915914de7cd4cdbe81df0ccfa3b552c2bf7a0469443e607eb21bb156d7', hash('sha256', $canonical));
-        $this->assertSame(17, preg_match_all('/CREATE TABLE public\./', $sql));
-        $this->assertSame(11, preg_match_all('/CREATE INDEX /', $sql));
+        $this->assertSame('81f5d2d3ad028d51972fd95503ad937cf4c51a7be3055418794d4a5ccac7ffae', hash('sha256', $canonical));
+        $this->assertSame(18, preg_match_all('/CREATE TABLE public\./', $sql));
+        $this->assertSame(13, preg_match_all('/CREATE INDEX /', $sql));
         $this->assertDoesNotMatchRegularExpression('/\b(?:BEGIN|COMMIT|CASCADE)\b/i', $sql);
     }
 }

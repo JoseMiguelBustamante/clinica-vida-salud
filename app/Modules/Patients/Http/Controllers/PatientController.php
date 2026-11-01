@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Patients\Http\Controllers;
 
+use App\Modules\Identity\ActivityLogService;
 use App\Modules\Patients\DuplicatePatientDocument;
 use App\Modules\Patients\Http\Requests\SearchPatientsRequest;
 use App\Modules\Patients\Http\Requests\StorePatientRequest;
@@ -18,7 +19,10 @@ use Throwable;
 
 final class PatientController
 {
-    public function __construct(private PatientService $patients) {}
+    public function __construct(
+        private PatientService $patients,
+        private ActivityLogService $activity,
+    ) {}
 
     public function getAllPatients(SearchPatientsRequest $request): View
     {
@@ -39,8 +43,15 @@ final class PatientController
 
     public function createPatient(StorePatientRequest $request): RedirectResponse
     {
+        $input = $request->validated();
         try {
-            $this->patients->createPatient($request->validated());
+            $patientId = $this->patients->createPatient($input);
+            $this->activity->record(
+                'Creación',
+                'Pacientes',
+                'Registro de '.$input['nombres'].' '.$input['apellidos'],
+                $patientId,
+            );
         } catch (DuplicatePatientDocument) {
             return back()->withInput()->withErrors(['ci' => 'Ya existe un paciente con ese documento de identidad.']);
         } catch (InvalidPatientInput) {
@@ -84,7 +95,23 @@ final class PatientController
     public function updatePatient(UpdatePatientRequest $request, int $paciente): RedirectResponse
     {
         try {
+            $before = $this->patients->getPatientById($paciente);
             $this->patients->updatePatient($paciente, $request->validated());
+            $after = $this->patients->getPatientById($paciente);
+            $changes = $this->activity->fieldChanges((array) $before, (array) $after, [
+                'ci' => 'CI',
+                'nombres' => 'Nombres',
+                'apellidos' => 'Apellidos',
+                'fecha_nacimiento' => 'Fecha de nacimiento',
+                'sexo' => 'Sexo',
+                'telefono' => 'Teléfono',
+                'correo_contacto' => 'Correo',
+                'direccion' => 'Dirección',
+            ]);
+            $detail = $changes === []
+                ? 'Paciente actualizado'
+                : ($changes[0]['campo'].(count($changes) === 1 ? ' actualizado' : ' y otros campos actualizados'));
+            $this->activity->record('Actualización', 'Pacientes', $detail, $paciente, $changes);
         } catch (PatientNotFound) {
             return redirect()->route('patients.index')
                 ->withErrors(['nombres' => 'No puede realizarse la operación solicitada.']);
@@ -105,6 +132,7 @@ final class PatientController
     {
         try {
             $this->patients->deactivatePatient($paciente);
+            $this->activity->record('Desactivación', 'Pacientes', 'Paciente desactivado', $paciente);
         } catch (PatientNotFound) {
             return redirect()->route('patients.index')
                 ->withErrors(['nombres' => 'No puede realizarse la operación solicitada.']);
@@ -121,6 +149,7 @@ final class PatientController
     {
         try {
             $this->patients->activatePatient($paciente);
+            $this->activity->record('Activación', 'Pacientes', 'Paciente activado', $paciente);
         } catch (PatientNotFound) {
             return redirect()->route('patients.index')
                 ->withErrors(['nombres' => 'No puede realizarse la operación solicitada.']);

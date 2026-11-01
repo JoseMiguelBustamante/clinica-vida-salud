@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\MedicalStaff\Http\Controllers;
 
+use App\Modules\Identity\ActivityLogService;
 use App\Modules\MedicalStaff\DuplicateProfessionalLicense;
 use App\Modules\MedicalStaff\Http\Requests\SearchPhysiciansRequest;
 use App\Modules\MedicalStaff\Http\Requests\StorePhysicianRequest;
@@ -24,6 +25,7 @@ final class PhysicianController
     public function __construct(
         private PhysicianService $physicians,
         private SpecialtyService $specialties,
+        private ActivityLogService $activity,
     ) {}
 
     public function getAllPhysicians(SearchPhysiciansRequest $request): View
@@ -46,8 +48,15 @@ final class PhysicianController
 
     public function createPhysician(StorePhysicianRequest $request): RedirectResponse
     {
+        $input = $this->physicianInput($request->validated());
         try {
-            $this->physicians->createPhysician($this->physicianInput($request->validated()));
+            $physicianId = $this->physicians->createPhysician($input);
+            $this->activity->record(
+                'Creación',
+                'Médicos',
+                'Registro de '.$input['nombres'].' '.$input['apellidos'],
+                $physicianId,
+            );
         } catch (DuplicateProfessionalLicense) {
             return back()->withInput()->withErrors(['registro_profesional' => 'El registro profesional ya está en uso.']);
         } catch (SpecialtyNotFound|InactiveSpecialtyAssociation) {

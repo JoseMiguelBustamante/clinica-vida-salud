@@ -27,6 +27,7 @@ use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PatientNotEligible;
 use App\Modules\Appointments\PhysicianNotEligible;
 use App\Modules\Appointments\SlotUnavailable;
+use App\Modules\Identity\ActivityLogService;
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Patients\PatientNotFound;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +41,7 @@ final class AppointmentController
     public function __construct(
         private AppointmentService $appointments,
         private AvailabilityService $availability,
+        private ActivityLogService $activity,
     ) {}
 
     public function getAllAppointments(SearchAppointmentsRequest $request): View
@@ -118,6 +120,8 @@ final class AppointmentController
 
             return back()->withInput()->withErrors(['id_paciente' => 'No fue posible registrar la cita.']);
         }
+
+        $this->activity->record('Creación', 'Citas', 'Cita programada', $appointmentId);
 
         if (($input['origen'] ?? '') === 'disponibilidad') {
             return redirect()->route('availability.consult', array_filter([
@@ -233,6 +237,8 @@ final class AppointmentController
             return back()->withInput()->withErrors(['fecha' => 'No fue posible reprogramar la cita.']);
         }
 
+        $this->activity->record('Reprogramación', 'Citas', 'Cita reprogramada', $cita);
+
         $message = $result['required_new_confirmation']
             ? 'La cita quedó reprogramada. Requiere una nueva confirmación de asistencia.'
             : 'La cita quedó reprogramada.';
@@ -279,6 +285,8 @@ final class AppointmentController
 
             return back()->withInput()->withErrors(['motivo_cancelacion' => 'No fue posible cancelar la cita.']);
         }
+
+        $this->activity->record('Cancelación', 'Citas', 'Cita cancelada', $cita);
 
         return redirect()->route('appointments.show', $cita)
             ->with('status', 'La cita quedó cancelada. El intervalo queda libre para otra programación.');

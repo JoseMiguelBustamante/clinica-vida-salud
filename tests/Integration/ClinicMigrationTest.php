@@ -48,10 +48,10 @@ class ClinicMigrationTest extends TestCase
         $this->assertSame(0, Artisan::call('migrate', $options));
         $this->assertStringContainsString('create_clinic_schema', Artisan::output());
         $this->assertReportMetadata();
-        $this->assertSame(1, $connection->table('migrations')->count());
+        $this->assertSame(2, $connection->table('migrations')->count());
         $this->assertSame(0, Artisan::call('migrate', $options));
         $this->assertStringContainsString('Nothing to migrate', Artisan::output());
-        $this->assertSame(1, $connection->table('migrations')->count());
+        $this->assertSame(2, $connection->table('migrations')->count());
 
         $connection->unprepared(<<<'SQL'
             INSERT INTO rol (nombre) VALUES ('Doctor'), ('Reception');
@@ -78,6 +78,8 @@ class ClinicMigrationTest extends TestCase
                 VALUES ('2026-01-02T08:30:00Z', 'Fixture only', 1, 1);
             INSERT INTO recordatorio_cita (fecha_programada, estado, id_cita) VALUES ('2026-01-01T00:00:00Z', 'Pendiente', 1);
             INSERT INTO evento_cita (tipo, fecha_hora, id_cita) VALUES ('Fixture', '2026-01-01T00:00:00Z', 1);
+            INSERT INTO bitacora (fecha_hora, accion, modulo, detalle, direccion_ip, actor_nombre, actor_rol, id_usuario)
+                VALUES ('2026-01-01T00:00:00Z', 'Inicio de sesión', 'Acceso', 'Acceso correcto', '127.0.0.1', 'fixture', 'Doctor', 1);
             SQL);
 
         $rejections = [
@@ -92,6 +94,7 @@ class ClinicMigrationTest extends TestCase
             ["UPDATE preferencias_notificacion SET destino_verificado = true, destino = ' '", '23514'],
             ['UPDATE preferencias_notificacion SET recordatorios_habilitados = true', '23514'],
             ["UPDATE recordatorio_cita SET estado = 'Invalid'", '23514'],
+            ["INSERT INTO bitacora (fecha_hora, accion, modulo, detalle) VALUES ('2026-01-01T00:00:00Z', 'Invalid', 'Acceso', 'x')", '23514'],
             ['UPDATE cita_medica SET id_medico = 2', '23503'],
             ['UPDATE medico_especialidad SET id_medico = 2147483647', '23503'],
             ["UPDATE rol SET nombre = 'Doctor' WHERE id_rol = 2", '23505'],
@@ -170,7 +173,7 @@ class ClinicMigrationTest extends TestCase
             $actual[$column->relname][] = ['name' => $column->attname, 'type' => $column->type, 'required' => (bool) $column->attnotnull, 'identity' => $column->attidentity];
         }
         ksort($expected);
-        $this->assertCount(17, $expected);
+        $this->assertCount(18, $expected);
         $this->assertSame($expected, $actual);
 
         $actualConstraints = [];

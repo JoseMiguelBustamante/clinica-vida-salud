@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Identity\AuthenticationController;
+use App\Modules\Identity\Http\Controllers\ActivityLogController;
 use App\Modules\Identity\Http\Controllers\IdentityAccountController;
 use App\Modules\Identity\Http\Controllers\IdentitySessionController;
 use App\Modules\Identity\Http\Controllers\PatientPortalController;
@@ -39,6 +40,14 @@ Route::middleware([
     Route::get('/perfil', [PatientPortalController::class, 'showPatientProfile'])->name('portal.profile');
     Route::post('/perfil', [PatientPortalController::class, 'updatePatientProfile'])->name('portal.profile.update');
     Route::post('/perfil/verificar-correo', [PatientPortalController::class, 'verifyPatientEmail'])->name('portal.profile.verify');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::CONSULT_ACTIVITY_LOG,
+])->group(function (): void {
+    Route::get('/bitacora', [ActivityLogController::class, 'getActivityLogs'])->name('activity-log.index');
 });
 
 Route::middleware([

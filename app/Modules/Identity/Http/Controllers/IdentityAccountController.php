@@ -6,6 +6,7 @@ namespace App\Modules\Identity\Http\Controllers;
 
 use App\Models\User;
 use App\Modules\Identity\AccountNotFound;
+use App\Modules\Identity\ActivityLogService;
 use App\Modules\Identity\DuplicateAccountIdentifier;
 use App\Modules\Identity\Http\Requests\SearchAccountsRequest;
 use App\Modules\Identity\Http\Requests\StoreAccountRequest;
@@ -22,7 +23,10 @@ use Throwable;
 
 final class IdentityAccountController
 {
-    public function __construct(private IdentityAccountService $accounts) {}
+    public function __construct(
+        private IdentityAccountService $accounts,
+        private ActivityLogService $activity,
+    ) {}
 
     public function getAllAccounts(SearchAccountsRequest $request): View
     {
@@ -43,8 +47,10 @@ final class IdentityAccountController
 
     public function createAccount(StoreAccountRequest $request): RedirectResponse
     {
+        $input = $this->accountInput($request->validated());
         try {
-            $this->accounts->createAccount($this->accountInput($request->validated()));
+            $accountId = $this->accounts->createAccount($input);
+            $this->activity->record('Creación', 'Usuarios', 'Cuenta '.$input['nombre_usuario'].' registrada', $accountId);
         } catch (DuplicateAccountIdentifier) {
             return back()->withInput($request->except('password'))
                 ->withErrors(['nombre_usuario' => 'El nombre de usuario o el correo ya está en uso.']);

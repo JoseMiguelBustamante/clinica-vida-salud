@@ -34,6 +34,8 @@ final class PermissionCatalog
 
     public const GENERATE_REPORTS = 'reportes.generar';
 
+    public const CONSULT_ACTIVITY_LOG = 'bitacora.consultar';
+
     public const UPDATE_PROFILE = 'perfil.actualizar';
 
     public const DECLARE_HEALTH = 'informacion.declarar';
@@ -68,6 +70,7 @@ final class PermissionCatalog
             ['codigo' => self::CONSULT_AGENDA, 'descripcion' => 'Consultar la agenda médica por médico, fecha y estado'],
             ['codigo' => self::CONSULT_HISTORY, 'descripcion' => 'Consultar citas e historial de un paciente'],
             ['codigo' => self::GENERATE_REPORTS, 'descripcion' => 'Generar reportes administrativos de citas, pacientes y agendas'],
+            ['codigo' => self::CONSULT_ACTIVITY_LOG, 'descripcion' => 'Consultar la bitácora de accesos y cambios del sistema'],
             ['codigo' => self::UPDATE_PROFILE, 'descripcion' => 'Actualizar el perfil propio y las preferencias de recordatorios'],
             ['codigo' => self::DECLARE_HEALTH, 'descripcion' => 'Consultar y actualizar la información médica declarada por el paciente'],
             ['codigo' => self::CONSULT_CLINICAL_HISTORY, 'descripcion' => 'Consultar el historial médico propio autorizado en el portal'],
@@ -108,6 +111,7 @@ final class PermissionCatalog
                 self::CONSULT_AGENDA,
                 self::CONSULT_HISTORY,
                 self::GENERATE_REPORTS,
+                self::CONSULT_ACTIVITY_LOG,
             ],
             self::RECEPTIONIST_ROLE => [
                 self::MANAGE_PATIENTS,

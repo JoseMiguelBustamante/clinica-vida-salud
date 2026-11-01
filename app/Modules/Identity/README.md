@@ -50,6 +50,12 @@ HTML account administration (CU03), session required plus `usuarios.administrar`
 | `GET /usuarios/{id}/editar` + `POST /usuarios/{id}` | update (password optional) |
 | `POST /usuarios/{id}/desactivar` / `activar` | change state |
 
+HTML activity log, session required plus `bitacora.consultar`:
+
+| Request | Response |
+| --- | --- |
+| `GET /bitacora` | read-only list of accesses and changes, with filters |
+
 Roles and permission codes come from `PermissionCatalog`. A signed-in request
 applies any missing `rol` / `permiso` / `rol_permiso` rows automatically.
 `php artisan clinic:sync-permissions` remains a manual repair and does not

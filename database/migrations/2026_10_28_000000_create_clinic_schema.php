@@ -22,7 +22,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::unprepared('DROP TABLE
+        DB::unprepared('DROP TABLE IF EXISTS
+            public.bitacora,
             public.evento_cita,
             public.recordatorio_cita,
             public.registro_atencion,

@@ -44,7 +44,7 @@
             <a class="app-nav-link @if (request()->routeIs('appointments.history')) is-current @endif" href="{{ route('appointments.history') }}">Historial</a>
         @endif
 
-        @if ($has($P::GENERATE_REPORTS) || $has($P::MANAGE_ACCOUNTS))
+        @if ($has($P::GENERATE_REPORTS) || $has($P::MANAGE_ACCOUNTS) || $has($P::CONSULT_ACTIVITY_LOG))
             <p class="app-nav-label">Administración</p>
         @endif
         @if ($has($P::GENERATE_REPORTS))
@@ -52,6 +52,9 @@
         @endif
         @if ($has($P::MANAGE_ACCOUNTS))
             <a class="app-nav-link @if (request()->routeIs('accounts.*')) is-current @endif" href="{{ route('accounts.index') }}">Usuarios</a>
+        @endif
+        @if ($has($P::CONSULT_ACTIVITY_LOG))
+            <a class="app-nav-link @if (request()->routeIs('activity-log.*')) is-current @endif" href="{{ route('activity-log.index') }}">Bitácora</a>
         @endif
 
         @if ($has($P::UPDATE_PROFILE) || $has($P::DECLARE_HEALTH) || $has($P::CONSULT_CLINICAL_HISTORY))

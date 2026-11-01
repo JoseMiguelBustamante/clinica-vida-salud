@@ -258,10 +258,11 @@ columns, nullability, named PK/FK/unique/check constraints and 11 explicit index
 - Scheduling: `horario_atencion`, `cita_medica`.
 - Supporting records: `informacion_medica`, `contacto_emergencia`,
   `preferencias_notificacion`, `preferencias_privacidad`, `registro_atencion`,
-  `recordatorio_cita`, `evento_cita`.
+  `recordatorio_cita`, `evento_cita`, `bitacora`.
 
-Laravel also creates its **`migrations` bookkeeping table**; it is not an eighteenth
-business table. No users, passwords, roles or clinical records are seeded. The
+The activity log table `bitacora` records accesses and field-level changes for
+the administrative consult screen. Laravel also creates its **`migrations`
+bookkeeping table**; it is not a clinic business table. No users, passwords, roles or clinical records are seeded. The
 report's deferred rules (such as preventing overlapping bookings transactionally)
 remain future backend work. This migration unit itself adds no authentication or
 frontend feature; the separately implemented authentication backend uses these

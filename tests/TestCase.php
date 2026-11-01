@@ -2,10 +2,12 @@
 
 namespace Tests;
 
+use App\Modules\Identity\ActivityLogRepository;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Mockery;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -30,6 +32,17 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('view.compiled', $this->compiledViews);
 
         return $app;
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (getenv('CLINIC_DISPOSABLE_PG') === 'yes') {
+            return;
+        }
+
+        $this->app->instance(ActivityLogRepository::class, Mockery::mock(ActivityLogRepository::class)->shouldIgnoreMissing());
     }
 
     protected function tearDown(): void

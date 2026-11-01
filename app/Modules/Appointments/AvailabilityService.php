@@ -30,6 +30,46 @@ final class AvailabilityService
         return $this->appointments->getActivePhysiciansForSpecialty($specialtyId);
     }
 
+    public function getBoardPhysicians(?int $specialtyId): Collection
+    {
+        if ($specialtyId === null) {
+            return $this->appointments->getActivePhysicians();
+        }
+
+        return $this->getConsultPhysicians($specialtyId);
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    public function getBoardAppointments(
+        string $rangeStart,
+        string $rangeEnd,
+        ?int $physicianId,
+        ?int $specialtyId,
+        ?string $status,
+    ): Collection {
+        if ($status !== null && $status !== ''
+            && ! in_array($status, ['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'], true)) {
+            throw new InvalidAvailabilityInput;
+        }
+
+        $rows = $this->appointments->getAppointmentsInRange(
+            $rangeStart,
+            $rangeEnd,
+            $physicianId,
+            $specialtyId,
+            $status === '' ? null : $status,
+        );
+        if ($status !== null && $status !== '') {
+            return $rows;
+        }
+
+        return $rows->filter(
+            fn (object $appointment): bool => in_array((string) $appointment->estado, ['Programada', 'Confirmada', 'Atendida'], true),
+        )->values();
+    }
+
     /**
      * @return list<array{hora_inicio: string, hora_fin: string}>
      */

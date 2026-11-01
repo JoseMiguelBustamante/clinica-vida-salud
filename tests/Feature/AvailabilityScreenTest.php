@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Modules\Appointments\AppointmentRepository;
 use App\Modules\Identity\IdentityRepository;
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\MedicalStaff\SpecialtyRepository;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Mockery;
 use Tests\TestCase;
@@ -34,6 +36,7 @@ class AvailabilityScreenTest extends TestCase
 
     public function test_an_authorized_session_opens_the_lookup_without_sql_for_slots(): void
     {
+        Carbon::setTestNow(Carbon::create(2026, 11, 1, 15, 0, 0, 'UTC'));
         $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
         $identities = Mockery::mock(IdentityRepository::class);
         $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
@@ -46,12 +49,36 @@ class AvailabilityScreenTest extends TestCase
         ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);
 
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getActivePhysicians')->once()->andReturn(collect([
+            (object) ['id_medico' => 4, 'nombres' => 'Ana', 'apellidos' => 'Martínez', 'activo' => true, 'registro_profesional' => 'MP-1'],
+        ]));
+        $appointments->shouldReceive('getAppointmentsInRange')->once()->andReturn(collect([
+            (object) [
+                'id_cita' => 21,
+                'inicio' => '2026-11-03T09:00:00+00:00',
+                'fin' => '2026-11-03T09:30:00+00:00',
+                'estado' => 'Programada',
+                'id_medico' => 4,
+                'paciente_nombres' => 'Lucía',
+                'paciente_apellidos' => 'Vargas',
+                'medico_nombres' => 'Ana',
+                'medico_apellidos' => 'Martínez',
+            ],
+        ]));
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
         $this->withSession([Auth::guard('web')->getName() => 17]);
-        $this->get('/disponibilidad')->assertOk()->assertSee('Disponibilidad')
-            ->assertSee('Pediatría')->assertSee('no lo reserva', false)
-            ->assertSee('Consultar')->assertSee('Semana')->assertSee('Lunes')
-            ->assertSee('Todos los médicos')->assertDontSee('<script', false);
-        $this->assertSame([], $this->app['db']->getConnections());
+        try {
+            $this->get('/disponibilidad')->assertOk()->assertSee('Disponibilidad')
+                ->assertSee('Pediatría')->assertSee('no lo reserva', false)
+                ->assertSee('Consultar')->assertSee('Semana')->assertSee('Lunes')
+                ->assertSee('Todos los médicos')->assertSee('Lucía')->assertSee('Vargas')
+                ->assertDontSee('<script', false);
+            $this->assertSame([], $this->app['db']->getConnections());
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_the_panel_shows_availability_when_permitted(): void

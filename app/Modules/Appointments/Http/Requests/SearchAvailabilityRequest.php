@@ -20,6 +20,7 @@ final class SearchAvailabilityRequest extends FormRequest
             'medico' => ['nullable', 'integer'],
             'fecha' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'vista' => ['nullable', 'in:dia,semana,mes'],
+            'estado' => ['nullable', 'in:Programada,Confirmada,Atendida,Cancelada,Inasistencia'],
         ];
     }
 
@@ -28,6 +29,7 @@ final class SearchAvailabilityRequest extends FormRequest
         return [
             'fecha.date_format' => 'Indique una fecha válida.',
             'fecha.after_or_equal' => 'No se consultan fechas pasadas.',
+            'estado.in' => 'El estado de la cita no es válido.',
         ];
     }
 }

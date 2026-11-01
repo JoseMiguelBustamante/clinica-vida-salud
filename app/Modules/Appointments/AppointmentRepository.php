@@ -298,6 +298,17 @@ class AppointmentRepository
     }
 
     /** @return Collection<int, object> */
+    public function getActivePhysicians(): Collection
+    {
+        return DB::table('medico')
+            ->select('id_medico', 'registro_profesional', 'nombres', 'apellidos', 'activo')
+            ->where('activo', true)
+            ->orderBy('apellidos')
+            ->orderBy('nombres')
+            ->get();
+    }
+
+    /** @return Collection<int, object> */
     public function getAppointmentsForPhysicianOnDate(
         int $physicianId,
         string $rangeStart,

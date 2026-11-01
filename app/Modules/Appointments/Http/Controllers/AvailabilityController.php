@@ -29,18 +29,30 @@ final class AvailabilityController
         $input = $request->validated();
         $specialtyId = isset($input['especialidad']) ? (int) $input['especialidad'] : null;
         $physicianId = isset($input['medico']) ? (int) $input['medico'] : null;
+        $estado = $input['estado'] ?? null;
         $vista = in_array($input['vista'] ?? '', ['dia', 'semana', 'mes'], true) ? $input['vista'] : 'semana';
         $today = Carbon::now('UTC')->startOfDay();
         $focus = $this->focusDate($input['fecha'] ?? null, $today);
         $physicians = collect();
+        $appointments = collect();
         $slots = [];
         $status = null;
+        $days = $this->boardDays($vista, $focus, $today);
 
         try {
-            if ($specialtyId !== null) {
-                $physicians = $this->availability->getConsultPhysicians($specialtyId);
-            }
+            $physicians = $this->availability->getBoardPhysicians($specialtyId);
             $boardPhysicians = $this->boardPhysicians($physicians, $physicianId);
+            if ($vista !== 'mes' && $days !== []) {
+                $rangeStart = $days[0]->copy()->startOfDay()->toIso8601String();
+                $rangeEnd = $days[array_key_last($days)]->copy()->addDay()->startOfDay()->toIso8601String();
+                $appointments = $this->availability->getBoardAppointments(
+                    $rangeStart,
+                    $rangeEnd,
+                    $physicianId,
+                    $specialtyId,
+                    $estado,
+                );
+            }
             if ($specialtyId !== null && $vista !== 'mes' && $boardPhysicians->isNotEmpty()) {
                 $slots = $this->availability->getAvailableSlotsForDates(
                     $specialtyId,
@@ -57,16 +69,15 @@ final class AvailabilityController
             $status = 'No fue posible obtener la disponibilidad.';
         }
 
-        $days = $this->boardDays($vista, $focus, $today);
-
         return view('appointments.availability', [
             'specialties' => $this->availability->getConsultSpecialties(),
             'physicians' => $physicians,
             'slots' => $slots === [] && $specialtyId === null ? null : $slots,
-            'events' => $this->boardEvents($slots, $physicians),
+            'events' => $this->boardEvents($appointments, $slots, $physicians),
             'status' => $status,
             'especialidad' => $specialtyId,
             'medico' => $physicianId,
+            'estado' => $estado ?? '',
             'fecha' => $focus->toDateString(),
             'vista' => $vista,
             'today' => $today,
@@ -177,10 +188,11 @@ final class AvailabilityController
     }
 
     /**
+     * @param  Collection<int, object>  $appointments
      * @param  list<array{fecha: string, hora_inicio: string, hora_fin: string, id_medico: int}>  $slots
-     * @return list<array{fecha: string, hora_inicio: string, hora_fin: string, id_medico: int, medico: string, tone: int, top: float, height: float}>
+     * @return list<array{kind: string, fecha: string, hora_inicio: string, hora_fin: string, id_medico: int, medico: string, paciente: string, estado: string, id_cita: ?int, tone: int, top: float, height: float}>
      */
-    private function boardEvents(array $slots, Collection $physicians): array
+    private function boardEvents(Collection $appointments, array $slots, Collection $physicians): array
     {
         $tones = [];
         $names = [];
@@ -191,28 +203,81 @@ final class AvailabilityController
         }
 
         $events = [];
-        foreach ($slots as $slot) {
-            $start = $this->clockMinutes($slot['hora_inicio']);
-            $end = $this->clockMinutes($slot['hora_fin']);
-            if ($end <= $start) {
+        $occupied = [];
+        foreach ($appointments as $appointment) {
+            $startAt = Carbon::parse((string) $appointment->inicio, 'UTC');
+            $endAt = Carbon::parse((string) $appointment->fin, 'UTC');
+            $fecha = $startAt->toDateString();
+            $horaInicio = $startAt->format('H:i');
+            $horaFin = $endAt->format('H:i');
+            $physicianId = (int) $appointment->id_medico;
+            if (! isset($names[$physicianId])) {
+                $names[$physicianId] = trim((string) $appointment->medico_nombres.' '.(string) $appointment->medico_apellidos);
+                $tones[$physicianId] = count($tones) % 3;
+            }
+            $layout = $this->eventLayout($horaInicio, $horaFin);
+            if ($layout === null) {
                 continue;
             }
-            $topMinutes = $start - (self::BOARD_START_HOUR * 60);
-            $duration = $end - $start;
-            $physicianId = (int) $slot['id_medico'];
+            $occupied[$fecha.'|'.$physicianId.'|'.$horaInicio] = true;
             $events[] = [
+                'kind' => 'cita',
+                'fecha' => $fecha,
+                'hora_inicio' => $horaInicio,
+                'hora_fin' => $horaFin,
+                'id_medico' => $physicianId,
+                'medico' => $names[$physicianId],
+                'paciente' => trim((string) $appointment->paciente_nombres.' '.(string) $appointment->paciente_apellidos),
+                'estado' => (string) $appointment->estado,
+                'id_cita' => (int) $appointment->id_cita,
+                'tone' => $tones[$physicianId] ?? 0,
+                'top' => $layout['top'],
+                'height' => $layout['height'],
+            ];
+        }
+        foreach ($slots as $slot) {
+            $physicianId = (int) $slot['id_medico'];
+            if (isset($occupied[$slot['fecha'].'|'.$physicianId.'|'.$slot['hora_inicio']])) {
+                continue;
+            }
+            $layout = $this->eventLayout($slot['hora_inicio'], $slot['hora_fin']);
+            if ($layout === null) {
+                continue;
+            }
+            $events[] = [
+                'kind' => 'libre',
                 'fecha' => $slot['fecha'],
                 'hora_inicio' => $slot['hora_inicio'],
                 'hora_fin' => $slot['hora_fin'],
                 'id_medico' => $physicianId,
                 'medico' => $names[$physicianId] ?? 'Médico',
+                'paciente' => '',
+                'estado' => 'Libre',
+                'id_cita' => null,
                 'tone' => $tones[$physicianId] ?? 0,
-                'top' => round(($topMinutes / 60) * self::HOUR_HEIGHT_REM, 2),
-                'height' => round(max(2.15, ($duration / 60) * self::HOUR_HEIGHT_REM), 2),
+                'top' => $layout['top'],
+                'height' => $layout['height'],
             ];
         }
 
         return $events;
+    }
+
+    /**
+     * @return array{top: float, height: float}|null
+     */
+    private function eventLayout(string $horaInicio, string $horaFin): ?array
+    {
+        $start = $this->clockMinutes($horaInicio);
+        $end = $this->clockMinutes($horaFin);
+        if ($end <= $start) {
+            return null;
+        }
+
+        return [
+            'top' => round((($start - (self::BOARD_START_HOUR * 60)) / 60) * self::HOUR_HEIGHT_REM, 2),
+            'height' => round(max(2.15, (($end - $start) / 60) * self::HOUR_HEIGHT_REM), 2),
+        ];
     }
 
     private function clockMinutes(string $clock): int

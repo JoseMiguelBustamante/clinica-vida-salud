@@ -9,9 +9,12 @@
     $queryBase = array_filter([
         'especialidad' => $especialidad,
         'medico' => $medico,
+        'estado' => $estado,
         'vista' => $vista,
     ], static fn ($value) => $value !== null && $value !== '');
-    $canBook = in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true);
+    $codes = $identityPermissions ?? [];
+    $canBook = in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $codes, true);
+    $canOpen = $canBook || in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $codes, true);
     $trackHeight = ($boardEndHour - $boardStartHour) * $hourHeight;
     $eventsByDay = collect($events)->groupBy('fecha');
     $legend = collect($events)->unique('id_medico')->values();
@@ -35,7 +38,7 @@
         <div class="page-toolbar">
             <div>
                 <h1 id="page-title">Disponibilidad</h1>
-                <p class="lead">Consulta los intervalos libres por médico y especialidad. Ver un hueco no lo reserva.</p>
+                <p class="lead">Consulta las citas asignadas y los intervalos libres por médico y especialidad. Ver un hueco no lo reserva.</p>
             </div>
             @if ($canBook)
                 <a class="button button-inline" href="{{ route('appointments.create') }}">Nueva cita</a>
@@ -74,6 +77,15 @@
                     @endforeach
                 </select>
             </div>
+            <div class="field">
+                <label for="estado">Estado</label>
+                <select id="estado" name="estado">
+                    <option value="">Todos</option>
+                    @foreach (['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'] as $option)
+                        <option value="{{ $option }}" @selected($estado === $option)>{{ $option }}</option>
+                    @endforeach
+                </select>
+            </div>
             <button class="button button-inline" type="submit">Consultar</button>
         </form>
 
@@ -90,9 +102,9 @@
                     <p class="week-range">{{ $rangeLabel }}</p>
                 </div>
                 <nav class="week-switch" aria-label="Vista del calendario">
-                    <a class="@if ($vista === 'dia') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'fecha' => $fecha, 'vista' => 'dia']), false) }}">Día</a>
-                    <a class="@if ($vista === 'semana') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'fecha' => $fecha, 'vista' => 'semana']), false) }}">Semana</a>
-                    <a class="@if ($vista === 'mes') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'fecha' => $fecha, 'vista' => 'mes']), false) }}">Mes</a>
+                    <a class="@if ($vista === 'dia') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'dia']), false) }}">Día</a>
+                    <a class="@if ($vista === 'semana') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'semana']), false) }}">Semana</a>
+                    <a class="@if ($vista === 'mes') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'mes']), false) }}">Mes</a>
                 </nav>
             </div>
 
@@ -116,7 +128,7 @@
                             @if ($isPast)
                                 <span class="calendar-day is-past">{{ $day }}</span>
                             @else
-                                <a class="calendar-day @if ($isSelected) is-selected @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'vista' => 'dia', 'fecha' => $iso]), false) }}">{{ $day }}</a>
+                                <a class="calendar-day @if ($isSelected) is-selected @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'vista' => 'dia', 'fecha' => $iso]), false) }}">{{ $day }}</a>
                             @endif
                         @endfor
                     </div>
@@ -149,24 +161,28 @@
                                     @endforeach
                                     @foreach ($dayEvents as $event)
                                         @php
-                                            $href = $canBook ? route('appointments.create', [
-                                                'especialidad' => $especialidad,
-                                                'medico' => $event['id_medico'],
-                                                'fecha' => $event['fecha'],
-                                                'hora_inicio' => $event['hora_inicio'],
-                                                'hora_fin' => $event['hora_fin'],
-                                            ], false) : null;
+                                            $isAppointment = $event['kind'] === 'cita';
+                                            $href = $isAppointment && $canOpen && $event['id_cita']
+                                                ? route('appointments.show', $event['id_cita'], false)
+                                                : ($canBook && ! $isAppointment ? route('appointments.create', [
+                                                    'especialidad' => $especialidad,
+                                                    'medico' => $event['id_medico'],
+                                                    'fecha' => $event['fecha'],
+                                                    'hora_inicio' => $event['hora_inicio'],
+                                                    'hora_fin' => $event['hora_fin'],
+                                                ], false) : null);
+                                            $title = $isAppointment ? $event['paciente'].' · '.$event['estado'] : 'Intervalo libre';
                                         @endphp
                                         @if ($href)
-                                            <a class="week-event tone-{{ $event['tone'] }}" href="{{ $href }}" style="top: {{ $event['top'] }}rem; height: {{ $event['height'] }}rem;">
+                                            <a class="week-event tone-{{ $event['tone'] }}" href="{{ $href }}" title="{{ $title }}" style="top: {{ $event['top'] }}rem; height: {{ $event['height'] }}rem;">
                                                 <span class="week-event-time">{{ $event['hora_inicio'] }} – {{ $event['hora_fin'] }}</span>
-                                                <strong>Libre</strong>
+                                                <strong>{{ $isAppointment ? $event['paciente'] : 'Libre' }}</strong>
                                                 <span>{{ $event['medico'] }}</span>
                                             </a>
                                         @else
-                                            <div class="week-event tone-{{ $event['tone'] }}" style="top: {{ $event['top'] }}rem; height: {{ $event['height'] }}rem;">
+                                            <div class="week-event tone-{{ $event['tone'] }}" title="{{ $title }}" style="top: {{ $event['top'] }}rem; height: {{ $event['height'] }}rem;">
                                                 <span class="week-event-time">{{ $event['hora_inicio'] }} – {{ $event['hora_fin'] }}</span>
-                                                <strong>Libre</strong>
+                                                <strong>{{ $isAppointment ? $event['paciente'] : 'Libre' }}</strong>
                                                 <span>{{ $event['medico'] }}</span>
                                             </div>
                                         @endif
@@ -176,12 +192,10 @@
                         @endforeach
                     </div>
                 </div>
-                @if (! $especialidad)
-                    <p class="slots-footnote">Seleccione una especialidad para ver los intervalos libres. Ver un hueco no lo reserva.</p>
-                @elseif ($physicians->isEmpty())
-                    <p class="slots-footnote">No hay médicos activos para esa especialidad.</p>
-                @elseif ($events === [])
-                    <p class="slots-footnote">No hay intervalos disponibles para esos criterios. Pruebe otra semana o médico.</p>
+                @if ($events === [])
+                    <p class="slots-footnote">No hay citas programadas en este periodo. Elija una especialidad para ver también los intervalos libres.</p>
+                @elseif (! $especialidad)
+                    <p class="slots-footnote">Elija una especialidad para ver además los intervalos libres. Ver un hueco no lo reserva.</p>
                 @endif
             @endif
 
@@ -190,7 +204,7 @@
                     @forelse ($legend as $item)
                         <span class="week-legend-item"><span class="week-legend-dot tone-{{ $item['tone'] }}" aria-hidden="true"></span> {{ $item['medico'] }}</span>
                     @empty
-                        <span class="week-legend-item"><span class="week-legend-dot tone-0" aria-hidden="true"></span> Intervalos libres</span>
+                        <span class="week-legend-item"><span class="week-legend-dot tone-0" aria-hidden="true"></span> Citas y huecos libres</span>
                     @endforelse
                 </p>
                 <p>Seleccionar un intervalo no lo reserva.</p>

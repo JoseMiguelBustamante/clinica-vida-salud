@@ -170,4 +170,21 @@ class AvailabilityServiceTest extends TestCase
 
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_board_appointments_reject_an_unknown_status(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $appointments->shouldReceive('getAppointmentsInRange')->never();
+
+        try {
+            (new AvailabilityService($appointments, $physicians, $specialties))
+                ->getBoardAppointments('2026-11-02T00:00:00+00:00', '2026-11-07T00:00:00+00:00', null, null, 'Otro');
+            $this->fail('Expected InvalidAvailabilityInput');
+        } catch (InvalidAvailabilityInput) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

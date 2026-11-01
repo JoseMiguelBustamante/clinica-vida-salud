@@ -26,15 +26,18 @@ class ModuleFoundationTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Clínica Vida Salud')
-            ->assertSee('Foundation in progress')
-            ->assertSee('Staff sign-in, accounts, patients, physicians, specialties, schedules, availability lookup, booking, rescheduling, cancellation, confirmation, attendance, marking visits as attended, physician agenda lookup, patient appointment history, administrative reports, patient portal registration, patient profile preferences, declared medical information, authorized clinical history and appointment reminders are available.')
+            ->assertSee('Sistema web')
+            ->assertSee('Gestión de citas médicas')
+            ->assertSee('Los casos de uso CU01 a CU22 están disponibles en esta aplicación.')
+            ->assertSee('Inicio de sesión del personal, cuentas, pacientes, médicos, especialidades, horarios, consulta de disponibilidad, programación, reprogramación, cancelación, confirmación, asistencia, atención, agenda del médico, historial de citas, reportes administrativos, registro del portal, perfil, información médica declarada, historial clínico autorizado y recordatorios de cita están disponibles.')
+            ->assertDontSee('Clinical workflows are still pending implementation.')
             ->assertSee('href="'.url('/login').'"', false);
 
         $document = new DOMDocument;
         @$document->loadHTML($response->getContent());
         $xpath = new DOMXPath($document);
 
-        foreach (['/html[@lang="en"]', '//title', '//meta[@name="viewport"]', '//header', '//main[@id="main-content"]', '//h1', '//footer', '//a[@href="#main-content"]'] as $selector) {
+        foreach (['/html[@lang="es"]', '//title', '//meta[@name="viewport"]', '//header', '//main[@id="main-content"]', '//h1', '//footer', '//a[@href="#main-content"]'] as $selector) {
             $this->assertSame(1, $xpath->query($selector)->length, $selector);
         }
 

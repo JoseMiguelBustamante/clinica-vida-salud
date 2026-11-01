@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Clínica Vida Salud application foundation and implementation status.">
+    <meta name="description" content="Clínica Vida Salud, gestión de citas médicas.">
     <title>@yield('title', 'Clínica Vida Salud')</title>
     <link rel="stylesheet" href="/css/clinic.css?v={{ filemtime(public_path('css/clinic.css')) }}">
 </head>
 <body>
-    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <a class="skip-link" href="#main-content">Ir al contenido principal</a>
     <header class="site-header">
         <div class="container header-content">
             <a class="brand" href="{{ route('home') }}">Clínica Vida Salud</a>
@@ -69,15 +69,15 @@
                     @endunless
                 @endif
             </nav>
-            <span class="status">Foundation in progress</span>
+            <span class="status">Sistema web</span>
         </div>
     </header>
     <main id="main-content" class="container" tabindex="-1">
         @yield('content')
     </main>
     <footer class="site-footer container">
-        <p>Clínica Vida Salud · Application bootstrap</p>
-        <p>No patient or medical information is displayed on this page.</p>
+        <p>Clínica Vida Salud · Gestión de citas</p>
+        <p>Esta página pública no muestra datos de pacientes ni información clínica.</p>
     </footer>
 </body>
 </html>

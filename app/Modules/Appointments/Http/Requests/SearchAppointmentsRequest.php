@@ -17,6 +17,16 @@ final class SearchAppointmentsRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:100'],
+            'fecha' => ['nullable', 'date_format:Y-m-d'],
+            'estado' => ['nullable', 'in:Programada,Confirmada,Atendida,Cancelada,Inasistencia'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'fecha.date_format' => 'Indique una fecha válida.',
+            'estado.in' => 'El estado de la cita no es válido.',
         ];
     }
 }

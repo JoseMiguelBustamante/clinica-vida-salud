@@ -141,6 +141,20 @@ class AppointmentScreenTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
+    public function test_the_appointment_list_rejects_an_invalid_status_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::RESCHEDULE_APPOINTMENTS]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->from('/citas')->get('/citas?estado=Noasistio')
+            ->assertRedirect('/citas')->assertSessionHasErrors('estado');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
     public function test_an_authorized_session_lists_appointments_without_sql(): void
     {
         $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
@@ -150,7 +164,7 @@ class AppointmentScreenTest extends TestCase
         $this->app->instance(IdentityRepository::class, $identities);
 
         $appointments = Mockery::mock(AppointmentRepository::class);
-        $appointments->shouldReceive('getAllAppointments')->once()->with(null)->andReturn(collect([
+        $appointments->shouldReceive('getAllAppointments')->once()->with(null, null, null)->andReturn(collect([
             (object) [
                 'id_cita' => 21,
                 'codigo' => 'CIT-20261101080000ab',
@@ -167,7 +181,8 @@ class AppointmentScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/citas')->assertOk()->assertSee('Citas registradas')
-            ->assertSee('CIT-20261101080000ab')->assertSee('Reprogramar');
+            ->assertSee('CIT-20261101080000ab')->assertSee('Reprogramar')->assertSee('Pediatría')
+            ->assertSee('1 nov 2026')->assertSee('Todos');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

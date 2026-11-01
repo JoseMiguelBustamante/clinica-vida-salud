@@ -63,7 +63,7 @@ class AppointmentRepository
     }
 
     /** @return Collection<int, object> */
-    public function getAllAppointments(?string $fragment): Collection
+    public function getAllAppointments(?string $fragment, ?string $onDate = null, ?string $status = null): Collection
     {
         $query = DB::table('cita_medica')
             ->join('paciente', 'paciente.id_paciente', '=', 'cita_medica.id_paciente')
@@ -95,6 +95,12 @@ class AppointmentRepository
                     ->orWhereRaw('medico.nombres ILIKE ? ESCAPE \'!\'', [$like])
                     ->orWhereRaw('medico.apellidos ILIKE ? ESCAPE \'!\'', [$like]);
             });
+        }
+        if ($onDate !== null && $onDate !== '') {
+            $query->whereDate('cita_medica.inicio', $onDate);
+        }
+        if ($status !== null && $status !== '') {
+            $query->where('cita_medica.estado', $status);
         }
 
         return $query->get();

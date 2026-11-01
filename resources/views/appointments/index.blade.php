@@ -7,6 +7,10 @@
     $P = \App\Modules\Identity\PermissionCatalog::class;
     $codes = $identityPermissions ?? [];
     $has = static fn (string $code): bool => in_array($code, $codes, true);
+    $months = [1 => 'ene', 2 => 'feb', 3 => 'mar', 4 => 'abr', 5 => 'may', 6 => 'jun', 7 => 'jul', 8 => 'ago', 9 => 'sep', 10 => 'oct', 11 => 'nov', 12 => 'dic'];
+    $programarHref = $has($P::CONSULT_AVAILABILITY)
+        ? route('availability.consult', ['nueva' => 1], false)
+        : route('appointments.create', absolute: false);
 @endphp
 
 @section('content')
@@ -15,10 +19,10 @@
         <div class="page-toolbar">
             <div>
                 <h1 id="page-title">Citas registradas</h1>
-                <p class="lead">Busque por código, paciente o médico. Reprogramar conserva el identificador; cancelar libera el horario.</p>
+                <p class="lead">Consulta y gestiona las citas de tus pacientes.</p>
             </div>
             @if ($has($P::BOOK_APPOINTMENTS))
-                <a class="button button-inline" href="{{ route('appointments.create') }}">Programar cita</a>
+                <a class="button button-inline button-add" href="{{ $programarHref }}">Programar cita</a>
             @endif
         </div>
 
@@ -30,68 +34,120 @@
         @endif
 
         <div class="list-card">
-            <form class="filter-bar" method="get" action="{{ route('appointments.index', absolute: false) }}">
+            <form class="filter-bar appointment-filters" method="get" action="{{ route('appointments.index', absolute: false) }}">
                 <div class="field">
                     <label for="q">Buscar por código, paciente o médico</label>
                     <input id="q" name="q" type="search" value="{{ $q }}" placeholder="Código, paciente o médico">
                 </div>
-                <button class="button" type="submit">Buscar</button>
+                <div class="field">
+                    <label for="fecha">Fecha</label>
+                    <input id="fecha" name="fecha" type="date" value="{{ $fecha }}">
+                </div>
+                <div class="field">
+                    <label for="estado">Estado</label>
+                    <select id="estado" name="estado">
+                        <option value="">Todos</option>
+                        @foreach (['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'] as $option)
+                            <option value="{{ $option }}" @selected($estado === $option)>{{ $option }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button class="button button-inline" type="submit">Buscar</button>
             </form>
             <div class="table-wrap">
-                <table class="data-table">
+                <table class="data-table appointment-table">
                     <thead>
                         <tr>
                             <th>Código</th>
                             <th>Paciente</th>
-                            <th>Médico</th>
-                            <th>Especialidad</th>
-                            <th>Inicio</th>
+                            <th>Médico / especialidad</th>
+                            <th>Fecha y hora</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($appointments as $appointment)
+                            @php
+                                $start = \Illuminate\Support\Carbon::parse((string) $appointment->inicio, 'UTC');
+                                $code = (string) $appointment->codigo;
+                                $shortCode = strlen($code) > 10 ? 'CIT-…'.substr($code, -5) : $code;
+                                $statusClass = match ((string) $appointment->estado) {
+                                    'Programada' => 'is-programada',
+                                    'Confirmada' => 'is-confirmada',
+                                    'Atendida' => 'is-atendida',
+                                    'Cancelada', 'Inasistencia' => 'is-inactive',
+                                    default => '',
+                                };
+                                $canOpen = $has($P::BOOK_APPOINTMENTS) || $has($P::MARK_ATTENDED);
+                                $canReschedule = in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)
+                                    && $has($P::RESCHEDULE_APPOINTMENTS);
+                                $canCancel = in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)
+                                    && $has($P::CANCEL_APPOINTMENTS);
+                                $canAttendance = $has($P::RECORD_ATTENDANCE);
+                                $canAttend = in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)
+                                    && $has($P::MARK_ATTENDED);
+                                $hasMenu = $canCancel || $canAttendance || $canAttend;
+                            @endphp
                             <tr>
-                                <td>{{ $appointment->codigo }}</td>
-                                <td>{{ $appointment->paciente_apellidos }}, {{ $appointment->paciente_nombres }}</td>
-                                <td>{{ $appointment->medico_apellidos }}, {{ $appointment->medico_nombres }}</td>
-                                <td>{{ $appointment->especialidad_nombre }}</td>
-                                <td>{{ \Illuminate\Support\Carbon::parse((string) $appointment->inicio)->timezone('UTC')->format('Y-m-d H:i') }}</td>
                                 <td>
-                                    <span class="status-pill {{ in_array($appointment->estado, ['Atendida', 'Confirmada'], true) ? 'is-active' : (in_array($appointment->estado, ['Cancelada', 'Inasistencia'], true) ? 'is-inactive' : '') }}">
-                                        {{ $appointment->estado }}
-                                    </span>
+                                    @if ($canOpen)
+                                        <a class="code-link" href="{{ route('appointments.show', $appointment->id_cita) }}" title="{{ $code }}">{{ $shortCode }}</a>
+                                    @else
+                                        <span class="code-link" title="{{ $code }}">{{ $shortCode }}</span>
+                                    @endif
+                                </td>
+                                <td>{{ $appointment->paciente_apellidos }}, {{ $appointment->paciente_nombres }}</td>
+                                <td class="staff-cell">
+                                    <strong>{{ $appointment->medico_apellidos }}, {{ $appointment->medico_nombres }}</strong>
+                                    <span>{{ $appointment->especialidad_nombre }}</span>
+                                </td>
+                                <td class="when-cell">
+                                    <strong>{{ $start->day }} {{ $months[(int) $start->month] }} {{ $start->year }}</strong>
+                                    <span>{{ $start->format('H:i') }}</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill {{ $statusClass }}">{{ $appointment->estado }}</span>
                                 </td>
                                 <td>
                                     <nav class="row-actions" aria-label="Acciones de {{ $appointment->codigo }}">
-                                        @if ($has($P::BOOK_APPOINTMENTS))
+                                        @if ($canOpen)
                                             <a class="row-action" href="{{ route('appointments.show', $appointment->id_cita) }}">Ver</a>
                                         @endif
-                                        @if (in_array($appointment->estado, ['Programada', 'Confirmada'], true) && $has($P::RESCHEDULE_APPOINTMENTS))
+                                        @if ($canReschedule)
                                             <a class="row-action" href="{{ route('appointments.reschedule', $appointment->id_cita) }}">Reprogramar</a>
                                         @endif
-                                        @if (in_array($appointment->estado, ['Programada', 'Confirmada'], true) && $has($P::CANCEL_APPOINTMENTS))
-                                            <a class="row-action" href="{{ route('appointments.cancel', $appointment->id_cita) }}">Cancelar</a>
-                                        @endif
-                                        @if ($has($P::RECORD_ATTENDANCE))
-                                            <a class="row-action" href="{{ route('appointments.attendance', $appointment->id_cita) }}">Asistencia</a>
-                                        @endif
-                                        @if (in_array($appointment->estado, ['Programada', 'Confirmada'], true) && $has($P::MARK_ATTENDED))
-                                            <a class="row-action" href="{{ route('appointments.attend', $appointment->id_cita) }}">Atender</a>
+                                        @if ($hasMenu)
+                                            <details class="row-menu">
+                                                <summary aria-label="Más acciones de {{ $appointment->codigo }}">⋯</summary>
+                                                <div class="row-menu-list">
+                                                    @if ($canAttendance)
+                                                        <a href="{{ route('appointments.attendance', $appointment->id_cita) }}">Registrar asistencia</a>
+                                                    @endif
+                                                    @if ($canAttend)
+                                                        <a href="{{ route('appointments.attend', $appointment->id_cita) }}">Marcar atendida</a>
+                                                    @endif
+                                                    @if ($canCancel)
+                                                        <a class="is-danger" href="{{ route('appointments.cancel', $appointment->id_cita) }}">Cancelar cita</a>
+                                                    @endif
+                                                </div>
+                                            </details>
                                         @endif
                                     </nav>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7">No hay citas que coincidan con la búsqueda.</td>
+                                <td colspan="6">No hay citas que coincidan con la búsqueda.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            <p class="list-meta">{{ $shown === 1 ? 'Mostrando 1 cita' : 'Mostrando '.$shown.' citas' }}</p>
+            <div class="list-footer">
+                <p class="list-meta">{{ $shown === 1 ? 'Mostrando 1 cita' : 'Mostrando '.$shown.' citas' }}</p>
+                <p class="list-hint">Reprogramar conserva el código de la cita. Cancelar libera el horario.</p>
+            </div>
         </div>
     </section>
 @endsection

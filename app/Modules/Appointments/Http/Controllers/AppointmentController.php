@@ -47,8 +47,14 @@ final class AppointmentController
         $input = $request->validated();
 
         return view('appointments.index', [
-            'appointments' => $this->appointments->getAllAppointments($input['q'] ?? null),
+            'appointments' => $this->appointments->getAllAppointments(
+                $input['q'] ?? null,
+                $input['fecha'] ?? null,
+                $input['estado'] ?? null,
+            ),
             'q' => $input['q'] ?? '',
+            'fecha' => $input['fecha'] ?? '',
+            'estado' => $input['estado'] ?? '',
         ]);
     }
 

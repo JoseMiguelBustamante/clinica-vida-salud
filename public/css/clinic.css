@@ -960,6 +960,21 @@ body.is-app .button:hover {
     color: var(--clinic-muted);
 }
 
+.status-pill.is-programada {
+    background: #e8f1fe;
+    color: #1d4ed8;
+}
+
+.status-pill.is-confirmada {
+    background: #edfbf5;
+    color: #047857;
+}
+
+.status-pill.is-atendida {
+    background: #e7f7f3;
+    color: #0f766e;
+}
+
 .status-pill::before {
     content: "";
     width: 0.45rem;
@@ -990,6 +1005,109 @@ body.is-app .button:hover {
 .row-action:hover {
     border-color: var(--clinic-green);
     color: var(--clinic-green-dark);
+}
+
+.button-add::before {
+    content: "+";
+    margin-right: 0.4rem;
+    font-weight: 750;
+}
+
+.appointment-table .staff-cell,
+.appointment-table .when-cell {
+    display: grid;
+    gap: 0.1rem;
+}
+
+.appointment-table .staff-cell span,
+.appointment-table .when-cell span {
+    color: var(--clinic-muted);
+    font-size: 0.88rem;
+}
+
+.code-link {
+    font-family: ui-monospace, Consolas, monospace;
+    font-weight: 650;
+    color: var(--clinic-ink);
+    text-decoration: none;
+}
+
+a.code-link:hover {
+    color: var(--clinic-green-dark);
+}
+
+.row-menu {
+    position: relative;
+}
+
+.row-menu summary {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--clinic-line);
+    border-radius: 999px;
+    list-style: none;
+    cursor: pointer;
+    font-weight: 750;
+    line-height: 1;
+}
+
+.row-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.row-menu summary:hover {
+    border-color: var(--clinic-green);
+    color: var(--clinic-green-dark);
+}
+
+.row-menu-list {
+    position: absolute;
+    right: 0;
+    z-index: 6;
+    display: grid;
+    min-width: 13.5rem;
+    margin-top: 0.35rem;
+    padding: 0.35rem 0;
+    background: #ffffff;
+    border: 1px solid var(--clinic-line);
+    border-radius: 0.8rem;
+    box-shadow: 0 10px 24px rgba(15, 40, 36, 0.08);
+}
+
+.row-menu-list a {
+    padding: 0.55rem 0.9rem;
+    color: var(--clinic-ink);
+    font-weight: 650;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.row-menu-list a:hover {
+    background: var(--clinic-panel);
+}
+
+.row-menu-list a.is-danger {
+    color: #b42318;
+}
+
+.list-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.85rem 1.15rem 1.05rem;
+}
+
+.list-footer .list-meta {
+    padding: 0;
+}
+
+.list-hint {
+    margin: 0;
+    color: var(--clinic-muted);
+    font-size: 0.88rem;
 }
 
 .detail-card {
@@ -1776,6 +1894,10 @@ body.is-app .booking-cancel:hover {
 
     .list-card .filter-bar {
         grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .filter-bar.appointment-filters {
+        grid-template-columns: minmax(12rem, 1.6fr) minmax(9rem, 0.8fr) minmax(9rem, 0.8fr) auto;
     }
 
     .page-toolbar {

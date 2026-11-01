@@ -24,9 +24,18 @@ final class AppointmentService
         return $this->patients->getActivePatients($fragment === '' ? null : $fragment);
     }
 
-    public function getAllAppointments(?string $fragment): Collection
+    public function getAllAppointments(?string $fragment, ?string $onDate = null, ?string $status = null): Collection
     {
-        return $this->appointments->getAllAppointments($fragment === '' ? null : $fragment);
+        if ($status !== null && $status !== ''
+            && ! in_array($status, ['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'], true)) {
+            throw new InvalidAvailabilityInput;
+        }
+
+        return $this->appointments->getAllAppointments(
+            $fragment === '' ? null : $fragment,
+            $onDate === '' ? null : $onDate,
+            $status === '' ? null : $status,
+        );
     }
 
     public function getAppointmentById(int $id): object

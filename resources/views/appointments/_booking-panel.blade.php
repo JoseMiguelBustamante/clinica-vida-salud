@@ -79,11 +79,53 @@
         <p class="booking-help">Carga los médicos activos de esa especialidad. El paciente y el horario no se pierden.</p>
     </form>
 
+    <form class="booking-slot" method="get" action="{{ route('availability.consult', absolute: false) }}">
+        @foreach ($panelState as $name => $value)
+            @if (! in_array($name, ['fecha', 'hora_inicio', 'hora_fin'], true))
+                <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+            @endif
+        @endforeach
+        <h3>Fecha y hora</h3>
+        <div class="booking-when">
+            <div class="field">
+                <label for="fecha">Fecha</label>
+                <input id="fecha" name="fecha" type="date" required value="{{ $fecha }}" min="{{ $today->toDateString() }}">
+            </div>
+            <div class="field">
+                <label for="hora_inicio">Inicio</label>
+                <select id="hora_inicio" name="hora_inicio" required>
+                    <option value="">--:--</option>
+                    @foreach ($clockOptions as $clock)
+                        @if ($clock !== $clockOptions[array_key_last($clockOptions)])
+                            <option value="{{ $clock }}" @selected($hora_inicio === $clock)>{{ $clock }}</option>
+                        @endif
+                    @endforeach
+                </select>
+            </div>
+            <div class="field">
+                <label for="hora_fin">Fin</label>
+                <select id="hora_fin" name="hora_fin" required>
+                    <option value="">--:--</option>
+                    @foreach ($clockOptions as $clock)
+                        @if ($clock !== $clockOptions[0])
+                            <option value="{{ $clock }}" @selected($hora_fin === $clock)>{{ $clock }}</option>
+                        @endif
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <button class="button button-inline" type="submit">Ver en el calendario</button>
+        <p class="booking-help">Mueve el hueco marcado. Si el fin no es posterior al inicio, se ajusta a 30 minutos.</p>
+    </form>
+
     <form class="booking-form" method="post" action="{{ route('appointments.store', absolute: false) }}" novalidate>
         @csrf
         <input type="hidden" name="origen" value="disponibilidad">
         <input type="hidden" name="modalidad" value="Presencial">
         <input type="hidden" name="id_especialidad" value="{{ old('id_especialidad', $especialidad) }}">
+        <input type="hidden" name="fecha" value="{{ $fecha }}">
+        <input type="hidden" name="hora_inicio" value="{{ $hora_inicio }}">
+        <input type="hidden" name="hora_fin" value="{{ $hora_fin }}">
 
         <div class="field">
             <label for="id_paciente">Paciente</label>
@@ -123,36 +165,6 @@
         @elseif ($slotHint === 'unknown')
             <p class="booking-hint">El intervalo se vuelve a comprobar al guardar. Programar no confirma la asistencia.</p>
         @endif
-
-        <h3>Fecha y hora</h3>
-        <div class="booking-when">
-            <div class="field">
-                <label for="fecha">Fecha</label>
-                <input id="fecha" name="fecha" type="date" required value="{{ old('fecha', $fecha) }}" min="{{ $today->toDateString() }}">
-            </div>
-            <div class="field">
-                <label for="hora_inicio">Inicio</label>
-                <select id="hora_inicio" name="hora_inicio" required>
-                    <option value="">--:--</option>
-                    @foreach ($clockOptions as $clock)
-                        @if ($clock !== $clockOptions[array_key_last($clockOptions)])
-                            <option value="{{ $clock }}" @selected((string) old('hora_inicio', $hora_inicio) === $clock)>{{ $clock }}</option>
-                        @endif
-                    @endforeach
-                </select>
-            </div>
-            <div class="field">
-                <label for="hora_fin">Fin</label>
-                <select id="hora_fin" name="hora_fin" required>
-                    <option value="">--:--</option>
-                    @foreach ($clockOptions as $clock)
-                        @if ($clock !== $clockOptions[0])
-                            <option value="{{ $clock }}" @selected((string) old('hora_fin', $hora_fin) === $clock)>{{ $clock }}</option>
-                        @endif
-                    @endforeach
-                </select>
-            </div>
-        </div>
 
         <div class="field">
             <label for="motivo_consulta">Observaciones (opcional)</label>

@@ -47,7 +47,7 @@ final class AvailabilityController
         $canBook = in_array(PermissionCatalog::BOOK_APPOINTMENTS, $codes, true);
         $horaInicio = $input['hora_inicio'] ?? '';
         $horaFin = $input['hora_fin'] ?? '';
-        if ($horaInicio !== '' && $horaFin === '') {
+        if ($horaInicio !== '' && ($horaFin === '' || $this->clockMinutes($horaFin) <= $this->clockMinutes($horaInicio))) {
             $horaFin = $this->defaultEndClock($horaInicio);
         }
         $bookingOpen = $canBook && (($input['nueva'] ?? '') === '1' || $horaInicio !== '');

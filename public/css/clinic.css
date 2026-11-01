@@ -1440,13 +1440,15 @@ body.is-app .button:hover {
 
 .booking-search,
 .booking-care,
+.booking-slot,
 .booking-form {
     display: grid;
     gap: 0.65rem;
 }
 
 .booking-search,
-.booking-care {
+.booking-care,
+.booking-slot {
     margin-bottom: 0.85rem;
 }
 

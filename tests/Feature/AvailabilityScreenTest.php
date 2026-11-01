@@ -199,6 +199,7 @@ class AvailabilityScreenTest extends TestCase
                 ->assertSee('Registrar paciente')
                 ->assertSee('Buscar paciente')
                 ->assertSee('Cargar médicos')
+                ->assertSee('Ver en el calendario')
                 ->assertSee('nombre o cédula', false)
                 ->assertSee('Elija especialidad y pulse Cargar médicos')
                 ->assertSee('Nuevo turno')
@@ -249,6 +250,48 @@ class AvailabilityScreenTest extends TestCase
                 ->assertSee('Paciente registrado')
                 ->assertDontSee('Ningún paciente coincide')
                 ->assertSee('Ampliar horas')
+                ->assertDontSee('<script', false);
+            $this->assertSame([], $this->app['db']->getConnections());
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_the_calendar_follows_the_form_clock_and_repairs_an_inverted_interval(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 11, 1, 15, 0, 0, 'UTC'));
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([
+            PermissionCatalog::CONSULT_AVAILABILITY,
+            PermissionCatalog::BOOK_APPOINTMENTS,
+        ]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
+        $this->app->instance(SpecialtyRepository::class, $specialties);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getActivePhysicians')->once()->andReturn(collect([
+            (object) ['id_medico' => 4, 'nombres' => 'Ana', 'apellidos' => 'Martínez', 'activo' => true, 'registro_profesional' => 'MP-1'],
+        ]));
+        $appointments->shouldReceive('getAppointmentsInRange')->once()->andReturn(collect());
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getActivePatients')->once()->with(null)->andReturn(collect());
+        $this->app->instance(PatientRepository::class, $patients);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        try {
+            $this->get('/disponibilidad?nueva=1&fecha=2026-11-03&hora_inicio=10:00&hora_fin=08:30')
+                ->assertOk()
+                ->assertSee('Martes 3 de noviembre · 10:00 – 10:30')
+                ->assertSee('Ver en el calendario')
                 ->assertDontSee('<script', false);
             $this->assertSame([], $this->app['db']->getConnections());
         } finally {

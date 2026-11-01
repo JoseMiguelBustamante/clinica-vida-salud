@@ -2,6 +2,7 @@
 
 use App\Modules\Appointments\Http\Controllers\AppointmentController;
 use App\Modules\Appointments\Http\Controllers\AvailabilityController;
+use App\Modules\Appointments\Http\Controllers\ClinicalHistoryController;
 use App\Modules\Appointments\Http\Controllers\ReportController;
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Identity\RequireActiveSession;
@@ -100,6 +101,18 @@ Route::middleware([
     RequirePermission::class.':'.PermissionCatalog::CONSULT_HISTORY,
 ])->group(function (): void {
     Route::get('/historial', [AppointmentController::class, 'consultPatientHistory'])->name('appointments.history');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::CONSULT_CLINICAL_HISTORY,
+])->group(function (): void {
+    Route::get('/historial-medico', [ClinicalHistoryController::class, 'getOwnClinicalHistory'])
+        ->name('appointments.clinical-history');
+    Route::get('/historial-medico/{cita}', [ClinicalHistoryController::class, 'getOwnClinicalHistoryRecord'])
+        ->name('appointments.clinical-history.show')
+        ->whereNumber('cita');
 });
 
 Route::middleware([

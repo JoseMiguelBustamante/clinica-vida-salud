@@ -53,6 +53,9 @@
                     @if (in_array(\App\Modules\Identity\PermissionCatalog::DECLARE_HEALTH, $identityPermissions ?? [], true))
                         <a href="{{ route('patients.declared') }}">Información médica</a>
                     @endif
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_CLINICAL_HISTORY, $identityPermissions ?? [], true))
+                        <a href="{{ route('appointments.clinical-history') }}">Historial médico</a>
+                    @endif
                     <form class="inline-form" method="post" action="{{ route('logout', absolute: false) }}">
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>

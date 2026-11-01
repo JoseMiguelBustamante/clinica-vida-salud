@@ -6,7 +6,7 @@
     <section class="page-head" aria-labelledby="page-title">
         <p class="eyebrow">Citas</p>
         <h1 id="page-title">Citas e historial del paciente</h1>
-        <p class="lead">Consulta por paciente y estado. No muestra diagnósticos ni notas médicas. El portal de paciente no está habilitado.</p>
+        <p class="lead">Consulta por paciente y estado. No muestra diagnósticos ni notas médicas. El historial del portal es una consulta distinta.</p>
     </section>
 
     @if (session('status'))

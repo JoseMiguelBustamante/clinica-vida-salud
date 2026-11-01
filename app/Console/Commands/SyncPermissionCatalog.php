@@ -21,7 +21,7 @@ class SyncPermissionCatalog extends Command
         especialidades.gestionar, medicos.gestionar, horarios.gestionar, citas.consultar, citas.programar, citas.reprogramar, citas.cancelar, citas.asistencia, citas.atender, citas.agenda, citas.historial and reportes.generar;
         Recepcionista receives pacientes.gestionar, citas.consultar, citas.programar, citas.reprogramar, citas.cancelar, citas.asistencia, citas.agenda and citas.historial;
         Médico receives citas.atender and citas.agenda;
-        Paciente receives perfil.actualizar and informacion.declarar. Idempotent: safe to rerun. No password prompts, arguments, defaults
+        Paciente receives perfil.actualizar, informacion.declarar and historial.consultar. Idempotent: safe to rerun. No password prompts, arguments, defaults
         or environment writes. Signed-in requests apply missing catalog rows automatically; this
         command is a manual repair. On any error, stop and contact the operator.
         HELP;

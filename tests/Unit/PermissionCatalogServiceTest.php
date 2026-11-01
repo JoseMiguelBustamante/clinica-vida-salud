@@ -52,6 +52,7 @@ class PermissionCatalogServiceTest extends TestCase
                     && $assignments[PermissionCatalog::PATIENT_ROLE] === [
                         PermissionCatalog::UPDATE_PROFILE,
                         PermissionCatalog::DECLARE_HEALTH,
+                        PermissionCatalog::CONSULT_CLINICAL_HISTORY,
                     ];
             }),
         );

@@ -22,7 +22,14 @@ CU15 (`GET /historial`, `citas.historial`) is a read-only patient history for
 Recepcionista and Administrador. Search by CI or name, then select the patient.
 An optional estado filter narrows the list; an empty filter returns the complete
 history, including finished visits. Empty results are not an error. Clinical notes
-and diagnoses are omitted. The patient portal is not part of this slice.
+and diagnoses are omitted.
+
+CU20 (`GET /historial-medico`, `historial.consultar`) is a read-only portal
+consult for Paciente. It requires an approved `paciente.id_usuario` link. The
+link does not grant diagnoses or professional notes. Empty authorized results
+are not an error and do not mean the patient has no clinical records. A
+retrieval failure is not shown as that empty state. English `/medical-history`
+stays 404.
 
 CU16 (`GET /reportes`, `reportes.generar`) is read-only for Administrador. The
 available reports are appointments on a date, by physician, specialty or status,

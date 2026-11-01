@@ -94,6 +94,12 @@
                 <span>Consultar y actualizar la declaración personal de salud.</span>
             </a>
         @endif
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_CLINICAL_HISTORY, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('appointments.clinical-history') }}">
+                <strong>Historial médico</strong>
+                <span>Consultar los registros propios autorizados en el portal.</span>
+            </a>
+        @endif
     </nav>
 
     <section class="implementation" aria-labelledby="permissions-title">

@@ -498,7 +498,8 @@ class AppointmentScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/historial')->assertOk()->assertSee('Citas e historial del paciente')
-            ->assertSee('Busque y seleccione un paciente')->assertDontSee('Diagnóstico');
+            ->assertSee('Busque y seleccione un paciente')->assertDontSee('Diagnóstico')
+            ->assertSee('El historial del portal es una consulta distinta');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

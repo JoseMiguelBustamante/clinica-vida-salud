@@ -20,6 +20,7 @@ prove clinical truth and do not change `registro_atencion` or diagnoses.
 English `/medical-information` stays 404. A missing approved link is E2, not an
 empty declaration. A retrieval failure is not shown as "no data".
 
-Do not send Idempotency-Key on these HTML forms. Appointment history (CU15)
-lives in Appointments. Patient portal registration (CU17) and profile
-preferences (CU18) live in Identity and do not approve a link to a patient record.
+Do not send Idempotency-Key on these HTML forms. Staff appointment history (CU15)
+and portal clinical history (CU20) live in Appointments. Patient portal
+registration (CU17) and profile preferences (CU18) live in Identity and do not
+approve a link to a patient record.

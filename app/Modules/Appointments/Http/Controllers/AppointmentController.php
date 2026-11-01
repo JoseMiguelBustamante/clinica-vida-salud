@@ -113,6 +113,15 @@ final class AppointmentController
             return back()->withInput()->withErrors(['id_paciente' => 'No fue posible registrar la cita.']);
         }
 
+        if (($input['origen'] ?? '') === 'disponibilidad') {
+            return redirect()->route('availability.consult', array_filter([
+                'fecha' => $input['fecha'],
+                'especialidad' => $input['id_especialidad'],
+                'medico' => $input['id_medico'],
+                'vista' => 'semana',
+            ]))->with('status', 'La cita quedó programada.');
+        }
+
         return redirect()->route('appointments.show', $appointmentId)
             ->with('status', 'La cita quedó programada.');
     }

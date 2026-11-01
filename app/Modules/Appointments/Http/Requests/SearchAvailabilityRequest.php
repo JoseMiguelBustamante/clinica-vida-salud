@@ -13,6 +13,16 @@ final class SearchAvailabilityRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        foreach (['hora_inicio', 'hora_fin'] as $field) {
+            $value = $this->input($field);
+            if (is_string($value) && preg_match('/^\d{2}:\d{2}/', $value) === 1) {
+                $this->merge([$field => substr($value, 0, 5)]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -21,6 +31,11 @@ final class SearchAvailabilityRequest extends FormRequest
             'fecha' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
             'vista' => ['nullable', 'in:dia,semana,mes'],
             'estado' => ['nullable', 'in:Programada,Confirmada,Atendida,Cancelada,Inasistencia'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'id_paciente' => ['nullable', 'integer'],
+            'hora_inicio' => ['nullable', 'date_format:H:i'],
+            'hora_fin' => ['nullable', 'date_format:H:i'],
+            'nueva' => ['nullable', 'in:1'],
         ];
     }
 

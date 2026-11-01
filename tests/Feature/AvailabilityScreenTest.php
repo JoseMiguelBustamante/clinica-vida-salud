@@ -7,6 +7,7 @@ use App\Modules\Appointments\AppointmentRepository;
 use App\Modules\Identity\IdentityRepository;
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\MedicalStaff\SpecialtyRepository;
+use App\Modules\Patients\PatientRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Mockery;
@@ -74,6 +75,7 @@ class AvailabilityScreenTest extends TestCase
                 ->assertSee('Pediatría')->assertSee('no lo reserva', false)
                 ->assertSee('Consultar')->assertSee('Semana')->assertSee('Lunes')
                 ->assertSee('Todos los médicos')->assertSee('Lucía')->assertSee('Vargas')
+                ->assertDontSee('Nuevo turno')->assertDontSee('Guardar cita')
                 ->assertDontSee('<script', false);
             $this->assertSame([], $this->app['db']->getConnections());
         } finally {
@@ -110,5 +112,98 @@ class AvailabilityScreenTest extends TestCase
         $this->from('/disponibilidad')->get('/disponibilidad?fecha=2020-01-01')
             ->assertRedirect('/disponibilidad')->assertSessionHasErrors('fecha');
         $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_an_authorized_booker_can_pick_a_calendar_slot(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 11, 1, 15, 0, 0, 'UTC'));
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([
+            PermissionCatalog::CONSULT_AVAILABILITY,
+            PermissionCatalog::BOOK_APPOINTMENTS,
+        ]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
+        $this->app->instance(SpecialtyRepository::class, $specialties);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getActivePhysicians')->once()->andReturn(collect([
+            (object) ['id_medico' => 4, 'nombres' => 'Ana', 'apellidos' => 'Martínez', 'activo' => true, 'registro_profesional' => 'MP-1'],
+        ]));
+        $appointments->shouldReceive('getAppointmentsInRange')->once()->andReturn(collect());
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getActivePatients')->never();
+        $this->app->instance(PatientRepository::class, $patients);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        try {
+            $this->get('/disponibilidad')->assertOk()->assertSee('Nueva cita')->assertSee('Nuevo turno')
+                ->assertDontSee('Guardar cita')->assertDontSee('<script', false);
+            $this->assertSame([], $this->app['db']->getConnections());
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_the_calendar_booking_panel_opens_without_sql_for_the_slot(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 11, 1, 15, 0, 0, 'UTC'));
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([
+            PermissionCatalog::CONSULT_AVAILABILITY,
+            PermissionCatalog::BOOK_APPOINTMENTS,
+            PermissionCatalog::MANAGE_PATIENTS,
+        ]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
+        $this->app->instance(SpecialtyRepository::class, $specialties);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getActivePhysicians')->once()->andReturn(collect([
+            (object) ['id_medico' => 4, 'nombres' => 'Ana', 'apellidos' => 'Martínez', 'activo' => true, 'registro_profesional' => 'MP-1'],
+        ]));
+        $appointments->shouldReceive('getAppointmentsInRange')->once()->andReturn(collect());
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getActivePatients')->once()->with(null)->andReturn(collect([
+            (object) ['id_paciente' => 8, 'nombres' => 'María', 'apellidos' => 'López', 'ci' => '1001'],
+        ]));
+        $this->app->instance(PatientRepository::class, $patients);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        try {
+            $this->get('/disponibilidad?nueva=1&fecha=2026-11-02&hora_inicio=09:00&hora_fin=09:30&id_paciente=8')
+                ->assertOk()
+                ->assertSee('Nueva cita')
+                ->assertSee('Lunes 2 de noviembre')
+                ->assertSee('09:00')
+                ->assertSee('09:30')
+                ->assertSee('María')
+                ->assertSee('Paciente registrado')
+                ->assertSee('Guardar cita')
+                ->assertSee('Registrar paciente')
+                ->assertSee('Elija especialidad y médico')
+                ->assertSee('Nuevo turno')
+                ->assertDontSee('Confirmar programación')
+                ->assertDontSee('<script', false);
+            $this->assertSame([], $this->app['db']->getConnections());
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

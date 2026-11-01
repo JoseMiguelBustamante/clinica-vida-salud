@@ -74,6 +74,21 @@ class AppointmentScreenTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
+    public function test_calendar_booking_validation_returns_to_availability(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::BOOK_APPOINTMENTS]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $from = '/disponibilidad?nueva=1&fecha=2026-11-02&hora_inicio=09:00&hora_fin=09:30';
+        $this->from($from)->post('/citas', ['origen' => 'disponibilidad', 'modalidad' => 'Presencial'])
+            ->assertRedirect($from)->assertSessionHasErrors('id_paciente');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
     public function test_the_registered_appointment_is_shown_without_sql(): void
     {
         $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);

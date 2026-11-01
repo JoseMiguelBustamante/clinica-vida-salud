@@ -34,6 +34,7 @@ final class StoreAppointmentRequest extends FormRequest
             'hora_fin' => ['required', 'date_format:H:i', 'after:hora_inicio'],
             'modalidad' => ['required', 'in:Presencial,Virtual'],
             'motivo_consulta' => ['nullable', 'string', 'max:2000'],
+            'origen' => ['nullable', 'in:disponibilidad'],
         ];
     }
 

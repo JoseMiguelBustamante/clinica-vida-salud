@@ -1241,6 +1241,7 @@ body.is-app .button:hover {
     position: absolute;
     left: 0.35rem;
     right: 0.35rem;
+    z-index: 2;
     display: grid;
     align-content: start;
     gap: 0.05rem;
@@ -1253,6 +1254,40 @@ body.is-app .button:hover {
     text-decoration: none;
     font-size: 0.75rem;
     line-height: 1.2;
+}
+
+.week-slot {
+    position: absolute;
+    left: 0.35rem;
+    right: 0.35rem;
+    z-index: 1;
+    display: grid;
+    align-content: center;
+    gap: 0.05rem;
+    padding: 0.2rem 0.4rem;
+    overflow: hidden;
+    border: 1.5px dashed transparent;
+    border-radius: 0.55rem;
+    color: transparent;
+    text-decoration: none;
+    font-size: 0.72rem;
+    line-height: 1.2;
+}
+
+.week-slot strong {
+    font-size: 0.78rem;
+}
+
+.week-slot:hover,
+.week-slot:focus-visible,
+.week-slot.is-draft {
+    border-color: #12b981;
+    background: #ecfdf5;
+    color: #0b5c45;
+}
+
+.week-slot.is-draft {
+    z-index: 1;
 }
 
 .week-event strong {
@@ -1325,6 +1360,146 @@ body.is-app .button:hover {
 .week-month {
     border: 0;
     padding: 0.25rem 0 0;
+}
+
+.booking-layout {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+}
+
+.booking-panel {
+    padding: 1rem 1.1rem 1.15rem;
+    background: #ffffff;
+    border: 1px solid var(--clinic-line);
+    border-radius: 1.1rem;
+}
+
+.booking-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.booking-panel-head h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.booking-panel-head p {
+    margin: 0.2rem 0 0;
+    color: var(--clinic-muted);
+    font-size: 0.9rem;
+}
+
+.booking-close {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    color: var(--clinic-muted);
+    font-size: 1.45rem;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.booking-close:hover {
+    background: var(--clinic-panel);
+    color: var(--clinic-ink);
+}
+
+.booking-search,
+.booking-form {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.booking-search {
+    margin-bottom: 0.85rem;
+}
+
+.booking-register {
+    margin: 0;
+}
+
+.booking-patient {
+    display: grid;
+    gap: 0.1rem;
+    margin: 0 0 0.85rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.75rem;
+    background: #ecfdf5;
+    color: #0b5c45;
+}
+
+.booking-patient.is-selected {
+    border: 1px solid #a7f3d0;
+}
+
+.booking-patient span {
+    color: #047857;
+    font-size: 0.85rem;
+}
+
+.booking-form h3 {
+    margin: 0.35rem 0 0;
+    font-size: 0.92rem;
+}
+
+.booking-hint {
+    margin: 0;
+    color: var(--clinic-muted);
+    font-size: 0.88rem;
+}
+
+.booking-hint.is-ok {
+    color: #047857;
+    font-weight: 650;
+}
+
+.booking-hint.is-warn {
+    color: #b45309;
+}
+
+.booking-when {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.booking-summary {
+    margin: 0.15rem 0 0;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.75rem;
+    background: var(--clinic-panel);
+    color: var(--clinic-ink);
+    font-size: 0.9rem;
+}
+
+.booking-summary span {
+    display: block;
+    color: var(--clinic-muted);
+}
+
+.booking-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.booking-cancel {
+    background: #ffffff;
+    color: var(--clinic-ink);
+    box-shadow: inset 0 0 0 1px var(--clinic-line);
+}
+
+body.is-app .booking-cancel:hover {
+    background: var(--clinic-panel);
+    color: var(--clinic-ink);
 }
 
 .calendar-card,
@@ -1563,6 +1738,14 @@ body.is-app .button:hover {
 
     .week-grid {
         min-width: 0;
+    }
+
+    .booking-layout.is-open {
+        grid-template-columns: minmax(0, 1fr) 22.5rem;
+    }
+
+    .booking-when {
+        grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 0.9fr));
     }
 
     .app-content .page-form {

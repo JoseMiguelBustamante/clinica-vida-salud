@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Appointments\Http\Controllers;
 
+use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
 use App\Modules\Appointments\Http\Requests\SearchAvailabilityRequest;
 use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PhysicianNotEligible;
+use App\Modules\Identity\PermissionCatalog;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +24,10 @@ final class AvailabilityController
 
     private const HOUR_HEIGHT_REM = 4.75;
 
-    public function __construct(private AvailabilityService $availability) {}
+    public function __construct(
+        private AvailabilityService $availability,
+        private AppointmentService $appointments,
+    ) {}
 
     public function consultAvailability(SearchAvailabilityRequest $request): View
     {
@@ -38,6 +43,25 @@ final class AvailabilityController
         $slots = [];
         $status = null;
         $days = $this->boardDays($vista, $focus, $today);
+        $codes = $request->attributes->get('identity_permissions', []);
+        $canBook = in_array(PermissionCatalog::BOOK_APPOINTMENTS, $codes, true);
+        $horaInicio = $input['hora_inicio'] ?? '';
+        $horaFin = $input['hora_fin'] ?? '';
+        if ($horaInicio !== '' && $horaFin === '') {
+            $horaFin = $this->defaultEndClock($horaInicio);
+        }
+        $bookingOpen = $canBook && (($input['nueva'] ?? '') === '1' || $horaInicio !== '');
+        $patientId = isset($input['id_paciente']) ? (int) $input['id_paciente'] : null;
+        $patients = collect();
+        $selectedPatient = null;
+        if ($bookingOpen) {
+            $patients = $this->appointments->getBookablePatients($input['q'] ?? null);
+            if ($patientId !== null) {
+                $selectedPatient = $patients->first(
+                    fn (object $patient): bool => (int) $patient->id_paciente === $patientId,
+                );
+            }
+        }
 
         try {
             $physicians = $this->availability->getBoardPhysicians($specialtyId);
@@ -69,11 +93,13 @@ final class AvailabilityController
             $status = 'No fue posible obtener la disponibilidad.';
         }
 
+        $events = $this->boardEvents($appointments, $slots, $physicians);
+
         return view('appointments.availability', [
             'specialties' => $this->availability->getConsultSpecialties(),
             'physicians' => $physicians,
             'slots' => $slots === [] && $specialtyId === null ? null : $slots,
-            'events' => $this->boardEvents($appointments, $slots, $physicians),
+            'events' => $events,
             'status' => $status,
             'especialidad' => $specialtyId,
             'medico' => $physicianId,
@@ -81,6 +107,7 @@ final class AvailabilityController
             'fecha' => $focus->toDateString(),
             'vista' => $vista,
             'today' => $today,
+            'now' => Carbon::now('UTC'),
             'days' => $days,
             'hours' => $this->boardHourLabels(),
             'boardStartHour' => self::BOARD_START_HOUR,
@@ -90,6 +117,16 @@ final class AvailabilityController
             'prevFecha' => $this->shiftFocus($vista, $focus, -1, $today),
             'nextFecha' => $this->shiftFocus($vista, $focus, 1, $today),
             'canPrev' => $this->canGoPrevious($vista, $focus, $today),
+            'bookingOpen' => $bookingOpen,
+            'hora_inicio' => $horaInicio,
+            'hora_fin' => $horaFin,
+            'q' => $input['q'] ?? '',
+            'id_paciente' => $patientId,
+            'patients' => $patients,
+            'selectedPatient' => $selectedPatient,
+            'clockOptions' => $this->boardClockOptions(),
+            'slotHint' => $this->bookingSlotHint($bookingOpen, $specialtyId, $physicianId, $focus->toDateString(), $horaInicio, $events),
+            'bookingHeading' => $this->bookingHeading($focus, $horaInicio, $horaFin),
         ]);
     }
 
@@ -346,5 +383,73 @@ final class AvailabilityController
         }
 
         return $focus->copy()->startOfMonth()->subMonth()->endOfMonth()->gte($today);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function boardClockOptions(): array
+    {
+        $options = [];
+        for ($hour = self::BOARD_START_HOUR; $hour <= self::BOARD_END_HOUR; $hour++) {
+            foreach ([0, 30] as $minute) {
+                if ($hour === self::BOARD_END_HOUR && $minute !== 0) {
+                    continue;
+                }
+                $options[] = sprintf('%02d:%02d', $hour, $minute);
+            }
+        }
+
+        return $options;
+    }
+
+    private function defaultEndClock(string $start): string
+    {
+        $minutes = $this->clockMinutes($start) + 30;
+        $hour = intdiv($minutes, 60);
+        $minute = $minutes % 60;
+        if ($hour > self::BOARD_END_HOUR || ($hour === self::BOARD_END_HOUR && $minute > 0)) {
+            return sprintf('%02d:00', self::BOARD_END_HOUR);
+        }
+
+        return sprintf('%02d:%02d', $hour, $minute);
+    }
+
+    /**
+     * @param  list<array{kind: string, fecha: string, hora_inicio: string, id_medico: int}>  $events
+     */
+    private function bookingSlotHint(
+        bool $bookingOpen,
+        ?int $specialtyId,
+        ?int $physicianId,
+        string $fecha,
+        string $horaInicio,
+        array $events,
+    ): ?string {
+        if (! $bookingOpen || $horaInicio === '') {
+            return null;
+        }
+        if ($specialtyId === null || $physicianId === null) {
+            return 'need-selection';
+        }
+        foreach ($events as $event) {
+            if ($event['fecha'] === $fecha && $event['id_medico'] === $physicianId && $event['hora_inicio'] === $horaInicio) {
+                return $event['kind'] === 'libre' ? 'available' : 'occupied';
+            }
+        }
+
+        return 'unknown';
+    }
+
+    private function bookingHeading(Carbon $focus, string $horaInicio, string $horaFin): string
+    {
+        $weekdays = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'];
+        $months = [1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril', 5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto', 9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'];
+        $label = ($weekdays[$focus->isoWeekday()] ?? '').' '.$focus->day.' de '.$months[(int) $focus->month];
+        if ($horaInicio !== '' && $horaFin !== '') {
+            return trim($label).' · '.$horaInicio.' – '.$horaFin;
+        }
+
+        return trim($label);
     }
 }

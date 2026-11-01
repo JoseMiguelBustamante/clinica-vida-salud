@@ -70,4 +70,35 @@ class IdentityAccountServiceTest extends TestCase
         $this->assertSame(44, $id);
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_credential_updates_keep_role_and_active_state(): void
+    {
+        $repository = Mockery::mock(IdentityRepository::class);
+        $repository->shouldReceive('getAccountById')->once()->with(17)
+            ->andReturn((object) [
+                'id_usuario' => 17,
+                'id_rol' => 4,
+                'activo' => true,
+                'nombre_usuario' => 'paciente1',
+                'correo_acceso' => 'ana@example.test',
+            ]);
+        $repository->shouldReceive('identifierTaken')->once()->with('paciente1', 17)->andReturn(false);
+        $repository->shouldReceive('identifierTaken')->once()->with('ana@example.test', 17)->andReturn(false);
+        $repository->shouldReceive('updateAccount')->once()->with(17, [
+            'nombre_usuario' => 'paciente1',
+            'correo_acceso' => 'ana@example.test',
+            'activo' => true,
+            'id_rol' => 4,
+        ]);
+        Hash::shouldReceive('make')->never();
+
+        (new IdentityAccountService($repository))->updateAccountCredentials(17, [
+            'nombre_usuario' => 'paciente1',
+            'correo_acceso' => 'ana@example.test',
+            'id_rol' => 1,
+            'activo' => false,
+        ]);
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

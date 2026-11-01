@@ -47,6 +47,9 @@
                     @if (in_array(\App\Modules\Identity\PermissionCatalog::GENERATE_REPORTS, $identityPermissions ?? [], true))
                         <a href="{{ route('reports.generate') }}">Reportes</a>
                     @endif
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::UPDATE_PROFILE, $identityPermissions ?? [], true))
+                        <a href="{{ route('portal.profile') }}">Perfil</a>
+                    @endif
                     <form class="inline-form" method="post" action="{{ route('logout', absolute: false) }}">
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>

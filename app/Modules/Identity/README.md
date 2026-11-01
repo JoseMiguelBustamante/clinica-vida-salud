@@ -2,9 +2,10 @@
 
 Identity exposes JSON session authentication against the report's `usuario`,
 `rol`, `permiso` and `rol_permiso` tables, HTML screens for staff sign-in and
-the signed-in panel, CU03 account administration and CU17 patient portal
-registration. It does not provide password recovery or clinical modules. Creating
-a patient account does not approve a link to a `paciente` row.
+the signed-in panel, CU03 account administration, CU17 patient portal
+registration and CU18 profile preferences. It does not provide password recovery
+or clinical modules. Creating a patient account does not approve a link to a
+`paciente` row. Updating the profile does not change role, permissions or that link.
 
 ## HTTP contract
 
@@ -35,6 +36,8 @@ HTML screens (same session cookie, CSRF on mutations):
 | `POST /logout` | `302` to `/login`; session invalidated |
 | `GET /panel` | `200` role shell, or `302` to `/login` for guests |
 | `GET /registro` + `POST /registro` | public patient account registration when enabled |
+| `GET /perfil` + `POST /perfil` | own profile and reminder preferences (`perfil.actualizar`) |
+| `POST /perfil/verificar-correo` | mark the stored access email as verified; does not enable reminders |
 
 HTML account administration (CU03), session required plus `usuarios.administrar`:
 

@@ -82,6 +82,12 @@
                 <span>Consultar totales y listados administrativos de citas y pacientes.</span>
             </a>
         @endif
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::UPDATE_PROFILE, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('portal.profile') }}">
+                <strong>Perfil y preferencias</strong>
+                <span>Actualizar la cuenta propia y los recordatorios de citas.</span>
+            </a>
+        @endif
     </nav>
 
     <section class="implementation" aria-labelledby="permissions-title">
@@ -92,6 +98,9 @@
                     <li><code>{{ $permission }}</code></li>
                 @endforeach
             </ul>
+            @if (($user['role']['name'] ?? null) === \App\Modules\Identity\PermissionCatalog::PATIENT_ROLE)
+                <p>El acceso a citas e información del paciente requiere un vínculo aprobado.</p>
+            @endif
         @elseif (($user['role']['name'] ?? null) === \App\Modules\Identity\PermissionCatalog::PATIENT_ROLE)
             <p>Su cuenta de portal está registrada. El acceso a citas e información del paciente requiere un vínculo aprobado. Esa aprobación no forma parte del registro.</p>
         @else

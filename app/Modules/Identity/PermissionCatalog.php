@@ -34,6 +34,8 @@ final class PermissionCatalog
 
     public const GENERATE_REPORTS = 'reportes.generar';
 
+    public const UPDATE_PROFILE = 'perfil.actualizar';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -62,6 +64,7 @@ final class PermissionCatalog
             ['codigo' => self::CONSULT_AGENDA, 'descripcion' => 'Consultar la agenda médica por médico, fecha y estado'],
             ['codigo' => self::CONSULT_HISTORY, 'descripcion' => 'Consultar citas e historial de un paciente'],
             ['codigo' => self::GENERATE_REPORTS, 'descripcion' => 'Generar reportes administrativos de citas, pacientes y agendas'],
+            ['codigo' => self::UPDATE_PROFILE, 'descripcion' => 'Actualizar el perfil propio y las preferencias de recordatorios'],
         ];
     }
 
@@ -114,7 +117,9 @@ final class PermissionCatalog
                 self::MARK_ATTENDED,
                 self::CONSULT_AGENDA,
             ],
-            self::PATIENT_ROLE => [],
+            self::PATIENT_ROLE => [
+                self::UPDATE_PROFILE,
+            ],
             default => [],
         };
     }

@@ -117,6 +117,40 @@ class IdentityRepository
         DB::table('usuario')->where('id_usuario', $id)->update(['activo' => $active]);
     }
 
+    public function getNotificationPreferences(int $userId): ?object
+    {
+        return DB::table('preferencias_notificacion')
+            ->select('id_usuario', 'recordatorios_habilitados', 'canal', 'destino', 'destino_verificado')
+            ->where('id_usuario', $userId)
+            ->first();
+    }
+
+    public function upsertNotificationPreferences(
+        int $userId,
+        bool $remindersEnabled,
+        string $channel,
+        ?string $destination,
+        bool $destinationVerified,
+    ): void {
+        $values = [
+            'recordatorios_habilitados' => $remindersEnabled,
+            'canal' => $channel,
+            'destino' => $destination,
+            'destino_verificado' => $destinationVerified,
+        ];
+        $existing = DB::table('preferencias_notificacion')->where('id_usuario', $userId)->exists();
+        if ($existing) {
+            DB::table('preferencias_notificacion')->where('id_usuario', $userId)->update($values);
+
+            return;
+        }
+
+        DB::table('preferencias_notificacion')->insert([
+            'id_usuario' => $userId,
+            ...$values,
+        ]);
+    }
+
     /**
      * @param  list<string>  $permissionCodes
      * @param  array<string, list<string>>  $codesByRole

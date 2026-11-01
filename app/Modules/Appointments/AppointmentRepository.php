@@ -125,6 +125,19 @@ class AppointmentRepository
             ->update(['estado' => 'Descartado']);
     }
 
+    public function discardUndeliveredRemindersForAccount(int $userId): void
+    {
+        DB::table('recordatorio_cita')
+            ->whereIn('estado', ['Pendiente', 'EnProceso'])
+            ->whereIn('id_cita', function ($query) use ($userId): void {
+                $query->select('cita_medica.id_cita')
+                    ->from('cita_medica')
+                    ->join('paciente', 'paciente.id_paciente', '=', 'cita_medica.id_paciente')
+                    ->where('paciente.id_usuario', $userId);
+            })
+            ->update(['estado' => 'Descartado']);
+    }
+
     public function confirmAppointment(int $id): void
     {
         DB::table('cita_medica')->where('id_cita', $id)->update(['estado' => 'Confirmada']);

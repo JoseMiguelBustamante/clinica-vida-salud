@@ -88,6 +88,33 @@ final class IdentityAccountService
         $this->identities->updateAccount($id, $values);
     }
 
+    /**
+     * @param  array{nombre_usuario: string, correo_acceso?: ?string, password?: ?string}  $input
+     */
+    public function updateAccountCredentials(int $id, array $input): void
+    {
+        $account = $this->getAccountById($id);
+        $username = $input['nombre_usuario'];
+        $email = $this->normalizedEmail($input['correo_acceso'] ?? null);
+        $this->assertIdentifier($username, 100, false);
+        $this->assertIdentifier($email, 255, true);
+        $this->assertUnique($username, $email, $id);
+
+        $values = [
+            'nombre_usuario' => $username,
+            'correo_acceso' => $email,
+            'activo' => (bool) $account->activo,
+            'id_rol' => (int) $account->id_rol,
+        ];
+        $password = $input['password'] ?? null;
+        if ($password !== null && $password !== '') {
+            $this->assertPassword($password);
+            $values['contrasena_hash'] = Hash::make($password);
+        }
+
+        $this->identities->updateAccount($id, $values);
+    }
+
     public function deactivateAccount(int $id, int $actorId): void
     {
         $this->getAccountById($id);

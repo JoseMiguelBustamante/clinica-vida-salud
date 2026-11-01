@@ -34,6 +34,16 @@ Route::middleware(['web', RequireActiveSession::class])->group(function (): void
 Route::middleware([
     'web',
     RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::UPDATE_PROFILE,
+])->group(function (): void {
+    Route::get('/perfil', [PatientPortalController::class, 'showPatientProfile'])->name('portal.profile');
+    Route::post('/perfil', [PatientPortalController::class, 'updatePatientProfile'])->name('portal.profile.update');
+    Route::post('/perfil/verificar-correo', [PatientPortalController::class, 'verifyPatientEmail'])->name('portal.profile.verify');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
     RequirePermission::class.':'.PermissionCatalog::MANAGE_ACCOUNTS,
 ])->group(function (): void {
     Route::get('/usuarios', [IdentityAccountController::class, 'getAllAccounts'])->name('accounts.index');

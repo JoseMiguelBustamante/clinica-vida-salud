@@ -31,5 +31,9 @@ physician's daily agenda. Empty results are not an error. A processing failure
 is not shown as an empty list or a total of zero. CSV/PDF export is not
 implemented. Clinical notes and diagnoses are omitted.
 
+Disabling reminder preferences (CU18) discards `Pendiente` and `EnProceso`
+rows for appointments linked through `paciente.id_usuario`. Rows already
+accepted by the provider are left unchanged.
+
 HTML forms use CSRF, not Idempotency-Key. English `/appointments` stays 404.
 The physician account must be linked on the physician record (`id_usuario`).

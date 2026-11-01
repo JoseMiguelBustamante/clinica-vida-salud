@@ -4,10 +4,11 @@ PHP 8.3+ / Laravel 13, PostgreSQL only. The accepted architecture is a modular
 monolith with server-rendered Blade, HTML, CSS and JavaScript. Approved modules:
 Identity, Patients, MedicalStaff, Schedules and Appointments under `app/Modules`.
 Identity provides the session-authentication backend, the staff login/panel
-screens, CU03 account administration and CU17 patient portal registration. Patients provides CU04 record
+screens, CU03 account administration, CU17 patient portal registration and CU18
+profile preferences. Patients provides CU04 record
 administration. MedicalStaff provides CU05 physicians and CU06 specialties.
 Schedules provides CU07 weekly hours. Appointments owns the public foundation
-page and CU08–CU16 appointment operations. Profile and preferences (CU18) are not implemented.
+page and CU08–CU16 appointment operations. Declared medical information (CU19) is not implemented.
 
 ## Backend authentication (deployed; private bootstrap pending)
 

@@ -14,5 +14,5 @@ Deactivation keeps related appointment rows.
 | `POST /pacientes/{id}/desactivar` / `activar` | change state without deleting history |
 
 Do not send Idempotency-Key on these HTML forms. Appointment history (CU15)
-lives in Appointments. Patient portal registration (CU17) lives in Identity and
-does not approve a link to a patient record.
+lives in Appointments. Patient portal registration (CU17) and profile
+preferences (CU18) live in Identity and do not approve a link to a patient record.

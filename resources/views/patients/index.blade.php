@@ -2,65 +2,81 @@
 
 @section('title', 'Pacientes — Clínica Vida Salud')
 
+@php
+    $shown = $patients->count();
+    $canConsultHistory = in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $identityPermissions ?? [], true);
+@endphp
+
 @section('content')
-    <section class="page-head" aria-labelledby="page-title">
-        <p class="eyebrow">Gestión clínica</p>
-        <h1 id="page-title">Pacientes</h1>
-        <p class="lead">Identificación y contacto. El CI es opcional y, si se indica, no puede repetirse. Desactivar no borra citas.</p>
-        <p><a class="button button-inline" href="{{ route('patients.create') }}">Registrar paciente</a></p>
-    </section>
-
-    @if (session('status'))
-        <p class="form-errors" role="status">{{ session('status') }}</p>
-    @endif
-    @if ($errors->any())
-        <div class="form-errors" role="alert"><p>{{ $errors->first() }}</p></div>
-    @endif
-
-    <form class="search-bar" method="get" action="{{ route('patients.index', absolute: false) }}">
-        <div class="field">
-            <label for="q">Buscar por CI, nombres o apellidos</label>
-            <input id="q" name="q" type="search" value="{{ $q }}">
+    <section class="app-page" aria-labelledby="page-title">
+        <p class="app-breadcrumb">General / Pacientes</p>
+        <div class="page-toolbar">
+            <div>
+                <h1 id="page-title">Pacientes</h1>
+                <p class="lead">Identificación y contacto. El CI es opcional y, si se indica, no puede repetirse. Desactivar no borra citas.</p>
+            </div>
+            <a class="button button-inline" href="{{ route('patients.create') }}">Registrar paciente</a>
         </div>
-        <button class="button button-inline" type="submit">Buscar</button>
-    </form>
 
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>CI</th>
-                    <th>Nombres</th>
-                    <th>Apellidos</th>
-                    <th>Teléfono</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($patients as $patient)
-                    <tr>
-                        <td>{{ $patient->ci ?: '—' }}</td>
-                        <td>{{ $patient->nombres }}</td>
-                        <td>{{ $patient->apellidos }}</td>
-                        <td>{{ $patient->telefono ?: '—' }}</td>
-                        <td>{{ $patient->activo ? 'Activo' : 'Inactivo' }}</td>
-                        <td>
-                            <a href="{{ route('patients.show', $patient->id_paciente) }}">Ver</a>
-                            ·
-                            <a href="{{ route('patients.edit', $patient->id_paciente) }}">Modificar</a>
-                            @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $identityPermissions ?? [], true))
-                                ·
-                                <a href="{{ route('appointments.history', ['id_paciente' => $patient->id_paciente]) }}">Historial</a>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6">No hay pacientes que coincidan con la búsqueda.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+        @if (session('status'))
+            <p class="form-status" role="status">{{ session('status') }}</p>
+        @endif
+        @if ($errors->any())
+            <div class="form-errors" role="alert"><p>{{ $errors->first() }}</p></div>
+        @endif
+
+        <div class="list-card">
+            <form class="filter-bar" method="get" action="{{ route('patients.index', absolute: false) }}">
+                <div class="field">
+                    <label for="q">Buscar por CI, nombres o apellidos</label>
+                    <input id="q" name="q" type="search" value="{{ $q }}" placeholder="CI, nombres o apellidos">
+                </div>
+                <button class="button" type="submit">Buscar</button>
+            </form>
+
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>CI</th>
+                            <th>Paciente</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($patients as $patient)
+                            <tr>
+                                <td>{{ $patient->ci ?: '—' }}</td>
+                                <td>
+                                    <strong class="patient-name">{{ $patient->nombres }} {{ $patient->apellidos }}</strong>
+                                </td>
+                                <td>{{ $patient->telefono ?: '—' }}</td>
+                                <td>
+                                    <span class="status-pill {{ $patient->activo ? 'is-active' : 'is-inactive' }}">
+                                        {{ $patient->activo ? 'Activo' : 'Inactivo' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <nav class="row-actions" aria-label="Acciones de {{ $patient->nombres }} {{ $patient->apellidos }}">
+                                        <a class="row-action" href="{{ route('patients.show', $patient->id_paciente) }}">Ver</a>
+                                        <a class="row-action" href="{{ route('patients.edit', $patient->id_paciente) }}">Modificar</a>
+                                        @if ($canConsultHistory)
+                                            <a class="row-action" href="{{ route('appointments.history', ['id_paciente' => $patient->id_paciente]) }}">Historial</a>
+                                        @endif
+                                    </nav>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">No hay pacientes que coincidan con la búsqueda.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <p class="list-meta">{{ $shown === 1 ? 'Mostrando 1 paciente' : 'Mostrando '.$shown.' pacientes' }}</p>
+        </div>
+    </section>
 @endsection

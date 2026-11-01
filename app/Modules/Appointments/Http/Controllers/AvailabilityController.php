@@ -53,7 +53,7 @@ final class AvailabilityController
                     $estado,
                 );
             }
-            if ($specialtyId !== null && $vista !== 'mes' && $boardPhysicians->isNotEmpty()) {
+            if ($specialtyId !== null && $physicianId !== null && $vista !== 'mes' && $boardPhysicians->isNotEmpty()) {
                 $slots = $this->availability->getAvailableSlotsForDates(
                     $specialtyId,
                     $boardPhysicians->pluck('id_medico')->map(fn ($id): int => (int) $id)->all(),
@@ -196,9 +196,12 @@ final class AvailabilityController
     {
         $tones = [];
         $names = [];
-        foreach ($physicians as $index => $physician) {
-            $id = (int) $physician->id_medico;
+        $physicianIds = $physicians->pluck('id_medico')->map(fn ($id): int => (int) $id)->unique()->sort()->values();
+        foreach ($physicianIds as $index => $id) {
             $tones[$id] = $index % 3;
+        }
+        foreach ($physicians as $physician) {
+            $id = (int) $physician->id_medico;
             $names[$id] = trim((string) $physician->nombres.' '.(string) $physician->apellidos);
         }
 

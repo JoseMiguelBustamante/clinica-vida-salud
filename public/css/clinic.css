@@ -1247,7 +1247,8 @@ body.is-app .button:hover {
     padding: 0.28rem 0.4rem;
     overflow: hidden;
     border-radius: 0.55rem;
-    border-left: 4px solid var(--clinic-green);
+    border-left: 4px solid #12b981;
+    background: #d8f6e8;
     color: #0b5c45;
     text-decoration: none;
     font-size: 0.75rem;
@@ -1278,14 +1279,6 @@ body.is-app .button:hover {
     background: #fde9c8;
     border-left-color: #f59e0b;
     color: #8a5310;
-}
-
-.week-event.tone-1 {
-    left: 0.7rem;
-}
-
-.week-event.tone-2 {
-    left: 1.05rem;
 }
 
 .week-event:hover {

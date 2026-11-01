@@ -193,9 +193,9 @@
                     </div>
                 </div>
                 @if ($events === [])
-                    <p class="slots-footnote">No hay citas programadas en este periodo. Elija una especialidad para ver también los intervalos libres.</p>
-                @elseif (! $especialidad)
-                    <p class="slots-footnote">Elija una especialidad para ver además los intervalos libres. Ver un hueco no lo reserva.</p>
+                    <p class="slots-footnote">No hay citas programadas en este periodo. Elija especialidad y un médico para ver también los intervalos libres.</p>
+                @elseif (! $especialidad || ! $medico)
+                    <p class="slots-footnote">Elija especialidad y un médico para ver además los intervalos libres. Ver un hueco no lo reserva.</p>
                 @endif
             @endif
 

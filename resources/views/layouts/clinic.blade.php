@@ -51,8 +51,13 @@
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>
                     </form>
-                @elseif (! request()->routeIs('login'))
-                    <a class="nav-login" href="{{ route('login') }}">Iniciar sesión</a>
+                @else
+                    @unless (request()->routeIs('login'))
+                        <a class="nav-login" href="{{ route('login') }}">Iniciar sesión</a>
+                    @endunless
+                    @unless (request()->routeIs('portal.register'))
+                        <a href="{{ route('portal.register') }}">Crear cuenta</a>
+                    @endunless
                 @endif
             </nav>
             <span class="status">Foundation in progress</span>

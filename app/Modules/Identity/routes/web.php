@@ -3,6 +3,7 @@
 use App\Modules\Identity\AuthenticationController;
 use App\Modules\Identity\Http\Controllers\IdentityAccountController;
 use App\Modules\Identity\Http\Controllers\IdentitySessionController;
+use App\Modules\Identity\Http\Controllers\PatientPortalController;
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Identity\RequireActiveSession;
 use App\Modules\Identity\RequirePermission;
@@ -22,6 +23,8 @@ Route::middleware('web')->group(function (): void {
     Route::get('/login', [IdentitySessionController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [IdentitySessionController::class, 'createIdentitySession'])->name('login.attempt');
     Route::post('/logout', [IdentitySessionController::class, 'destroyIdentitySession'])->name('logout');
+    Route::get('/registro', [PatientPortalController::class, 'showPatientAccountForm'])->name('portal.register');
+    Route::post('/registro', [PatientPortalController::class, 'registerPatientAccount'])->name('portal.register.store');
 });
 
 Route::middleware(['web', RequireActiveSession::class])->group(function (): void {

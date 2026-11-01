@@ -2,8 +2,9 @@
 
 Identity exposes JSON session authentication against the report's `usuario`,
 `rol`, `permiso` and `rol_permiso` tables, HTML screens for staff sign-in and
-the signed-in panel, and CU03 account administration. It does not provide public
-registration, password recovery or clinical modules.
+the signed-in panel, CU03 account administration and CU17 patient portal
+registration. It does not provide password recovery or clinical modules. Creating
+a patient account does not approve a link to a `paciente` row.
 
 ## HTTP contract
 
@@ -33,6 +34,7 @@ HTML screens (same session cookie, CSRF on mutations):
 | `POST /login` | `302` to `/panel`, or `302` back with a generic error |
 | `POST /logout` | `302` to `/login`; session invalidated |
 | `GET /panel` | `200` role shell, or `302` to `/login` for guests |
+| `GET /registro` + `POST /registro` | public patient account registration when enabled |
 
 HTML account administration (CU03), session required plus `usuarios.administrar`:
 

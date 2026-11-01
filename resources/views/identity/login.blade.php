@@ -12,6 +12,9 @@
         </div>
 
         <div class="page-form">
+            @if (session('status'))
+                <p class="form-errors" role="status">{{ session('status') }}</p>
+            @endif
             @if ($errors->any())
                 <div class="form-errors" role="alert">
                     <p>{{ $errors->first() }}</p>
@@ -31,6 +34,7 @@
                 </div>
                 <button class="button" type="submit">Entrar</button>
             </form>
+            <p><a href="{{ route('portal.register') }}">Crear cuenta de paciente</a></p>
         </div>
     </section>
 @endsection

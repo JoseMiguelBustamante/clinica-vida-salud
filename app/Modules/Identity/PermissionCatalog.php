@@ -40,6 +40,8 @@ final class PermissionCatalog
 
     public const PHYSICIAN_ROLE = 'Médico';
 
+    public const PATIENT_ROLE = 'Paciente';
+
     /**
      * @return list<array{codigo: string, descripcion: string}>
      */
@@ -72,6 +74,7 @@ final class PermissionCatalog
             ['nombre' => self::ADMINISTRATOR_ROLE, 'descripcion' => 'Administra cuentas, catálogos y reportes autorizados'],
             ['nombre' => self::RECEPTIONIST_ROLE, 'descripcion' => 'Gestiona pacientes y citas según permisos'],
             ['nombre' => self::PHYSICIAN_ROLE, 'descripcion' => 'Consulta su agenda y registra la atención'],
+            ['nombre' => self::PATIENT_ROLE, 'descripcion' => 'Accede al portal con las funciones autorizadas de su cuenta'],
         ];
     }
 
@@ -111,6 +114,7 @@ final class PermissionCatalog
                 self::MARK_ATTENDED,
                 self::CONSULT_AGENDA,
             ],
+            self::PATIENT_ROLE => [],
             default => [],
         };
     }

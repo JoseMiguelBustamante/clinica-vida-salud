@@ -49,6 +49,11 @@ class IdentityRepository
         return DB::table('rol')->where('id_rol', $roleId)->first();
     }
 
+    public function getRoleByName(string $name): ?object
+    {
+        return DB::table('rol')->whereRaw('nombre COLLATE "C" = ?', [$name])->first();
+    }
+
     /** @return \Illuminate\Support\Collection<int, object> */
     public function getAllAccounts(?string $fragment): \Illuminate\Support\Collection
     {

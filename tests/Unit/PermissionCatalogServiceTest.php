@@ -47,7 +47,8 @@ class PermissionCatalogServiceTest extends TestCase
                         PermissionCatalog::RECORD_ATTENDANCE,
                         PermissionCatalog::CONSULT_AGENDA,
                         PermissionCatalog::CONSULT_HISTORY,
-                    ];
+                    ]
+                    && $assignments[PermissionCatalog::PATIENT_ROLE] === [];
             }),
         );
 

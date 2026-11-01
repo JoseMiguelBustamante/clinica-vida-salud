@@ -18,7 +18,9 @@ class IdentitySessionScreenTest extends TestCase
         $this->get('/login')->assertOk()->assertViewIs('identity.login')
             ->assertSee('Iniciar sesión')->assertSee('name="identifier"', false)
             ->assertSee('name="password"', false)->assertSee('action="/login"', false)
-            ->assertDontSee('action="http:', false)->assertDontSee('<script', false);
+            ->assertSee('login-screen', false)->assertSee('Gestión de citas médicas')
+            ->assertDontSee('Sistema web')->assertDontSee('action="http:', false)
+            ->assertDontSee('<script', false);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

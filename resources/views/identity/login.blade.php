@@ -1,17 +1,25 @@
 @extends('layouts.clinic')
 
 @section('title', 'Iniciar sesión — Clínica Vida Salud')
+@section('body_class', 'is-login')
+@section('main_class', 'login-main')
+@section('hide_chrome', '1')
 
 @section('content')
-    <section class="page-split" aria-labelledby="page-title">
-        <div class="page-copy">
-            <p class="eyebrow">Personal de la clínica</p>
-            <h1 id="page-title">Iniciar sesión</h1>
-            <p class="lead">Acceso del personal para coordinar pacientes, horarios y citas.
-                El usuario o el correo y la contraseña no se recortan ni se cambian de mayúsculas.</p>
+    <section class="login-screen" aria-labelledby="page-title">
+        <div class="login-brand">
+            <a class="login-logo" href="{{ route('home') }}">
+                <span class="brand-badge" aria-hidden="true">+</span>
+                <span>Clínica Vida Salud</span>
+            </a>
+            <p class="login-kicker">Gestión de citas médicas</p>
+            <p class="lead">Acceso del personal para coordinar pacientes, horarios y citas.</p>
         </div>
 
-        <div class="page-form">
+        <div class="login-panel">
+            <h1 id="page-title">Iniciar sesión</h1>
+            <p class="login-subtitle">El usuario o el correo y la contraseña no se recortan ni se cambian de mayúsculas.</p>
+
             @if (session('status'))
                 <p class="form-errors" role="status">{{ session('status') }}</p>
             @endif
@@ -34,7 +42,7 @@
                 </div>
                 <button class="button" type="submit">Entrar</button>
             </form>
-            <p><a href="{{ route('portal.register') }}">Crear cuenta de paciente</a></p>
+            <p class="login-alt"><a href="{{ route('portal.register') }}">Crear cuenta de paciente</a></p>
         </div>
     </section>
 @endsection

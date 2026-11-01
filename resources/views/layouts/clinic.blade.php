@@ -7,8 +7,10 @@
     <title>@yield('title', 'Clínica Vida Salud')</title>
     <link rel="stylesheet" href="/css/clinic.css?v={{ filemtime(public_path('css/clinic.css')) }}">
 </head>
-<body>
+<body class="@yield('body_class')">
     <a class="skip-link" href="#main-content">Ir al contenido principal</a>
+    @hasSection('hide_chrome')
+    @else
     <header class="site-header">
         <div class="container header-content">
             <a class="brand" href="{{ route('home') }}">Clínica Vida Salud</a>
@@ -72,12 +74,16 @@
             <span class="status">Sistema web</span>
         </div>
     </header>
-    <main id="main-content" class="container" tabindex="-1">
+    @endif
+    <main id="main-content" class="@yield('main_class', 'container')" tabindex="-1">
         @yield('content')
     </main>
+    @hasSection('hide_chrome')
+    @else
     <footer class="site-footer container">
         <p>Clínica Vida Salud · Gestión de citas</p>
         <p>Esta página pública no muestra datos de pacientes ni información clínica.</p>
     </footer>
+    @endif
 </body>
 </html>

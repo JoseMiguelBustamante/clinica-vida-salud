@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Modules\Appointments\AppointmentAttendanceNotAllowed;
+use App\Modules\Appointments\AppointmentNotAttendable;
 use App\Modules\Appointments\AppointmentNotCancellable;
 use App\Modules\Appointments\AppointmentNotReschedulable;
 use App\Modules\Appointments\AppointmentRepository;
@@ -425,6 +426,124 @@ class AppointmentServiceTest extends TestCase
         }));
 
         $this->service($appointments, $patients)->registerAppointmentAbsence(21, 17);
+    }
+
+    public function test_a_confirmed_appointment_can_be_marked_attended(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $row = $this->storedAppointment('Confirmada');
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($row);
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn (callable $callback) => $callback());
+        $appointments->shouldReceive('lockPhysicianAppointments')->once()->with(4);
+        $appointments->shouldReceive('markAppointmentAttended')->once()->with(21, Mockery::type('string'));
+        $appointments->shouldReceive('createCareRecord')->once()->with(Mockery::on(function (array $values): bool {
+            return $values['id_cita'] === 21
+                && $values['id_medico'] === 4
+                && $values['resumen_atencion'] === 'Consulta realizada.'
+                && $values['diagnostico'] === null;
+        }));
+        $appointments->shouldReceive('discardPendingReminders')->once()->with(21);
+        $appointments->shouldReceive('createAppointmentEvent')->once()->with(Mockery::on(function (array $values): bool {
+            return $values['tipo'] === 'Atencion' && $values['id_cita'] === 21 && $values['id_usuario'] === 17;
+        }));
+
+        $this->service($appointments, $patients)->recordAppointmentCare(21, [], 17);
+    }
+
+    public function test_a_cancelled_appointment_cannot_be_marked_attended(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Cancelada'));
+        $appointments->shouldReceive('markAppointmentAttended')->never();
+
+        try {
+            $this->service($appointments, $patients)->recordAppointmentCare(21, [], 17);
+            $this->fail('Expected AppointmentNotAttendable');
+        } catch (AppointmentNotAttendable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_an_absence_cannot_be_marked_attended(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Inasistencia'));
+        $appointments->shouldReceive('markAppointmentAttended')->never();
+
+        try {
+            $this->service($appointments, $patients)->recordAppointmentCare(21, [], 17);
+            $this->fail('Expected AppointmentNotAttendable');
+        } catch (AppointmentNotAttendable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_an_already_attended_appointment_is_not_repeated(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Atendida'));
+        $appointments->shouldReceive('createCareRecord')->never();
+
+        try {
+            $this->service($appointments, $patients)->recordAppointmentCare(21, [], 17);
+            $this->fail('Expected AppointmentNotAttendable');
+        } catch (AppointmentNotAttendable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_another_physician_cannot_mark_the_appointment_attended(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 9, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Confirmada'));
+        $appointments->shouldReceive('markAppointmentAttended')->never();
+
+        try {
+            $this->service($appointments, $patients)->recordAppointmentCare(21, [], 17);
+            $this->fail('Expected AppointmentNotAttendable');
+        } catch (AppointmentNotAttendable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_an_unlinked_account_cannot_mark_attended(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)->andReturn(null);
+        $appointments->shouldReceive('getAppointmentById')->never();
+        $appointments->shouldReceive('markAppointmentAttended')->never();
+
+        try {
+            $this->service($appointments, $patients)->recordAppointmentCare(21, [], 17);
+            $this->fail('Expected AppointmentNotAttendable');
+        } catch (AppointmentNotAttendable) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
     }
 
     /**

@@ -323,4 +323,76 @@ class AppointmentScreenTest extends TestCase
             ->assertRedirect('/citas/21/asistencia')->assertSessionHasErrors('verificado');
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_guests_are_sent_to_login_for_the_agenda(): void
+    {
+        $this->get('/agenda')->assertRedirect(route('login'));
+        $this->get('/citas/21/atender')->assertRedirect(route('login'));
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_session_without_attend_permission_is_denied(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 3]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::RECORD_ATTENDANCE]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/agenda')->assertForbidden()->assertSee('No tiene permiso para realizar esta operación.');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_the_attend_form_opens_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 3]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::MARK_ATTENDED]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn((object) [
+            'id_cita' => 21,
+            'codigo' => 'CIT-20261101080000ab',
+            'inicio' => '2026-11-01T08:00:00+00:00',
+            'fin' => '2026-11-01T08:30:00+00:00',
+            'motivo_consulta' => null,
+            'modalidad' => 'Presencial',
+            'estado' => 'Confirmada',
+            'fecha_hora_llegada' => null,
+            'id_medico' => 4,
+            'id_especialidad' => 3,
+            'paciente_nombres' => 'Ana',
+            'paciente_apellidos' => 'Rojas',
+            'paciente_ci' => '123',
+            'medico_nombres' => 'Luis',
+            'medico_apellidos' => 'Soto',
+            'registro_profesional' => 'MP-1',
+            'especialidad_nombre' => 'Pediatría',
+        ]);
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/citas/21/atender')->assertOk()->assertSee('Marcar como atendida')
+            ->assertSee('Confirmé que brindé la atención médica');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_attend_requires_verified_care_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 3]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::MARK_ATTENDED]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->from('/citas/21/atender')->post('/citas/21/atender', [])
+            ->assertRedirect('/citas/21/atender')->assertSessionHasErrors('verificado');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

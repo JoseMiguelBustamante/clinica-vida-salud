@@ -1,20 +1,21 @@
-# Appointments (CU08–CU12 and CU22)
+# Appointments (CU08–CU13 and CU22)
 
 Owns the public `GET /` landing page and the appointment workflow through
-confirmation, arrival and no-show.
+marking a visit as attended.
 
 CU08 consults availability (`citas.consultar`). Showing a slot does not reserve
 it. CU09 books (`citas.programar`) as Programada. CU10 reschedules the same
 row (`citas.reprogramar`). CU11 cancels (`citas.cancelar`) to Cancelada and
-discards pending reminders.
+discards pending reminders. CU12 (`citas.asistencia`) records confirmation,
+arrival and Inasistencia.
 
-CU12 (`GET /citas/{cita}/asistencia`) requires `citas.asistencia`:
-- Confirmación: Programada → Confirmada. Already Confirmada is not repeated.
-- Llegada: stores `fecha_hora_llegada` without changing the appointment to
-  Atendida.
-- Inasistencia: only after the scheduled end, with verified no-show and no
-  recorded arrival. Schema value `Inasistencia`. Time does not change the
-  state by itself.
+CU13 (`GET /agenda`, `GET|POST /citas/{cita}/atender`) requires `citas.atender`:
+- Actor: Médico, on appointments of the physician linked to the signed-in account.
+- Programada or Confirmada → Atendida. Already Atendida is not repeated.
+- Cancelada and Inasistencia cannot be marked attended.
+- Arrival or confirmation does not substitute medical care.
+- Writes `registro_atencion` (resumen required by schema; diagnosis optional),
+  `fecha_hora_registro_atencion`, event `Atencion`, and discards pending reminders.
 
-HTML forms use CSRF, not Idempotency-Key. Marking attended (CU13) is not
-implemented. English `/appointments` stays 404.
+HTML forms use CSRF, not Idempotency-Key. English `/appointments` stays 404.
+The physician account must be linked on the physician record (`id_usuario`).

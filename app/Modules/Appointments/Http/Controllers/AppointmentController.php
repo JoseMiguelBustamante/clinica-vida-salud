@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Appointments\Http\Controllers;
 
 use App\Modules\Appointments\AppointmentAttendanceNotAllowed;
+use App\Modules\Appointments\AppointmentNotAttendable;
 use App\Modules\Appointments\AppointmentNotCancellable;
 use App\Modules\Appointments\AppointmentNotFound;
 use App\Modules\Appointments\AppointmentNotReschedulable;
@@ -14,16 +15,20 @@ use App\Modules\Appointments\Http\Requests\CancelAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\ConfirmAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\PrepareAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\PrepareRescheduleRequest;
+use App\Modules\Appointments\Http\Requests\RecordAppointmentCareRequest;
 use App\Modules\Appointments\Http\Requests\RegisterAbsenceRequest;
 use App\Modules\Appointments\Http\Requests\RegisterArrivalRequest;
 use App\Modules\Appointments\Http\Requests\RescheduleAppointmentRequest;
+use App\Modules\Appointments\Http\Requests\SearchAgendaRequest;
 use App\Modules\Appointments\Http\Requests\SearchAppointmentsRequest;
 use App\Modules\Appointments\Http\Requests\StoreAppointmentRequest;
 use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PatientNotEligible;
 use App\Modules\Appointments\PhysicianNotEligible;
 use App\Modules\Appointments\SlotUnavailable;
+use App\Modules\Identity\PermissionCatalog;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Throwable;
@@ -110,15 +115,29 @@ final class AppointmentController
             ->with('status', 'La cita quedó programada.');
     }
 
-    public function getAppointmentById(int $cita): View|RedirectResponse
+    public function getAppointmentById(Request $request, int $cita): View|RedirectResponse
     {
+        $actor = $request->attributes->get('identity');
+        $codes = $request->attributes->get('identity_permissions', []);
+        $restrictedToOwnAgenda = in_array(PermissionCatalog::MARK_ATTENDED, $codes, true)
+            && ! in_array(PermissionCatalog::BOOK_APPOINTMENTS, $codes, true)
+            && ! in_array(PermissionCatalog::RESCHEDULE_APPOINTMENTS, $codes, true);
+
         try {
+            $appointment = $restrictedToOwnAgenda
+                ? $this->appointments->getAppointmentForCare($cita, (int) $actor->id_usuario)
+                : $this->appointments->getAppointmentById($cita);
+
             return view('appointments.show', [
-                'appointment' => $this->appointments->getAppointmentById($cita),
+                'appointment' => $appointment,
             ]);
         } catch (AppointmentNotFound) {
-            return redirect()->route('appointments.create')
-                ->withErrors(['id_paciente' => 'No puede realizarse la operación solicitada.']);
+            return $restrictedToOwnAgenda
+                ? redirect()->route('appointments.agenda')->withErrors(['q' => 'No puede realizarse la operación solicitada.'])
+                : redirect()->route('appointments.create')->withErrors(['id_paciente' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentNotAttendable) {
+            return redirect()->route('appointments.agenda')
+                ->withErrors(['q' => 'No puede consultar una cita que no está en su agenda.']);
         }
     }
 
@@ -321,5 +340,69 @@ final class AppointmentController
 
         return redirect()->route('appointments.show', $cita)
             ->with('status', 'La cita quedó en Inasistencia. El transcurso del tiempo no la cambia solo.');
+    }
+
+    public function getPhysicianAgenda(SearchAgendaRequest $request): View
+    {
+        $input = $request->validated();
+        $actor = $request->attributes->get('identity');
+        $appointments = collect();
+        $status = null;
+        try {
+            $appointments = $this->appointments->getPhysicianAgenda((int) $actor->id_usuario, $input['q'] ?? null);
+        } catch (AppointmentNotAttendable) {
+            $status = 'Su cuenta no está vinculada a un médico activo. En Médicos, asocie la cuenta de acceso.';
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - getPhysicianAgenda] '.$exception::class);
+            $status = 'No fue posible consultar la agenda.';
+        }
+
+        return view('appointments.agenda', [
+            'appointments' => $appointments,
+            'q' => $input['q'] ?? '',
+            'status' => $status,
+        ]);
+    }
+
+    public function showAttendAppointmentForm(Request $request, int $cita): View|RedirectResponse
+    {
+        $actor = $request->attributes->get('identity');
+        try {
+            return view('appointments.attend', [
+                'appointment' => $this->appointments->getAppointmentForCare($cita, (int) $actor->id_usuario),
+            ]);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.agenda')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentNotAttendable) {
+            return redirect()->route('appointments.agenda')
+                ->withErrors(['q' => 'No puede marcar esta cita. Solo su agenda y estados Programada o Confirmada.']);
+        }
+    }
+
+    public function recordAppointmentCare(RecordAppointmentCareRequest $request, int $cita): RedirectResponse
+    {
+        $input = $request->validated();
+        $actor = $request->attributes->get('identity');
+        try {
+            $this->appointments->recordAppointmentCare($cita, [
+                'resumen_atencion' => $input['resumen_atencion'] ?? null,
+                'diagnostico' => $input['diagnostico'] ?? null,
+                'indicaciones' => $input['indicaciones'] ?? null,
+            ], (int) $actor->id_usuario);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.agenda')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentNotAttendable) {
+            return redirect()->route('appointments.attend', $cita)
+                ->withErrors(['verificado' => 'La cita no permite registrar atención. Si ya está Atendida, no se repite. Cancelada o Inasistencia tampoco.']);
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - recordAppointmentCare] '.$exception::class);
+
+            return back()->withInput()->withErrors(['verificado' => 'No fue posible registrar la atención.']);
+        }
+
+        return redirect()->route('appointments.show', $cita)
+            ->with('status', 'La cita quedó Atendida. La llegada o la confirmación no sustituyen este registro.');
     }
 }

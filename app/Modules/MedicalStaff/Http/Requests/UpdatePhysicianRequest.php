@@ -24,6 +24,7 @@ final class UpdatePhysicianRequest extends FormRequest
             'especialidades' => ['required', 'array', 'min:1'],
             'especialidades.*' => ['integer'],
             'activo' => ['required', 'in:0,1'],
+            'id_usuario' => ['nullable', 'integer'],
         ];
     }
 

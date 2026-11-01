@@ -72,6 +72,10 @@
                             @if (in_array(\App\Modules\Identity\PermissionCatalog::RECORD_ATTENDANCE, $identityPermissions ?? [], true))
                                 · <a href="{{ route('appointments.attendance', $appointment->id_cita) }}">Asistencia</a>
                             @endif
+                            @if (in_array($appointment->estado, ['Programada', 'Confirmada'], true)
+                                && in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $identityPermissions ?? [], true))
+                                · <a href="{{ route('appointments.attend', $appointment->id_cita) }}">Atender</a>
+                            @endif
                         </td>
                     </tr>
                 @empty

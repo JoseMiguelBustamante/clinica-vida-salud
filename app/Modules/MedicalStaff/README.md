@@ -9,5 +9,6 @@ Deactivation does not delete historical appointment rows.
 Specialty names are trimmed and collapsed to a single space; uniqueness is
 case-insensitive. Professional license uniqueness is exact.
 
-Do not send Idempotency-Key on these HTML forms. Account linking (`id_usuario`)
-and schedules (CU07) are not part of this module.
+Do not send Idempotency-Key on these HTML forms. Optional account linking
+(`id_usuario`) associates a Médico login with the physician row so CU13 can
+open that physician's agenda. Schedules (CU07) live in the Schedules module.

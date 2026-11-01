@@ -37,7 +37,7 @@ class PhysicianRepository
     {
         return DB::table('medico')
             ->select('id_medico', 'registro_profesional', 'nombres', 'apellidos',
-                'telefono', 'correo_contacto', 'activo')
+                'telefono', 'correo_contacto', 'activo', 'id_usuario')
             ->where('id_medico', $id)->first();
     }
 
@@ -51,8 +51,38 @@ class PhysicianRepository
         return $query->exists();
     }
 
+    public function userAccountTaken(int $userId, ?int $exceptId = null): bool
+    {
+        $query = DB::table('medico')->where('id_usuario', $userId);
+        if ($exceptId !== null) {
+            $query->where('id_medico', '!=', $exceptId);
+        }
+
+        return $query->exists();
+    }
+
+    /** @return Collection<int, object> */
+    public function getLinkableStaffAccounts(?int $currentPhysicianId): Collection
+    {
+        $query = DB::table('usuario')
+            ->join('rol', 'rol.id_rol', '=', 'usuario.id_rol')
+            ->leftJoin('medico', 'medico.id_usuario', '=', 'usuario.id_usuario')
+            ->select('usuario.id_usuario', 'usuario.nombre_usuario', 'rol.nombre as rol_nombre')
+            ->where('usuario.activo', true)
+            ->where('rol.nombre', 'Médico')
+            ->where(function ($inner) use ($currentPhysicianId): void {
+                $inner->whereNull('medico.id_medico');
+                if ($currentPhysicianId !== null) {
+                    $inner->orWhere('medico.id_medico', $currentPhysicianId);
+                }
+            })
+            ->orderBy('usuario.nombre_usuario');
+
+        return $query->get();
+    }
+
     /**
-     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool}  $values
+     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool, id_usuario: ?int}  $values
      */
     public function createPhysician(array $values): int
     {
@@ -60,7 +90,7 @@ class PhysicianRepository
     }
 
     /**
-     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool}  $values
+     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool, id_usuario: ?int}  $values
      */
     public function updatePhysician(int $id, array $values): void
     {

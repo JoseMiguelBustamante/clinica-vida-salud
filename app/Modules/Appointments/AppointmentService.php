@@ -181,6 +181,62 @@ final class AppointmentService
         });
     }
 
+    public function getPhysicianAgenda(int $actorUserId, ?string $fragment): Collection
+    {
+        $physician = $this->requireLinkedPhysician($actorUserId);
+
+        return $this->appointments->getAppointmentsForPhysician(
+            (int) $physician->id_medico,
+            $fragment === '' ? null : $fragment,
+        );
+    }
+
+    public function getAppointmentForCare(int $id, int $actorUserId): object
+    {
+        $physician = $this->requireLinkedPhysician($actorUserId);
+        $appointment = $this->getAppointmentById($id);
+        $this->assertSamePhysician($appointment, (int) $physician->id_medico);
+
+        return $appointment;
+    }
+
+    /**
+     * @param  array{resumen_atencion?: ?string, diagnostico?: ?string, indicaciones?: ?string}  $input
+     */
+    public function recordAppointmentCare(int $id, array $input, int $actorUserId): void
+    {
+        $physician = $this->requireLinkedPhysician($actorUserId);
+        $current = $this->getAppointmentById($id);
+        $this->assertAttendable($current, (int) $physician->id_medico);
+        $summary = $this->careSummary($input['resumen_atencion'] ?? null);
+        $diagnosis = $this->optionalReason($input['diagnostico'] ?? null);
+        $instructions = $this->optionalReason($input['indicaciones'] ?? null);
+
+        DB::transaction(function () use ($id, $current, $physician, $summary, $diagnosis, $instructions, $actorUserId): void {
+            $this->appointments->lockPhysicianAppointments((int) $current->id_medico);
+            $verified = $this->getAppointmentById($id);
+            $this->assertAttendable($verified, (int) $physician->id_medico);
+            $recordedAt = Carbon::now('UTC')->toIso8601String();
+            $this->appointments->markAppointmentAttended($id, $recordedAt);
+            $this->appointments->createCareRecord([
+                'fecha_registro' => $recordedAt,
+                'resumen_atencion' => $summary,
+                'diagnostico' => $diagnosis,
+                'indicaciones' => $instructions,
+                'id_cita' => $id,
+                'id_medico' => (int) $physician->id_medico,
+            ]);
+            $this->appointments->discardPendingReminders($id);
+            $this->appointments->createAppointmentEvent([
+                'tipo' => 'Atencion',
+                'fecha_hora' => $recordedAt,
+                'motivo' => null,
+                'id_cita' => $id,
+                'id_usuario' => $actorUserId,
+            ]);
+        });
+    }
+
     public function registerAppointmentAbsence(int $id, int $actorUserId): void
     {
         $current = $this->getAppointmentById($id);
@@ -237,6 +293,38 @@ final class AppointmentService
         $arrival = $appointment->fecha_hora_llegada ?? null;
 
         return $arrival !== null && $arrival !== '';
+    }
+
+    private function requireLinkedPhysician(int $actorUserId): object
+    {
+        $physician = $this->appointments->getPhysicianByUserId($actorUserId);
+        if ($physician === null || ! $physician->activo) {
+            throw new AppointmentNotAttendable;
+        }
+
+        return $physician;
+    }
+
+    private function assertSamePhysician(object $appointment, int $physicianId): void
+    {
+        if ((int) $appointment->id_medico !== $physicianId) {
+            throw new AppointmentNotAttendable;
+        }
+    }
+
+    private function assertAttendable(object $appointment, int $physicianId): void
+    {
+        $this->assertSamePhysician($appointment, $physicianId);
+        if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {
+            throw new AppointmentNotAttendable;
+        }
+    }
+
+    private function careSummary(?string $summary): string
+    {
+        $trimmed = $this->optionalReason($summary);
+
+        return $trimmed ?? 'Consulta realizada.';
     }
 
     private function assertCancellable(object $appointment): void

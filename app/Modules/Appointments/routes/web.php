@@ -26,6 +26,13 @@ Route::middleware([
 ])->group(function (): void {
     Route::get('/citas/programar', [AppointmentController::class, 'showCreateAppointmentForm'])->name('appointments.create');
     Route::post('/citas', [AppointmentController::class, 'createAppointment'])->name('appointments.store');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::BOOK_APPOINTMENTS.','.PermissionCatalog::MARK_ATTENDED,
+])->group(function (): void {
     Route::get('/citas/{cita}', [AppointmentController::class, 'getAppointmentById'])->name('appointments.show')->whereNumber('cita');
 });
 
@@ -65,4 +72,16 @@ Route::middleware([
         ->name('appointments.arrival')->whereNumber('cita');
     Route::post('/citas/{cita}/inasistencia', [AppointmentController::class, 'registerAppointmentAbsence'])
         ->name('appointments.absence')->whereNumber('cita');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::MARK_ATTENDED,
+])->group(function (): void {
+    Route::get('/agenda', [AppointmentController::class, 'getPhysicianAgenda'])->name('appointments.agenda');
+    Route::get('/citas/{cita}/atender', [AppointmentController::class, 'showAttendAppointmentForm'])
+        ->name('appointments.attend')->whereNumber('cita');
+    Route::post('/citas/{cita}/atender', [AppointmentController::class, 'recordAppointmentCare'])
+        ->name('appointments.attend.store')->whereNumber('cita');
 });

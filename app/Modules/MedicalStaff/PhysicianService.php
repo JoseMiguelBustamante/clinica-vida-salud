@@ -40,8 +40,13 @@ final class PhysicianService
         return $physician;
     }
 
+    public function getLinkableStaffAccounts(?int $currentPhysicianId): Collection
+    {
+        return $this->physicians->getLinkableStaffAccounts($currentPhysicianId);
+    }
+
     /**
-     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono?: ?string, correo_contacto?: ?string, activo: bool, especialidades: list<int>}  $input
+     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono?: ?string, correo_contacto?: ?string, activo: bool, id_usuario?: ?int, especialidades: list<int>}  $input
      */
     public function createPhysician(array $input): int
     {
@@ -57,7 +62,7 @@ final class PhysicianService
     }
 
     /**
-     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono?: ?string, correo_contacto?: ?string, activo: bool, especialidades: list<int>}  $input
+     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono?: ?string, correo_contacto?: ?string, activo: bool, id_usuario?: ?int, especialidades: list<int>}  $input
      */
     public function updatePhysician(int $id, array $input): void
     {
@@ -87,8 +92,8 @@ final class PhysicianService
     }
 
     /**
-     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono?: ?string, correo_contacto?: ?string, activo: bool}  $input
-     * @return array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool}
+     * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono?: ?string, correo_contacto?: ?string, activo: bool, id_usuario?: ?int}  $input
+     * @return array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool, id_usuario: ?int}
      */
     private function normalizedRecord(array $input, ?int $exceptId): array
     {
@@ -100,6 +105,7 @@ final class PhysicianService
         if ($email !== null && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw new InvalidPhysicianInput;
         }
+        $accountId = $this->optionalAccountId($input['id_usuario'] ?? null, $exceptId);
 
         return [
             'registro_profesional' => $license,
@@ -108,7 +114,24 @@ final class PhysicianService
             'telefono' => $this->optionalText($input['telefono'] ?? null, 30),
             'correo_contacto' => $email,
             'activo' => (bool) $input['activo'],
+            'id_usuario' => $accountId,
         ];
+    }
+
+    private function optionalAccountId(mixed $value, ?int $exceptPhysicianId): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $accountId = (int) $value;
+        if ($accountId < 1) {
+            throw new InvalidPhysicianInput;
+        }
+        if ($this->physicians->userAccountTaken($accountId, $exceptPhysicianId)) {
+            throw new InvalidPhysicianInput;
+        }
+
+        return $accountId;
     }
 
     /**

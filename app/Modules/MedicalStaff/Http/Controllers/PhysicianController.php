@@ -40,6 +40,7 @@ final class PhysicianController
     {
         return view('medical-staff.physicians.create', [
             'specialties' => $this->specialties->getActiveSpecialties(),
+            'accounts' => $this->physicians->getLinkableStaffAccounts(null),
         ]);
     }
 
@@ -80,6 +81,7 @@ final class PhysicianController
             return view('medical-staff.physicians.edit', [
                 'physician' => $this->physicians->getPhysicianById($medico),
                 'specialties' => $this->specialties->getAllSpecialties(null),
+                'accounts' => $this->physicians->getLinkableStaffAccounts($medico),
             ]);
         } catch (PhysicianNotFound) {
             return redirect()->route('physicians.index')
@@ -144,7 +146,7 @@ final class PhysicianController
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool, especialidades: list<int>}
+     * @return array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool, id_usuario: ?int, especialidades: list<int>}
      */
     private function physicianInput(array $input): array
     {
@@ -155,6 +157,7 @@ final class PhysicianController
             'telefono' => $input['telefono'] ?? null,
             'correo_contacto' => $input['correo_contacto'] ?? null,
             'activo' => (bool) (int) $input['activo'],
+            'id_usuario' => isset($input['id_usuario']) && $input['id_usuario'] !== '' ? (int) $input['id_usuario'] : null,
             'especialidades' => array_map(intval(...), $input['especialidades'] ?? []),
         ];
     }

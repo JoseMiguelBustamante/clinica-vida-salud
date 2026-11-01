@@ -26,6 +26,8 @@ final class PermissionCatalog
 
     public const RECORD_ATTENDANCE = 'citas.asistencia';
 
+    public const MARK_ATTENDED = 'citas.atender';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -48,6 +50,7 @@ final class PermissionCatalog
             ['codigo' => self::RESCHEDULE_APPOINTMENTS, 'descripcion' => 'Reprogramar citas médicas existentes'],
             ['codigo' => self::CANCEL_APPOINTMENTS, 'descripcion' => 'Cancelar citas médicas y liberar el intervalo'],
             ['codigo' => self::RECORD_ATTENDANCE, 'descripcion' => 'Registrar confirmación, llegada e inasistencia'],
+            ['codigo' => self::MARK_ATTENDED, 'descripcion' => 'Marcar una cita como atendida'],
         ];
     }
 
@@ -80,6 +83,7 @@ final class PermissionCatalog
                 self::RESCHEDULE_APPOINTMENTS,
                 self::CANCEL_APPOINTMENTS,
                 self::RECORD_ATTENDANCE,
+                self::MARK_ATTENDED,
             ],
             self::RECEPTIONIST_ROLE => [
                 self::MANAGE_PATIENTS,
@@ -88,6 +92,9 @@ final class PermissionCatalog
                 self::RESCHEDULE_APPOINTMENTS,
                 self::CANCEL_APPOINTMENTS,
                 self::RECORD_ATTENDANCE,
+            ],
+            self::PHYSICIAN_ROLE => [
+                self::MARK_ATTENDED,
             ],
             default => [],
         };

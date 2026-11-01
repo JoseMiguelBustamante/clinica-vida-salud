@@ -33,7 +33,9 @@ class PermissionCatalogServiceTest extends TestCase
             PermissionCatalog::permissions(),
             Mockery::on(function (array $assignments): bool {
                 return in_array(PermissionCatalog::MANAGE_SCHEDULES, $assignments[PermissionCatalog::ADMINISTRATOR_ROLE], true)
-                    && $assignments[PermissionCatalog::PHYSICIAN_ROLE] === []
+                    && $assignments[PermissionCatalog::PHYSICIAN_ROLE] === [
+                        PermissionCatalog::MARK_ATTENDED,
+                    ]
                     && $assignments[PermissionCatalog::RECEPTIONIST_ROLE] === [
                         PermissionCatalog::MANAGE_PATIENTS,
                         PermissionCatalog::CONSULT_AVAILABILITY,

@@ -20,6 +20,7 @@
     <section class="implementation">
         <p>Teléfono: {{ $physician->telefono ?: '—' }}</p>
         <p>Correo de contacto: {{ $physician->correo_contacto ?: '—' }}</p>
+        <p>Cuenta de acceso: {{ $physician->id_usuario ? 'vinculada' : 'sin vincular' }}</p>
         <p>Especialidades: {{ $physician->especialidades->pluck('nombre')->join(', ') ?: '—' }}</p>
         <p><a href="{{ route('physicians.edit', $physician->id_medico) }}">Modificar</a>
             · <a href="{{ route('physicians.index') }}">Volver al listado</a></p>

@@ -27,6 +27,9 @@
         <p>Llegada: {{ isset($appointment->fecha_hora_llegada) && $appointment->fecha_hora_llegada
             ? \Illuminate\Support\Carbon::parse((string) $appointment->fecha_hora_llegada)->timezone('UTC')->format('Y-m-d H:i')
             : 'no registrada' }}</p>
+        @if (isset($appointment->fecha_hora_registro_atencion) && $appointment->fecha_hora_registro_atencion)
+            <p>Atención: {{ \Illuminate\Support\Carbon::parse((string) $appointment->fecha_hora_registro_atencion)->timezone('UTC')->format('Y-m-d H:i') }} UTC</p>
+        @endif
         <p>Motivo: {{ $appointment->motivo_consulta ?: '—' }}</p>
         @if ($appointment->estado === 'Cancelada')
             <p>Motivo de cancelación: {{ $appointment->motivo_cancelacion ?: '—' }}</p>
@@ -44,6 +47,10 @@
             @if (in_array(\App\Modules\Identity\PermissionCatalog::RECORD_ATTENDANCE, $identityPermissions ?? [], true))
                 <a class="button button-inline" href="{{ route('appointments.attendance', $appointment->id_cita) }}">Confirmación y asistencia</a>
             @endif
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $identityPermissions ?? [], true)
+                && in_array($appointment->estado, ['Programada', 'Confirmada'], true))
+                <a class="button button-inline" href="{{ route('appointments.attend', $appointment->id_cita) }}">Marcar como atendida</a>
+            @endif
             @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
                 <a href="{{ route('appointments.create') }}">Programar otra cita</a>
             @endif
@@ -52,6 +59,9 @@
             @endif
             @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AVAILABILITY, $identityPermissions ?? [], true))
                 · <a href="{{ route('availability.consult') }}">Consultar disponibilidad</a>
+            @endif
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $identityPermissions ?? [], true))
+                · <a href="{{ route('appointments.agenda') }}">Agenda</a>
             @endif
         </p>
     </section>

@@ -140,6 +140,67 @@ class AppointmentRepository
         DB::table('cita_medica')->where('id_cita', $id)->update(['estado' => 'Inasistencia']);
     }
 
+    public function getPhysicianByUserId(int $userId): ?object
+    {
+        return DB::table('medico')
+            ->select('id_medico', 'registro_profesional', 'nombres', 'apellidos', 'activo', 'id_usuario')
+            ->where('id_usuario', $userId)
+            ->first();
+    }
+
+    /** @return Collection<int, object> */
+    public function getAppointmentsForPhysician(int $physicianId, ?string $fragment): Collection
+    {
+        $query = DB::table('cita_medica')
+            ->join('paciente', 'paciente.id_paciente', '=', 'cita_medica.id_paciente')
+            ->join('medico', 'medico.id_medico', '=', 'cita_medica.id_medico')
+            ->join('especialidad', 'especialidad.id_especialidad', '=', 'cita_medica.id_especialidad')
+            ->select(
+                'cita_medica.id_cita',
+                'cita_medica.codigo',
+                'cita_medica.inicio',
+                'cita_medica.fin',
+                'cita_medica.estado',
+                'cita_medica.modalidad',
+                'paciente.nombres as paciente_nombres',
+                'paciente.apellidos as paciente_apellidos',
+                'paciente.ci as paciente_ci',
+                'medico.nombres as medico_nombres',
+                'medico.apellidos as medico_apellidos',
+                'especialidad.nombre as especialidad_nombre',
+            )
+            ->where('cita_medica.id_medico', $physicianId)
+            ->orderByDesc('cita_medica.inicio');
+
+        if ($fragment !== null && $fragment !== '') {
+            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $fragment).'%';
+            $query->where(function ($inner) use ($like): void {
+                $inner->whereRaw('cita_medica.codigo ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw('paciente.ci ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw('paciente.nombres ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw('paciente.apellidos ILIKE ? ESCAPE \'!\'', [$like]);
+            });
+        }
+
+        return $query->get();
+    }
+
+    public function markAppointmentAttended(int $id, string $recordedAt): void
+    {
+        DB::table('cita_medica')->where('id_cita', $id)->update([
+            'estado' => 'Atendida',
+            'fecha_hora_registro_atencion' => $recordedAt,
+        ]);
+    }
+
+    /**
+     * @param  array{fecha_registro: string, resumen_atencion: string, diagnostico: ?string, indicaciones: ?string, id_cita: int, id_medico: int}  $values
+     */
+    public function createCareRecord(array $values): void
+    {
+        DB::table('registro_atencion')->insert($values);
+    }
+
     public function lockPhysicianAppointments(int $physicianId): void
     {
         DB::select('SELECT pg_advisory_xact_lock(847201, ?)', [$physicianId]);
@@ -183,6 +244,7 @@ class AppointmentRepository
                 'cita_medica.estado',
                 'cita_medica.fecha_creacion',
                 'cita_medica.fecha_hora_llegada',
+                'cita_medica.fecha_hora_registro_atencion',
                 'cita_medica.id_paciente',
                 'cita_medica.id_medico',
                 'cita_medica.id_especialidad',

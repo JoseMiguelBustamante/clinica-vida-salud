@@ -55,12 +55,17 @@
         @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AVAILABILITY, $user['permissions'], true))
             <a class="module-tile" href="{{ route('availability.consult') }}">
                 <strong>Citas</strong>
-                <span>Consultar, programar, reprogramar, cancelar y registrar asistencia.</span>
+                <span>Consultar, programar, reprogramar, cancelar, asistencia y marcar atendida.</span>
             </a>
         @elseif (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $user['permissions'], true))
             <a class="module-tile" href="{{ route('appointments.create') }}">
                 <strong>Citas</strong>
                 <span>Programar una cita en un intervalo disponible.</span>
+            </a>
+        @elseif (in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('appointments.agenda') }}">
+                <strong>Agenda</strong>
+                <span>Consultar sus citas y marcarlas como atendidas.</span>
             </a>
         @endif
     </nav>

@@ -52,6 +52,17 @@
     @endif
 </fieldset>
 <div class="field">
+    <label for="id_usuario">Cuenta de acceso (opcional)</label>
+    <select id="id_usuario" name="id_usuario">
+        <option value="">Sin vincular</option>
+        @foreach ($accounts ?? [] as $account)
+            <option value="{{ $account->id_usuario }}" @selected((string) old('id_usuario', $row->id_usuario ?? '') === (string) $account->id_usuario)>
+                {{ $account->nombre_usuario }}
+            </option>
+        @endforeach
+    </select>
+</div>
+<div class="field">
     <label for="activo">Estado</label>
     <select id="activo" name="activo">
         <option value="1" @selected((string) old('activo', isset($row) ? ($row->activo ? '1' : '0') : '1') === '1')>Activo</option>

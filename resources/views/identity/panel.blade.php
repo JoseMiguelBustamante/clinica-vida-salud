@@ -62,10 +62,12 @@
                 <strong>Citas</strong>
                 <span>Programar una cita en un intervalo disponible.</span>
             </a>
-        @elseif (in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $user['permissions'], true))
+        @endif
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AGENDA, $user['permissions'], true)
+            || in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $user['permissions'], true))
             <a class="module-tile" href="{{ route('appointments.agenda') }}">
                 <strong>Agenda</strong>
-                <span>Consultar sus citas y marcarlas como atendidas.</span>
+                <span>Consultar citas por médico, fecha y estado.</span>
             </a>
         @endif
     </nav>

@@ -395,4 +395,64 @@ class AppointmentScreenTest extends TestCase
             ->assertRedirect('/citas/21/atender')->assertSessionHasErrors('verificado');
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_the_physician_agenda_form_opens_without_listing_appointments(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 3]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::MARK_ATTENDED]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentsForPhysicianOnDate')->never();
+        $appointments->shouldReceive('getRegisteredPhysicians')->never();
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/agenda')->assertOk()->assertSee('Agenda médica')
+            ->assertSee('Seleccione la fecha')->assertDontSee('name="id_medico"', false);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_the_receptionist_agenda_form_lists_physicians_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([
+            PermissionCatalog::CONSULT_AGENDA,
+            PermissionCatalog::CONSULT_AVAILABILITY,
+        ]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)->andReturn(null);
+        $appointments->shouldReceive('getRegisteredPhysicians')->once()->andReturn(collect([
+            (object) ['id_medico' => 4, 'nombres' => 'Luis', 'apellidos' => 'Soto', 'registro_profesional' => 'MP-1', 'activo' => true],
+        ]));
+        $appointments->shouldReceive('getAppointmentsForPhysicianOnDate')->never();
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/agenda')->assertOk()->assertSee('Agenda médica')->assertSee('Luis')
+            ->assertSee('Seleccione la fecha y el médico');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_agenda_rejects_an_invalid_date_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 3]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::CONSULT_AGENDA]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->from('/agenda')->get('/agenda?fecha=31-11-2026')
+            ->assertRedirect('/agenda')->assertSessionHasErrors('fecha');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

@@ -14,6 +14,10 @@
             @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AVAILABILITY, $identityPermissions ?? [], true))
                 · <a href="{{ route('availability.consult') }}">Consultar disponibilidad</a>
             @endif
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_AGENDA, $identityPermissions ?? [], true)
+                || in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $identityPermissions ?? [], true))
+                · <a href="{{ route('appointments.agenda') }}">Agenda</a>
+            @endif
         </p>
     </section>
 

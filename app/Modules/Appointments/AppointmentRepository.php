@@ -148,9 +148,31 @@ class AppointmentRepository
             ->first();
     }
 
-    /** @return Collection<int, object> */
-    public function getAppointmentsForPhysician(int $physicianId, ?string $fragment): Collection
+    public function getRegisteredPhysicianById(int $id): ?object
     {
+        return DB::table('medico')
+            ->select('id_medico', 'registro_profesional', 'nombres', 'apellidos', 'activo', 'id_usuario')
+            ->where('id_medico', $id)
+            ->first();
+    }
+
+    /** @return Collection<int, object> */
+    public function getRegisteredPhysicians(): Collection
+    {
+        return DB::table('medico')
+            ->select('id_medico', 'registro_profesional', 'nombres', 'apellidos', 'activo')
+            ->orderBy('apellidos')
+            ->orderBy('nombres')
+            ->get();
+    }
+
+    /** @return Collection<int, object> */
+    public function getAppointmentsForPhysicianOnDate(
+        int $physicianId,
+        string $rangeStart,
+        string $rangeEnd,
+        ?string $status,
+    ): Collection {
         $query = DB::table('cita_medica')
             ->join('paciente', 'paciente.id_paciente', '=', 'cita_medica.id_paciente')
             ->join('medico', 'medico.id_medico', '=', 'cita_medica.id_medico')
@@ -162,6 +184,7 @@ class AppointmentRepository
                 'cita_medica.fin',
                 'cita_medica.estado',
                 'cita_medica.modalidad',
+                'cita_medica.motivo_consulta',
                 'paciente.nombres as paciente_nombres',
                 'paciente.apellidos as paciente_apellidos',
                 'paciente.ci as paciente_ci',
@@ -170,16 +193,12 @@ class AppointmentRepository
                 'especialidad.nombre as especialidad_nombre',
             )
             ->where('cita_medica.id_medico', $physicianId)
-            ->orderByDesc('cita_medica.inicio');
+            ->where('cita_medica.inicio', '>=', $rangeStart)
+            ->where('cita_medica.inicio', '<', $rangeEnd)
+            ->orderBy('cita_medica.inicio');
 
-        if ($fragment !== null && $fragment !== '') {
-            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $fragment).'%';
-            $query->where(function ($inner) use ($like): void {
-                $inner->whereRaw('cita_medica.codigo ILIKE ? ESCAPE \'!\'', [$like])
-                    ->orWhereRaw('paciente.ci ILIKE ? ESCAPE \'!\'', [$like])
-                    ->orWhereRaw('paciente.nombres ILIKE ? ESCAPE \'!\'', [$like])
-                    ->orWhereRaw('paciente.apellidos ILIKE ? ESCAPE \'!\'', [$like]);
-            });
+        if ($status !== null && $status !== '') {
+            $query->where('cita_medica.estado', $status);
         }
 
         return $query->get();

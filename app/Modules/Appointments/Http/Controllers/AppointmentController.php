@@ -346,20 +346,47 @@ final class AppointmentController
     {
         $input = $request->validated();
         $actor = $request->attributes->get('identity');
-        $appointments = collect();
+        $codes = $request->attributes->get('identity_permissions', []);
+        $canSelectPhysician = $this->canSelectAnyAgendaPhysician($codes);
+        $canViewReason = $this->canViewAgendaReason($codes);
         $status = null;
+        $result = [
+            'appointments' => null,
+            'physicians' => collect(),
+            'physician_id' => null,
+            'fecha' => $input['fecha'] ?? '',
+            'estado' => $input['estado'] ?? '',
+        ];
         try {
-            $appointments = $this->appointments->getPhysicianAgenda((int) $actor->id_usuario, $input['q'] ?? null);
+            $result = $this->appointments->consultPhysicianAgenda(
+                (int) $actor->id_usuario,
+                [
+                    'fecha' => $input['fecha'] ?? null,
+                    'id_medico' => isset($input['id_medico']) ? (int) $input['id_medico'] : null,
+                    'estado' => $input['estado'] ?? null,
+                ],
+                $canSelectPhysician,
+            );
         } catch (AppointmentNotAttendable) {
             $status = 'Su cuenta no está vinculada a un médico activo. En Médicos, asocie la cuenta de acceso.';
+        } catch (PhysicianNotEligible) {
+            $status = 'El médico seleccionado no está registrado.';
+        } catch (InvalidAvailabilityInput) {
+            $status = 'Indique una fecha válida y, si corresponde, un médico.';
         } catch (Throwable $exception) {
             Log::error('[AppointmentController - getPhysicianAgenda] '.$exception::class);
             $status = 'No fue posible consultar la agenda.';
         }
 
         return view('appointments.agenda', [
-            'appointments' => $appointments,
-            'q' => $input['q'] ?? '',
+            'appointments' => $result['appointments'],
+            'physicians' => $result['physicians'],
+            'physician_id' => $result['physician_id'],
+            'fecha' => $result['fecha'],
+            'estado' => $result['estado'],
+            'canSelectPhysician' => $canSelectPhysician,
+            'canViewReason' => $canViewReason,
+            'canMarkAttended' => in_array(PermissionCatalog::MARK_ATTENDED, $codes, true),
             'status' => $status,
         ]);
     }
@@ -404,5 +431,26 @@ final class AppointmentController
 
         return redirect()->route('appointments.show', $cita)
             ->with('status', 'La cita quedó Atendida. La llegada o la confirmación no sustituyen este registro.');
+    }
+
+    /**
+     * @param  list<string>  $codes
+     */
+    private function canSelectAnyAgendaPhysician(array $codes): bool
+    {
+        return in_array(PermissionCatalog::CONSULT_AVAILABILITY, $codes, true)
+            || in_array(PermissionCatalog::BOOK_APPOINTMENTS, $codes, true)
+            || in_array(PermissionCatalog::RESCHEDULE_APPOINTMENTS, $codes, true);
+    }
+
+    /**
+     * @param  list<string>  $codes
+     */
+    private function canViewAgendaReason(array $codes): bool
+    {
+        return in_array(PermissionCatalog::BOOK_APPOINTMENTS, $codes, true)
+            || in_array(PermissionCatalog::RESCHEDULE_APPOINTMENTS, $codes, true)
+            || in_array(PermissionCatalog::RECORD_ATTENDANCE, $codes, true)
+            || in_array(PermissionCatalog::MARK_ATTENDED, $codes, true);
     }
 }

@@ -7,7 +7,7 @@ Identity provides the session-authentication backend, the staff login/panel
 screens, and CU03 account administration. Patients provides CU04 record
 administration. MedicalStaff provides CU05 physicians and CU06 specialties.
 Schedules provides CU07 weekly hours. Appointments owns the public foundation
-page, CU08–CU13 appointment operations. Physician agenda by date (CU14) is not implemented.
+page, CU08–CU14 appointment operations. Patient appointment history (CU15) is not implemented.
 
 ## Backend authentication (deployed; private bootstrap pending)
 

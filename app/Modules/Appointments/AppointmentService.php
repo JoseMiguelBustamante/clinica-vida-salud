@@ -181,14 +181,88 @@ final class AppointmentService
         });
     }
 
-    public function getPhysicianAgenda(int $actorUserId, ?string $fragment): Collection
+    /**
+     * @param  array{fecha?: ?string, id_medico?: ?int, estado?: ?string}  $input
+     * @return array{appointments: ?Collection, physicians: Collection, physician_id: ?int, fecha: string, estado: string}
+     */
+    public function consultPhysicianAgenda(int $actorUserId, array $input, bool $canSelectAnyPhysician): array
     {
-        $physician = $this->requireLinkedPhysician($actorUserId);
-
-        return $this->appointments->getAppointmentsForPhysician(
-            (int) $physician->id_medico,
-            $fragment === '' ? null : $fragment,
+        $date = $this->optionalAgendaDate($input['fecha'] ?? null);
+        $status = $this->optionalAgendaStatus($input['estado'] ?? null);
+        $physicians = $canSelectAnyPhysician ? $this->appointments->getRegisteredPhysicians() : collect();
+        $physicianId = $this->resolvedAgendaPhysicianId(
+            $actorUserId,
+            isset($input['id_medico']) ? (int) $input['id_medico'] : null,
+            $canSelectAnyPhysician,
         );
+
+        $appointments = null;
+        if ($date !== null && $physicianId !== null) {
+            $from = Carbon::createFromFormat('Y-m-d', $date, 'UTC');
+            if ($from === false) {
+                throw new InvalidAvailabilityInput;
+            }
+            $appointments = $this->appointments->getAppointmentsForPhysicianOnDate(
+                $physicianId,
+                $from->copy()->startOfDay()->toIso8601String(),
+                $from->copy()->addDay()->startOfDay()->toIso8601String(),
+                $status,
+            );
+        }
+
+        return [
+            'appointments' => $appointments,
+            'physicians' => $physicians,
+            'physician_id' => $physicianId,
+            'fecha' => $date ?? '',
+            'estado' => $status ?? '',
+        ];
+    }
+
+    private function optionalAgendaDate(?string $date): ?string
+    {
+        if ($date === null || $date === '') {
+            return null;
+        }
+        $parsed = Carbon::createFromFormat('Y-m-d', $date, 'UTC');
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+            throw new InvalidAvailabilityInput;
+        }
+
+        return $date;
+    }
+
+    private function optionalAgendaStatus(?string $status): ?string
+    {
+        if ($status === null || $status === '') {
+            return null;
+        }
+        if (! in_array($status, ['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'], true)) {
+            throw new InvalidAvailabilityInput;
+        }
+
+        return $status;
+    }
+
+    private function resolvedAgendaPhysicianId(int $actorUserId, ?int $requestedPhysicianId, bool $canSelectAnyPhysician): ?int
+    {
+        $linked = $this->appointments->getPhysicianByUserId($actorUserId);
+        if (! $canSelectAnyPhysician) {
+            if ($linked === null || ! $linked->activo) {
+                throw new AppointmentNotAttendable;
+            }
+
+            return (int) $linked->id_medico;
+        }
+        if ($requestedPhysicianId === null || $requestedPhysicianId < 1) {
+            return null;
+        }
+        $physician = $this->appointments->getRegisteredPhysicianById($requestedPhysicianId);
+        if ($physician === null) {
+            throw new PhysicianNotEligible;
+        }
+
+        return (int) $physician->id_medico;
     }
 
     public function getAppointmentForCare(int $id, int $actorUserId): object

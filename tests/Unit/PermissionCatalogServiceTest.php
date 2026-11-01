@@ -35,6 +35,7 @@ class PermissionCatalogServiceTest extends TestCase
                 return in_array(PermissionCatalog::MANAGE_SCHEDULES, $assignments[PermissionCatalog::ADMINISTRATOR_ROLE], true)
                     && $assignments[PermissionCatalog::PHYSICIAN_ROLE] === [
                         PermissionCatalog::MARK_ATTENDED,
+                        PermissionCatalog::CONSULT_AGENDA,
                     ]
                     && $assignments[PermissionCatalog::RECEPTIONIST_ROLE] === [
                         PermissionCatalog::MANAGE_PATIENTS,
@@ -43,6 +44,7 @@ class PermissionCatalogServiceTest extends TestCase
                         PermissionCatalog::RESCHEDULE_APPOINTMENTS,
                         PermissionCatalog::CANCEL_APPOINTMENTS,
                         PermissionCatalog::RECORD_ATTENDANCE,
+                        PermissionCatalog::CONSULT_AGENDA,
                     ];
             }),
         );

@@ -77,9 +77,16 @@ Route::middleware([
 Route::middleware([
     'web',
     RequireActiveSession::class,
-    RequirePermission::class.':'.PermissionCatalog::MARK_ATTENDED,
+    RequirePermission::class.':'.PermissionCatalog::CONSULT_AGENDA.','.PermissionCatalog::MARK_ATTENDED,
 ])->group(function (): void {
     Route::get('/agenda', [AppointmentController::class, 'getPhysicianAgenda'])->name('appointments.agenda');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::MARK_ATTENDED,
+])->group(function (): void {
     Route::get('/citas/{cita}/atender', [AppointmentController::class, 'showAttendAppointmentForm'])
         ->name('appointments.attend')->whereNumber('cita');
     Route::post('/citas/{cita}/atender', [AppointmentController::class, 'recordAppointmentCare'])

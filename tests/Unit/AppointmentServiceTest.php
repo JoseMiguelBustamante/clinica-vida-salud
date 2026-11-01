@@ -11,6 +11,7 @@ use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
 use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PatientNotEligible;
+use App\Modules\Appointments\PhysicianNotEligible;
 use App\Modules\Appointments\SlotUnavailable;
 use App\Modules\MedicalStaff\PhysicianRepository;
 use App\Modules\MedicalStaff\SpecialtyRepository;
@@ -543,6 +544,69 @@ class AppointmentServiceTest extends TestCase
         } catch (AppointmentNotAttendable) {
         }
 
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_physician_agenda_query_uses_the_linked_physician_and_date(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getRegisteredPhysicians')->never();
+        $appointments->shouldReceive('getAppointmentsForPhysicianOnDate')->once()
+            ->withArgs(function (int $physicianId, string $start, string $end, ?string $status): bool {
+                return $physicianId === 4
+                    && str_starts_with($start, '2026-11-01')
+                    && str_starts_with($end, '2026-11-02')
+                    && $status === 'Confirmada';
+            })
+            ->andReturn(collect([(object) ['id_cita' => 21, 'estado' => 'Confirmada']]));
+
+        $result = $this->service($appointments, $patients)->consultPhysicianAgenda(17, [
+            'fecha' => '2026-11-01',
+            'id_medico' => 9,
+            'estado' => 'Confirmada',
+        ], false);
+
+        $this->assertSame(4, $result['physician_id']);
+        $this->assertCount(1, $result['appointments']);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_missing_selected_physician_is_rejected_before_listing(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)->andReturn(null);
+        $appointments->shouldReceive('getRegisteredPhysicians')->once()->andReturn(collect());
+        $appointments->shouldReceive('getRegisteredPhysicianById')->once()->with(9)->andReturn(null);
+        $appointments->shouldReceive('getAppointmentsForPhysicianOnDate')->never();
+
+        try {
+            $this->service($appointments, $patients)->consultPhysicianAgenda(17, [
+                'fecha' => '2026-11-01',
+                'id_medico' => 9,
+            ], true);
+            $this->fail('Expected PhysicianNotEligible');
+        } catch (PhysicianNotEligible) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_an_agenda_without_a_date_does_not_list_appointments(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $appointments->shouldReceive('getPhysicianByUserId')->once()->with(17)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true, 'id_usuario' => 17]);
+        $appointments->shouldReceive('getAppointmentsForPhysicianOnDate')->never();
+
+        $result = $this->service($appointments, $patients)->consultPhysicianAgenda(17, [], false);
+
+        $this->assertNull($result['appointments']);
+        $this->assertSame(4, $result['physician_id']);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

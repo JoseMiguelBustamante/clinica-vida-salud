@@ -1501,7 +1501,24 @@ body.is-app .button:hover {
 
 .booking-when {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 0.65rem;
+}
+
+.booking-when .field {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+.booking-when .field:first-child {
+    grid-column: 1 / -1;
+}
+
+.booking-panel .field input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.booking-panel .field select,
+.booking-panel .field textarea {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .booking-summary {
@@ -1782,10 +1799,6 @@ body.is-app .booking-cancel:hover {
     .booking-layout.is-open .week-grid {
         min-width: 36rem;
         grid-template-columns: 3.6rem repeat(var(--week-days, 5), minmax(6.4rem, 1fr));
-    }
-
-    .booking-when {
-        grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 0.9fr));
     }
 
     .app-content .page-form {

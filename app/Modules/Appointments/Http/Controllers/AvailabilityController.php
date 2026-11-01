@@ -139,6 +139,9 @@ final class AvailabilityController
             'clockOptions' => $this->boardClockOptions(),
             'slotHint' => $this->bookingSlotHint($bookingOpen, $specialtyId, $physicianId, $focus->toDateString(), $horaInicio, $events),
             'bookingHeading' => $this->bookingHeading($focus, $horaInicio, $horaFin),
+            'draftLayout' => ($bookingOpen && $horaInicio !== '' && $horaFin !== '')
+                ? $this->eventLayout($horaInicio, $horaFin, $hourHeight)
+                : null,
         ]);
     }
 

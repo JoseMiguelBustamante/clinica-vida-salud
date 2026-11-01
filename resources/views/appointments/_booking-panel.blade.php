@@ -89,11 +89,11 @@
         <div class="booking-when">
             <div class="field">
                 <label for="fecha">Fecha</label>
-                <input id="fecha" name="fecha" type="date" required value="{{ $fecha }}" min="{{ $today->toDateString() }}">
+                <input id="fecha" name="fecha" type="date" required value="{{ $fecha }}" min="{{ $today->toDateString() }}" onchange="this.form.submit()">
             </div>
             <div class="field">
                 <label for="hora_inicio">Inicio</label>
-                <select id="hora_inicio" name="hora_inicio" required>
+                <select id="hora_inicio" name="hora_inicio" required onchange="this.form.submit()">
                     <option value="">--:--</option>
                     @foreach ($clockOptions as $clock)
                         @if ($clock !== $clockOptions[array_key_last($clockOptions)])
@@ -104,7 +104,7 @@
             </div>
             <div class="field">
                 <label for="hora_fin">Fin</label>
-                <select id="hora_fin" name="hora_fin" required>
+                <select id="hora_fin" name="hora_fin" required onchange="this.form.submit()">
                     <option value="">--:--</option>
                     @foreach ($clockOptions as $clock)
                         @if ($clock !== $clockOptions[0])

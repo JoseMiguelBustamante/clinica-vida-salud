@@ -1257,7 +1257,7 @@ body.is-app .button:hover {
     position: absolute;
     left: 0.35rem;
     right: 0.35rem;
-    z-index: 2;
+    z-index: 3;
     display: grid;
     align-content: start;
     gap: 0.05rem;
@@ -1314,7 +1314,8 @@ body.is-app .button:hover {
 }
 
 .week-slot.is-draft {
-    z-index: 1;
+    z-index: 2;
+    pointer-events: none;
 }
 
 .week-event strong {

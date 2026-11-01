@@ -212,16 +212,21 @@
                                                         $slotAt = $day->copy()->setTime($hour, $minute);
                                                         $isElapsed = $slotAt->lt($now);
                                                         $top = (($hour - $boardStartHour) + ($minute / 60)) * $hourHeight;
-                                                        $isDraft = $bookingOpen && $fecha === $iso && $hora_inicio === $slotStart;
                                                     @endphp
                                                     @if (! $isElapsed)
-                                                        <a class="week-slot @if ($isDraft) is-draft @endif" style="top: {{ $top }}rem; height: {{ $hourHeight / 2 }}rem;" href="{{ route('availability.consult', $slotQuery($iso, $slotStart, $slotEnd), false) }}">
+                                                        <a class="week-slot" style="top: {{ $top }}rem; height: {{ $hourHeight / 2 }}rem;" href="{{ route('availability.consult', $slotQuery($iso, $slotStart, $slotEnd), false) }}">
                                                             <strong>Nuevo turno</strong>
                                                             <span>{{ $slotStart }} – {{ $slotEnd }}</span>
                                                         </a>
                                                     @endif
                                                 @endforeach
                                             @endfor
+                                        @endif
+                                        @if ($canBook && ! $isPast && $bookingOpen && $fecha === $iso && $draftLayout)
+                                            <div class="week-slot is-draft" style="top: {{ $draftLayout['top'] }}rem; height: {{ $draftLayout['height'] }}rem;">
+                                                <strong>Nuevo turno</strong>
+                                                <span>{{ $hora_inicio }} – {{ $hora_fin }}</span>
+                                            </div>
                                         @endif
                                         @foreach ($dayEvents as $event)
                                             @php

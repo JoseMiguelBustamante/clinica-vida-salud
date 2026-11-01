@@ -29,7 +29,7 @@ use Throwable;
 
 class PopulateClinicDemo extends Command
 {
-    protected $signature = 'clinic:populate-demo {--force : Write demo rows without confirmation}';
+    protected $signature = 'clinic:populate-demo {--force : Write demo rows without confirmation} {--reset-passwords : Replace passwords of demo.* accounts and print a new one}';
 
     protected $description = 'Load demo users, patients, schedules and appointments';
 
@@ -44,7 +44,9 @@ class PopulateClinicDemo extends Command
         Also creates demo.recepcionista, demo.medico and demo.1001–demo.1008 (Paciente),
         links them, and prints one random password shown once for accounts created in
         this run. Does not create Administrador. Existing usernames, emails and password
-        hashes are not changed.
+        hashes are not changed unless --reset-passwords is passed.
+        --reset-passwords replaces passwords of demo.recepcionista, demo.medico and
+        demo.1001–demo.1008 and prints a new password shown once. It does not change admin.
         Idempotent: safe to rerun; rows that already exist are skipped. This is not db:seed
         and does not run on deploy. Confirmation is required unless --force is passed.
         --no-interaction without --force refuses before database access. On any error, stop
@@ -103,6 +105,9 @@ class PopulateClinicDemo extends Command
             }
             $patients = $this->ensurePatients();
             $password = $this->ensureDemoUsers($physicians, $patients);
+            if ($this->option('reset-passwords')) {
+                $password = $this->resetDemoPasswords() ?? $password;
+            }
             $this->ensureAppointments($physicians, $patients, $actorId);
         } catch (Throwable) {
             $this->error('Unable to load demo data; stop and contact the operator.');
@@ -110,7 +115,7 @@ class PopulateClinicDemo extends Command
             return self::FAILURE;
         }
 
-        $this->info('Demo catalog is available. Existing passwords were not changed.');
+        $this->info('Demo catalog is available. Existing passwords were not changed unless --reset-passwords was used.');
         if (isset($password) && is_string($password) && $password !== '') {
             $this->newLine();
             $this->warn('Password for accounts created in this run (shown once):');
@@ -176,6 +181,30 @@ class PopulateClinicDemo extends Command
     private function generatedDemoPassword(): string
     {
         return Str::password(16, true, true, false, false);
+    }
+
+    private function resetDemoPasswords(): ?string
+    {
+        $names = ['demo.recepcionista', 'demo.medico'];
+        for ($number = 1001; $number <= 1008; $number++) {
+            $names[] = 'demo.'.$number;
+        }
+        $password = $this->generatedDemoPassword();
+        $updated = 0;
+        foreach ($names as $username) {
+            $account = $this->accountByUsername($username);
+            if ($account === null) {
+                continue;
+            }
+            $this->accounts->updateAccountCredentials((int) $account->id_usuario, [
+                'nombre_usuario' => (string) $account->nombre_usuario,
+                'correo_acceso' => $account->correo_acceso,
+                'password' => $password,
+            ]);
+            $updated++;
+        }
+
+        return $updated === 0 ? null : $password;
     }
 
     private function accountByUsername(string $username): ?object

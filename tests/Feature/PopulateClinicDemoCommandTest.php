@@ -14,7 +14,7 @@ class PopulateClinicDemoCommandTest extends TestCase
     {
         $this->assertSame(0, Artisan::call('help', ['command_name' => 'clinic:populate-demo']));
         $help = Artisan::output();
-        foreach (['already migrated PostgreSQL', 'Administrador', 'Existing usernames', 'Idempotent', 'db:seed', '--force', 'DEMO-', 'patients', 'hours for every active', 'reservation for every demo patient', 'Atendida', 'demo.recepcionista', 'demo.medico', 'shown once'] as $text) {
+        foreach (['already migrated PostgreSQL', 'Administrador', 'Existing usernames', 'Idempotent', 'db:seed', '--force', '--reset-passwords', 'DEMO-', 'patients', 'hours for every active', 'reservation for every demo patient', 'Atendida', 'demo.recepcionista', 'demo.medico', 'shown once'] as $text) {
             $this->assertStringContainsString($text, $help);
         }
         $this->assertSame([], $this->app['db']->getConnections());

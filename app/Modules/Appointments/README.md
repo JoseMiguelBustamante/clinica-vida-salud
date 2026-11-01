@@ -1,4 +1,4 @@
-# Appointments (CU08–CU16 and CU22)
+# Appointments (CU08–CU16, CU20–CU22)
 
 Owns the public `GET /` landing page and the appointment workflow through
 administrative reports.
@@ -37,6 +37,24 @@ registered patients, period totals of Atendida/Cancelada/Inasistencia, and each
 physician's daily agenda. Empty results are not an error. A processing failure
 is not shown as an empty list or a total of zero. CSV/PDF export is not
 implemented. Clinical notes and diagnoses are omitted.
+
+CU21 plans `recordatorio_cita` after a successful booking when the patient
+already had reminders enabled with a verified email. Confirmation is not the
+trigger. The default lead time is 24 hours; if that instant has already passed
+and the visit has not started, the notice is planned as soon as possible.
+Successful reschedule discards undelivered notices of the previous interval and
+may plan a different notice only when the original booking was eligible.
+Enabling the preference later does not backfill earlier appointments or
+reactivate discarded rows. Changing the global lead time does not recalculate
+existing plans.
+
+The task command `clinic:send-reminders` is the sending actor. It rechecks
+vigency, start time and preferences, requests send from the mail provider and
+records `AceptadoPorProveedor`, `Fallido` or `ResultadoDesconocido`. Provider
+acceptance is not proof of delivery. Failed, unknown or accepted notices are
+not retried automatically. Sending does not confirm, register arrival or mark
+the visit as attended. A planning failure after a successful booking leaves an
+`IncidenciaPlanificacionRecordatorio` event; it does not undo the appointment.
 
 Disabling reminder preferences (CU18) discards `Pendiente` and `EnProceso`
 rows for appointments linked through `paciente.id_usuario`. Rows already

@@ -16,6 +16,7 @@ final class AppointmentService
         private AppointmentRepository $appointments,
         private AvailabilityService $availability,
         private PatientRepository $patients,
+        private AppointmentReminderService $reminders,
     ) {}
 
     public function getBookablePatients(?string $fragment): Collection
@@ -51,7 +52,7 @@ final class AppointmentService
         $modality = $this->normalizedModality((string) $input['modalidad']);
         $reason = $this->optionalReason($input['motivo_consulta'] ?? null);
 
-        return DB::transaction(function () use ($patientId, $specialtyId, $physicianId, $interval, $modality, $reason, $actorUserId): int {
+        $appointmentId = DB::transaction(function () use ($patientId, $specialtyId, $physicianId, $interval, $modality, $reason, $actorUserId): int {
             $this->appointments->lockPhysicianAppointments($physicianId);
             $this->requireActivePatient($patientId);
             $this->availability->validateRequestedSlot($specialtyId, $physicianId, $interval['inicio'], $interval['fin']);
@@ -78,6 +79,9 @@ final class AppointmentService
 
             return $appointmentId;
         });
+        $this->reminders->planForRegisteredAppointment($appointmentId, $actorUserId);
+
+        return $appointmentId;
     }
 
     /**
@@ -91,7 +95,7 @@ final class AppointmentService
         $interval = $this->normalizedInterval((string) $input['fecha'], (string) $input['hora_inicio'], (string) $input['hora_fin']);
         $this->assertDifferentInterval($current, $interval);
 
-        return DB::transaction(function () use ($id, $current, $interval, $actorUserId): array {
+        $result = DB::transaction(function () use ($id, $current, $interval, $actorUserId): array {
             $this->appointments->lockPhysicianAppointments((int) $current->id_medico);
             $locked = $this->getAppointmentById($id);
             $this->assertReschedulable($locked);
@@ -104,6 +108,7 @@ final class AppointmentService
             );
             $wasConfirmed = $locked->estado === 'Confirmada';
             $this->appointments->updateAppointmentSchedule($id, $interval['inicio'], $interval['fin'], 'Programada');
+            $this->appointments->discardPendingReminders($id);
             $this->appointments->createAppointmentEvent([
                 'tipo' => 'Reprogramacion',
                 'fecha_hora' => Carbon::now('UTC')->toIso8601String(),
@@ -117,6 +122,9 @@ final class AppointmentService
                 'required_new_confirmation' => $wasConfirmed,
             ];
         });
+        $this->reminders->planAfterReschedule($id, $actorUserId);
+
+        return $result;
     }
 
     public function cancelAppointment(int $id, ?string $reason, int $actorUserId): void
@@ -361,6 +369,7 @@ final class AppointmentService
             $verified = $this->getAppointmentById($id);
             $this->assertAbsenceAllowed($verified);
             $this->appointments->registerAppointmentAbsence($id);
+            $this->appointments->discardPendingReminders($id);
             $this->appointments->createAppointmentEvent([
                 'tipo' => 'Inasistencia',
                 'fecha_hora' => Carbon::now('UTC')->toIso8601String(),

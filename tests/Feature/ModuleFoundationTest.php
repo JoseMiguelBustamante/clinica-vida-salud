@@ -27,7 +27,7 @@ class ModuleFoundationTest extends TestCase
         $response->assertOk()
             ->assertSee('Clínica Vida Salud')
             ->assertSee('Foundation in progress')
-            ->assertSee('Staff sign-in, accounts, patients, physicians, specialties, schedules, availability lookup, booking, rescheduling, cancellation, confirmation, attendance, marking visits as attended, physician agenda lookup, patient appointment history, administrative reports, patient portal registration, patient profile preferences, declared medical information and authorized clinical history are available.')
+            ->assertSee('Staff sign-in, accounts, patients, physicians, specialties, schedules, availability lookup, booking, rescheduling, cancellation, confirmation, attendance, marking visits as attended, physician agenda lookup, patient appointment history, administrative reports, patient portal registration, patient profile preferences, declared medical information, authorized clinical history and appointment reminders are available.')
             ->assertSee('href="'.url('/login').'"', false);
 
         $document = new DOMDocument;

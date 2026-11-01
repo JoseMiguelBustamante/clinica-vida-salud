@@ -8,8 +8,8 @@ screens, CU03 account administration, CU17 patient portal registration and CU18
 profile preferences. Patients provides CU04 record
 administration and CU19 declared medical information. MedicalStaff provides CU05 physicians and CU06 specialties.
 Schedules provides CU07 weekly hours. Appointments owns the public foundation
-page, CU08–CU16 appointment operations and CU20 authorized clinical history
-for the patient portal. Appointment reminders (CU21) are not implemented.
+page, CU08–CU16 appointment operations, CU20 authorized clinical history
+for the patient portal and CU21 appointment reminders.
 
 ## Backend authentication (deployed; private bootstrap pending)
 

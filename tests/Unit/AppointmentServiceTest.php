@@ -6,6 +6,8 @@ use App\Modules\Appointments\AppointmentAttendanceNotAllowed;
 use App\Modules\Appointments\AppointmentNotAttendable;
 use App\Modules\Appointments\AppointmentNotCancellable;
 use App\Modules\Appointments\AppointmentNotReschedulable;
+use App\Modules\Appointments\AppointmentReminderMailer;
+use App\Modules\Appointments\AppointmentReminderService;
 use App\Modules\Appointments\AppointmentRepository;
 use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
@@ -131,11 +133,62 @@ class AppointmentServiceTest extends TestCase
                 && $values['id_cita'] === 21
                 && $values['id_usuario'] === 17;
         }));
+        $appointments->shouldReceive('hasUndeliveredReminder')->once()->with(21)->andReturn(false);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Programada', $day));
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)->andReturn(null);
+        $appointments->shouldReceive('createReminder')->never();
 
         $id = $this->service($appointments, $patients, $physicians, $specialties)
             ->createAppointment($this->payload($day->toDateString()), 17);
 
         $this->assertSame(21, $id);
+    }
+
+    public function test_an_eligible_booking_plans_a_reminder_without_confirming(): void
+    {
+        $day = Carbon::now('UTC')->addDays(10)->startOfDay();
+        $weekday = ScheduleService::WEEKDAYS[$day->isoWeekday() - 1];
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $patients->shouldReceive('getPatientById')->twice()->with(8)
+            ->andReturn((object) ['id_paciente' => 8, 'activo' => true]);
+        $specialties->shouldReceive('getSpecialtyById')->once()->with(3)
+            ->andReturn((object) ['id_especialidad' => 3, 'activo' => true]);
+        $physicians->shouldReceive('getPhysicianById')->once()->with(4)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true]);
+        $appointments->shouldReceive('physicianAttendsSpecialty')->once()->with(4, 3)->andReturn(true);
+        $appointments->shouldReceive('getActiveSchedulesForPhysicianOnDay')->once()->with(4, $weekday)
+            ->andReturn(collect([
+                (object) ['hora_inicio' => '08:00:00', 'hora_fin' => '09:00:00', 'duracion_cita_minutos' => 30],
+            ]));
+        $appointments->shouldReceive('getOccupyingAppointments')->once()->andReturn(collect());
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn (callable $callback) => $callback());
+        $appointments->shouldReceive('lockPhysicianAppointments')->once()->with(4);
+        $appointments->shouldReceive('appointmentCodeTaken')->once()->andReturn(false);
+        $appointments->shouldReceive('createAppointment')->once()->andReturn(21);
+        $appointments->shouldReceive('createAppointmentEvent')->once()->with(Mockery::on(function (array $values): bool {
+            return $values['tipo'] === 'Programacion';
+        }));
+        $appointments->shouldReceive('hasUndeliveredReminder')->once()->with(21)->andReturn(false);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
+            ->andReturn($this->storedAppointment('Programada', $day));
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)->andReturn((object) [
+            'recordatorios_habilitados' => true,
+            'canal' => 'CorreoElectronico',
+            'destino' => 'ana@example.test',
+            'destino_verificado' => true,
+        ]);
+        $appointments->shouldReceive('createReminder')->once()->with(
+            $day->copy()->setTime(8, 0)->subHours(24)->toIso8601String(),
+            21,
+        )->andReturn(9);
+        $appointments->shouldReceive('confirmAppointment')->never();
+
+        $this->assertSame(21, $this->service($appointments, $patients, $physicians, $specialties)
+            ->createAppointment($this->payload($day->toDateString()), 17));
     }
 
     public function test_a_cancelled_appointment_cannot_be_rescheduled(): void
@@ -204,11 +257,14 @@ class AppointmentServiceTest extends TestCase
         $appointments->shouldReceive('lockPhysicianAppointments')->once()->with(4);
         $appointments->shouldReceive('updateAppointmentSchedule')->once()
             ->with(21, Mockery::type('string'), Mockery::type('string'), 'Programada');
+        $appointments->shouldReceive('discardPendingReminders')->once()->with(21);
         $appointments->shouldReceive('createAppointmentEvent')->once()->with(Mockery::on(function (array $values): bool {
             return $values['tipo'] === 'Reprogramacion'
                 && $values['id_cita'] === 21
                 && $values['id_usuario'] === 17;
         }));
+        $appointments->shouldReceive('appointmentWasOriginallyEligibleForReminders')->once()->with(21)->andReturn(false);
+        $appointments->shouldReceive('createReminder')->never();
 
         $result = $this->service($appointments, $patients, $physicians, $specialties)
             ->rescheduleAppointment(21, $this->reschedulePayload($day->toDateString()), 17);
@@ -423,6 +479,7 @@ class AppointmentServiceTest extends TestCase
         DB::shouldReceive('transaction')->once()->andReturnUsing(fn (callable $callback) => $callback());
         $appointments->shouldReceive('lockPhysicianAppointments')->once()->with(4);
         $appointments->shouldReceive('registerAppointmentAbsence')->once()->with(21);
+        $appointments->shouldReceive('discardPendingReminders')->once()->with(21);
         $appointments->shouldReceive('createAppointmentEvent')->once()->with(Mockery::on(function (array $values): bool {
             return $values['tipo'] === 'Inasistencia' && $values['id_cita'] === 21;
         }));
@@ -730,6 +787,10 @@ class AppointmentServiceTest extends TestCase
                 $specialties ?? Mockery::mock(SpecialtyRepository::class),
             ),
             $patients,
+            new AppointmentReminderService(
+                $appointments,
+                Mockery::mock(AppointmentReminderMailer::class),
+            ),
         );
     }
 }

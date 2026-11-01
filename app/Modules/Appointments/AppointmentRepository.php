@@ -138,6 +138,124 @@ class AppointmentRepository
             ->update(['estado' => 'Descartado']);
     }
 
+    public function createReminder(string $scheduledAt, int $appointmentId): int
+    {
+        return (int) DB::table('recordatorio_cita')->insertGetId([
+            'fecha_programada' => $scheduledAt,
+            'fecha_intento' => null,
+            'estado' => 'Pendiente',
+            'referencia_envio' => null,
+            'id_cita' => $appointmentId,
+        ], 'id_recordatorio');
+    }
+
+    public function hasUndeliveredReminder(int $appointmentId): bool
+    {
+        return DB::table('recordatorio_cita')
+            ->where('id_cita', $appointmentId)
+            ->whereIn('estado', ['Pendiente', 'EnProceso'])
+            ->exists();
+    }
+
+    public function appointmentWasOriginallyEligibleForReminders(int $appointmentId): bool
+    {
+        return DB::table('recordatorio_cita')->where('id_cita', $appointmentId)->exists()
+            || DB::table('evento_cita')
+                ->where('id_cita', $appointmentId)
+                ->where('tipo', AppointmentReminderService::PLANNING_INCIDENT_TYPE)
+                ->exists();
+    }
+
+    public function getNotificationPreferencesForPatient(int $patientId): ?object
+    {
+        return DB::table('paciente')
+            ->join('preferencias_notificacion', 'preferencias_notificacion.id_usuario', '=', 'paciente.id_usuario')
+            ->select(
+                'preferencias_notificacion.id_usuario',
+                'preferencias_notificacion.recordatorios_habilitados',
+                'preferencias_notificacion.canal',
+                'preferencias_notificacion.destino',
+                'preferencias_notificacion.destino_verificado',
+            )
+            ->where('paciente.id_paciente', $patientId)
+            ->first();
+    }
+
+    /** @return Collection<int, object> */
+    public function getDuePendingReminders(string $now): Collection
+    {
+        return DB::table('recordatorio_cita')
+            ->select('id_recordatorio', 'fecha_programada', 'fecha_intento', 'estado', 'referencia_envio', 'id_cita')
+            ->where('estado', 'Pendiente')
+            ->where('fecha_programada', '<=', $now)
+            ->orderBy('fecha_programada')
+            ->orderBy('id_recordatorio')
+            ->get();
+    }
+
+    public function claimReminder(int $id, string $attemptedAt): bool
+    {
+        return DB::table('recordatorio_cita')
+            ->where('id_recordatorio', $id)
+            ->where('estado', 'Pendiente')
+            ->update([
+                'estado' => 'EnProceso',
+                'fecha_intento' => $attemptedAt,
+            ]) > 0;
+    }
+
+    public function discardReminder(int $id): void
+    {
+        DB::table('recordatorio_cita')
+            ->where('id_recordatorio', $id)
+            ->whereIn('estado', ['Pendiente', 'EnProceso'])
+            ->update(['estado' => 'Descartado']);
+    }
+
+    public function recordReminderResult(int $id, string $status, ?string $reference, string $attemptedAt): void
+    {
+        DB::table('recordatorio_cita')
+            ->where('id_recordatorio', $id)
+            ->where('estado', 'EnProceso')
+            ->update([
+                'estado' => $status,
+                'referencia_envio' => $reference,
+                'fecha_intento' => $attemptedAt,
+            ]);
+    }
+
+    public function getReminderDispatchContext(int $reminderId): ?object
+    {
+        return DB::table('recordatorio_cita')
+            ->join('cita_medica', 'cita_medica.id_cita', '=', 'recordatorio_cita.id_cita')
+            ->join('paciente', 'paciente.id_paciente', '=', 'cita_medica.id_paciente')
+            ->join('medico', 'medico.id_medico', '=', 'cita_medica.id_medico')
+            ->join('especialidad', 'especialidad.id_especialidad', '=', 'cita_medica.id_especialidad')
+            ->leftJoin('preferencias_notificacion', 'preferencias_notificacion.id_usuario', '=', 'paciente.id_usuario')
+            ->select(
+                'recordatorio_cita.id_recordatorio',
+                'recordatorio_cita.fecha_programada',
+                'recordatorio_cita.id_cita',
+                'cita_medica.codigo',
+                'cita_medica.inicio',
+                'cita_medica.fin',
+                'cita_medica.estado',
+                'cita_medica.modalidad',
+                'cita_medica.id_paciente',
+                'paciente.nombres as paciente_nombres',
+                'paciente.apellidos as paciente_apellidos',
+                'medico.nombres as medico_nombres',
+                'medico.apellidos as medico_apellidos',
+                'especialidad.nombre as especialidad_nombre',
+                'preferencias_notificacion.recordatorios_habilitados',
+                'preferencias_notificacion.canal',
+                'preferencias_notificacion.destino',
+                'preferencias_notificacion.destino_verificado',
+            )
+            ->where('recordatorio_cita.id_recordatorio', $reminderId)
+            ->first();
+    }
+
     public function confirmAppointment(int $id): void
     {
         DB::table('cita_medica')->where('id_cita', $id)->update(['estado' => 'Confirmada']);

@@ -102,6 +102,11 @@ class PhysicianRepository
         DB::table('medico')->where('id_medico', $id)->update(['activo' => $active]);
     }
 
+    public function setPhysicianUserAccount(int $id, int $userId): void
+    {
+        DB::table('medico')->where('id_medico', $id)->update(['id_usuario' => $userId]);
+    }
+
     /** @return list<int> */
     public function getSpecialtyIdsForPhysician(int $physicianId): array
     {

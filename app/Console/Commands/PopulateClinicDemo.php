@@ -16,6 +16,7 @@ use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Identity\PermissionCatalogService;
 use App\Modules\MedicalStaff\DuplicateProfessionalLicense;
 use App\Modules\MedicalStaff\DuplicateSpecialtyName;
+use App\Modules\MedicalStaff\InvalidPhysicianInput;
 use App\Modules\MedicalStaff\PhysicianService;
 use App\Modules\MedicalStaff\SpecialtyService;
 use App\Modules\Patients\DuplicatePatientDocument;
@@ -320,27 +321,31 @@ class PopulateClinicDemo extends Command
     private function linkFirstUnlinkedPhysician(array $physicians, int $userId): void
     {
         foreach ($physicians as $physician) {
-            $current = $this->physicians->getPhysicianById((int) $physician->id_medico);
-            if ($current->id_usuario !== null && (int) $current->id_usuario > 0) {
-                continue;
+            if ($this->tryLinkPhysician((int) $physician->id_medico, $userId)) {
+                return;
             }
-            $specialtyIds = $current->id_especialidades ?? [];
-            if ($specialtyIds === []) {
-                continue;
-            }
-            $this->physicians->updatePhysician((int) $current->id_medico, [
-                'registro_profesional' => (string) $current->registro_profesional,
-                'nombres' => (string) $current->nombres,
-                'apellidos' => (string) $current->apellidos,
-                'telefono' => $current->telefono,
-                'correo_contacto' => $current->correo_contacto,
-                'activo' => (bool) $current->activo,
-                'id_usuario' => $userId,
-                'especialidades' => $specialtyIds,
-            ]);
-
-            return;
         }
+
+        $demo = $this->createDemoPhysician();
+        if (! $this->tryLinkPhysician((int) $demo->id_medico, $userId)) {
+            throw new InvalidPhysicianInput;
+        }
+    }
+
+    private function tryLinkPhysician(int $physicianId, int $userId): bool
+    {
+        $current = $this->physicians->getPhysicianById($physicianId);
+        if ($current->id_usuario !== null && (int) $current->id_usuario > 0) {
+            return (int) $current->id_usuario === $userId;
+        }
+
+        try {
+            $this->physicians->linkPhysicianAccount($physicianId, $userId);
+        } catch (InvalidPhysicianInput) {
+            return false;
+        }
+
+        return true;
     }
 
     private function linkPatientAndPortalData(object $patient, int $userId): void

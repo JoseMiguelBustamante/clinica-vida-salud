@@ -91,6 +91,30 @@ final class PhysicianService
         $this->physicians->setPhysicianActive($id, true);
     }
 
+    public function linkPhysicianAccount(int $physicianId, int $userId): void
+    {
+        $physician = $this->getPhysicianById($physicianId);
+        $currentUserId = $physician->id_usuario ?? null;
+        if ($currentUserId !== null && (int) $currentUserId > 0) {
+            if ((int) $currentUserId === $userId) {
+                return;
+            }
+
+            throw new InvalidPhysicianInput;
+        }
+        if ($userId < 1 || $this->physicians->userAccountTaken($userId, $physicianId)) {
+            throw new InvalidPhysicianInput;
+        }
+        $linkable = $this->physicians->getLinkableStaffAccounts($physicianId)->first(
+            fn (object $account): bool => (int) $account->id_usuario === $userId,
+        );
+        if ($linkable === null) {
+            throw new InvalidPhysicianInput;
+        }
+
+        $this->physicians->setPhysicianUserAccount($physicianId, $userId);
+    }
+
     /**
      * @param  array{registro_profesional: string, nombres: string, apellidos: string, telefono?: ?string, correo_contacto?: ?string, activo: bool, id_usuario?: ?int}  $input
      * @return array{registro_profesional: string, nombres: string, apellidos: string, telefono: ?string, correo_contacto: ?string, activo: bool, id_usuario: ?int}

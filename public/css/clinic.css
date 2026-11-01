@@ -594,3 +594,347 @@ body.is-login {
         max-width: 28rem;
     }
 }
+
+body.is-app {
+    background: #f7faf9;
+    color: var(--clinic-ink);
+}
+
+body.is-app :focus-visible {
+    outline-color: var(--clinic-green);
+}
+
+.app-shell {
+    display: grid;
+    min-height: 100svh;
+    grid-template-columns: 1fr;
+}
+
+.app-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1rem 1.25rem;
+    background: var(--clinic-panel);
+    border-bottom: 1px solid var(--clinic-line);
+}
+
+.app-brand {
+    margin: 0 0.35rem 0.75rem;
+}
+
+.app-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.app-nav-label {
+    margin: 0.85rem 0.6rem 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clinic-muted);
+}
+
+.app-nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.7rem;
+    color: var(--clinic-ink);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.app-nav-link:hover {
+    background: #ffffff;
+    color: var(--clinic-green-dark);
+}
+
+.app-nav-link.is-current {
+    background: #d8f3e8;
+    color: var(--clinic-green-dark);
+}
+
+.app-sidebar-end {
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.app-session-name {
+    margin: 0 0.75rem 0.35rem;
+    color: var(--clinic-muted);
+    font-size: 0.9rem;
+}
+
+.app-logout {
+    width: 100%;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.app-frame {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: #ffffff;
+}
+
+.app-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--clinic-line);
+}
+
+.app-topbar-title,
+.app-topbar-user {
+    margin: 0;
+    font-weight: 700;
+}
+
+.app-topbar-user {
+    color: var(--clinic-muted);
+    font-weight: 600;
+}
+
+.app-content {
+    width: 100%;
+    margin: 0;
+    padding: 1.25rem 1.5rem 2rem;
+    flex: 1;
+}
+
+.app-page h1 {
+    font-size: clamp(1.7rem, 3vw, 2.1rem);
+    margin: 0.2rem 0 0.5rem;
+}
+
+.app-breadcrumb {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--clinic-green-dark);
+    font-weight: 650;
+}
+
+.filter-bar {
+    display: grid;
+    gap: 1rem;
+    margin: 1.25rem 0 1.5rem;
+    padding: 1.1rem 1.15rem;
+    background: #ffffff;
+    border: 1px solid var(--clinic-line);
+    border-radius: 1rem;
+}
+
+.filter-bar .field {
+    margin: 0;
+}
+
+.filter-bar .field select,
+.filter-bar .field input {
+    background: #ffffff;
+    border-color: var(--clinic-line);
+    border-radius: 0.8rem;
+}
+
+.filter-bar .button {
+    width: auto;
+    align-self: end;
+    background: var(--clinic-green);
+    border-radius: 0.8rem;
+}
+
+.filter-bar .button:hover {
+    background: var(--clinic-green-dark);
+}
+
+.field-note {
+    margin: 0.4rem 0 0;
+    color: var(--clinic-muted);
+    font-size: 0.9rem;
+}
+
+.availability-board {
+    display: grid;
+    gap: 1rem;
+}
+
+.calendar-card,
+.slots-card {
+    padding: 1.15rem 1.2rem 1.3rem;
+    background: #ffffff;
+    border: 1px solid var(--clinic-line);
+    border-radius: 1rem;
+}
+
+.calendar-nav {
+    display: grid;
+    grid-template-columns: 2.25rem 1fr 2.25rem;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.calendar-nav h2 {
+    margin: 0;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.calendar-nav-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    color: var(--clinic-ink);
+    text-decoration: none;
+    font-size: 1.35rem;
+}
+
+.calendar-nav-btn:hover {
+    background: var(--clinic-panel);
+}
+
+.calendar-nav-btn.is-disabled {
+    color: #c5d4d0;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.2rem;
+}
+
+.calendar-weekday,
+.calendar-day {
+    display: grid;
+    place-items: center;
+    min-height: 2.2rem;
+    font-size: 0.85rem;
+}
+
+.calendar-weekday {
+    color: var(--clinic-muted);
+    font-weight: 700;
+}
+
+.calendar-day {
+    border-radius: 999px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.calendar-day.is-empty,
+.calendar-day.is-past {
+    color: #c5d4d0;
+}
+
+.calendar-day.is-selected {
+    background: var(--clinic-green);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.slots-card h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.15rem;
+}
+
+.slots-meta,
+.slots-legend,
+.slots-footnote {
+    color: var(--clinic-muted);
+    font-size: 0.95rem;
+}
+
+.slots-legend {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.slot-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.slot-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: var(--clinic-green);
+}
+
+.button-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.1rem;
+    padding: 0.25rem 0.85rem;
+    border: 1px solid var(--clinic-green);
+    border-radius: 0.65rem;
+    color: var(--clinic-green-dark);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.button-outline:hover {
+    background: #edfbf5;
+    color: var(--clinic-green-dark);
+}
+
+@media (max-width: 51.99rem) {
+    .app-nav {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .app-nav-label {
+        flex: 1 0 100%;
+        margin: 0.55rem 0 0;
+    }
+
+    .app-nav-link {
+        min-height: 2.1rem;
+    }
+
+    .app-sidebar-end {
+        margin-top: 0.75rem;
+        padding-top: 0.5rem;
+    }
+}
+
+@media (min-width: 52rem) {
+    .app-shell {
+        grid-template-columns: 16.5rem minmax(0, 1fr);
+    }
+
+    .app-sidebar {
+        border-bottom: 0;
+        border-right: 1px solid var(--clinic-line);
+    }
+
+    .filter-bar {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+        align-items: end;
+    }
+
+    .availability-board {
+        grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+        align-items: start;
+    }
+}

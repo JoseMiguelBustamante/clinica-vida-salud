@@ -1090,9 +1090,248 @@ body.is-app .button:hover {
     font-size: 0.9rem;
 }
 
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .availability-board {
     display: grid;
     gap: 1rem;
+}
+
+.week-board {
+    margin-top: 0.25rem;
+    padding: 1rem 1.1rem 1.15rem;
+    background: #ffffff;
+    border: 1px solid var(--clinic-line);
+    border-radius: 1.1rem;
+}
+
+.week-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.week-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.45rem;
+}
+
+.week-chip,
+.week-switch a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.1rem;
+    padding: 0.2rem 0.85rem;
+    border: 1px solid var(--clinic-line);
+    border-radius: 999px;
+    color: var(--clinic-ink);
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.week-chip:hover,
+.week-switch a:hover {
+    background: var(--clinic-panel);
+    color: var(--clinic-ink);
+}
+
+.week-range {
+    margin: 0 0 0 0.35rem;
+    font-weight: 700;
+    color: var(--clinic-ink);
+}
+
+.week-switch {
+    display: inline-flex;
+    padding: 0.2rem;
+    background: var(--clinic-panel);
+    border-radius: 999px;
+}
+
+.week-switch a {
+    border: 0;
+    min-width: 4.4rem;
+}
+
+.week-switch a.is-current {
+    background: var(--clinic-green);
+    color: #ffffff;
+}
+
+.week-scroll {
+    overflow-x: auto;
+}
+
+.week-grid {
+    display: grid;
+    grid-template-columns: 4.25rem repeat(var(--week-days, 5), minmax(9.5rem, 1fr));
+    min-width: 52rem;
+}
+
+.week-hours {
+    display: grid;
+    grid-template-rows: 3.6rem repeat(var(--week-hour-count, 10), var(--week-hour, 4.75rem));
+}
+
+.week-hour {
+    transform: translateY(-0.55rem);
+    color: var(--clinic-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.week-day {
+    min-width: 0;
+    border-left: 1px solid var(--clinic-line);
+}
+
+.week-day-head {
+    display: grid;
+    gap: 0.1rem;
+    height: 3.6rem;
+    padding: 0.45rem 0.65rem 0.3rem;
+}
+
+.week-day-head span {
+    color: var(--clinic-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.week-day-head strong {
+    font-size: 0.86rem;
+}
+
+.week-day.is-today .week-day-head strong {
+    color: var(--clinic-green-dark);
+}
+
+.week-day.is-past {
+    background: #fafcfb;
+}
+
+.week-track {
+    position: relative;
+    height: var(--week-track, 47.5rem);
+}
+
+.week-line {
+    height: var(--week-hour, 4.75rem);
+    border-top: 1px solid #e7efec;
+}
+
+.week-event {
+    position: absolute;
+    left: 0.35rem;
+    right: 0.35rem;
+    display: grid;
+    align-content: start;
+    gap: 0.05rem;
+    padding: 0.28rem 0.4rem;
+    overflow: hidden;
+    border-radius: 0.55rem;
+    border-left: 4px solid var(--clinic-green);
+    color: #0b5c45;
+    text-decoration: none;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.week-event strong {
+    font-size: 0.8rem;
+}
+
+.week-event-time {
+    font-weight: 650;
+}
+
+.week-event.tone-0 {
+    background: #d8f6e8;
+    border-left-color: #12b981;
+    color: #0b5c45;
+}
+
+.week-event.tone-1 {
+    background: #dceafd;
+    border-left-color: #3b82f6;
+    color: #1e4b8c;
+}
+
+.week-event.tone-2 {
+    background: #fde9c8;
+    border-left-color: #f59e0b;
+    color: #8a5310;
+}
+
+.week-event.tone-1 {
+    left: 0.7rem;
+}
+
+.week-event.tone-2 {
+    left: 1.05rem;
+}
+
+.week-event:hover {
+    filter: brightness(0.97);
+    color: inherit;
+}
+
+.week-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-top: 0.85rem;
+    color: var(--clinic-muted);
+    font-size: 0.88rem;
+}
+
+.week-legend p {
+    margin: 0;
+}
+
+.week-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-right: 0.85rem;
+}
+
+.week-legend-dot {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 999px;
+    background: #12b981;
+}
+
+.week-legend-dot.tone-1 {
+    background: #3b82f6;
+}
+
+.week-legend-dot.tone-2 {
+    background: #f59e0b;
+}
+
+.week-month {
+    border: 0;
+    padding: 0.25rem 0 0;
 }
 
 .calendar-card,
@@ -1323,6 +1562,14 @@ body.is-app .button:hover {
     .availability-board {
         grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
         align-items: start;
+    }
+
+    .filter-bar.availability-filters {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    }
+
+    .week-grid {
+        min-width: 0;
     }
 
     .app-content .page-form {

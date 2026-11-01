@@ -19,6 +19,7 @@ final class SearchAvailabilityRequest extends FormRequest
             'especialidad' => ['nullable', 'integer'],
             'medico' => ['nullable', 'integer'],
             'fecha' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
+            'vista' => ['nullable', 'in:dia,semana,mes'],
         ];
     }
 

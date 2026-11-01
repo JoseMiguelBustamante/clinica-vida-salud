@@ -93,6 +93,48 @@ class AvailabilityServiceTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
+    public function test_board_slots_keep_the_physician_and_date(): void
+    {
+        $day = Carbon::now('UTC')->addDays(10)->startOfDay();
+        $weekday = ScheduleService::WEEKDAYS[$day->isoWeekday() - 1];
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $specialties->shouldReceive('getSpecialtyById')->once()->with(3)
+            ->andReturn((object) ['id_especialidad' => 3, 'activo' => true]);
+        $physicians->shouldReceive('getPhysicianById')->once()->with(4)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true]);
+        $appointments->shouldReceive('physicianAttendsSpecialty')->once()->with(4, 3)->andReturn(true);
+        $appointments->shouldReceive('getActiveSchedulesForPhysicianOnDay')->once()->with(4, $weekday)
+            ->andReturn(collect([
+                (object) [
+                    'hora_inicio' => '08:00:00',
+                    'hora_fin' => '09:00:00',
+                    'duracion_cita_minutos' => 30,
+                ],
+            ]));
+        $appointments->shouldReceive('getOccupyingAppointments')->once()->andReturn(collect());
+
+        $slots = (new AvailabilityService($appointments, $physicians, $specialties))
+            ->getAvailableSlotsForDates(3, [4], [$day->toDateString()]);
+
+        $this->assertSame([
+            [
+                'fecha' => $day->toDateString(),
+                'hora_inicio' => '08:00',
+                'hora_fin' => '08:30',
+                'id_medico' => 4,
+            ],
+            [
+                'fecha' => $day->toDateString(),
+                'hora_inicio' => '08:30',
+                'hora_fin' => '09:00',
+                'id_medico' => 4,
+            ],
+        ], $slots);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
     public function test_cu22_rejects_an_occupied_slot(): void
     {
         $day = Carbon::now('UTC')->addDays(10)->startOfDay();

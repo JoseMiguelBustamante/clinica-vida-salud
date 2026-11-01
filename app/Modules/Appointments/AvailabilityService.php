@@ -63,6 +63,34 @@ final class AvailabilityService
     }
 
     /**
+     * @param  list<int>  $physicianIds
+     * @param  list<string>  $dates
+     * @return list<array{fecha: string, hora_inicio: string, hora_fin: string, id_medico: int}>
+     */
+    public function getAvailableSlotsForDates(int $specialtyId, array $physicianIds, array $dates): array
+    {
+        $slots = [];
+        foreach ($physicianIds as $physicianId) {
+            foreach ($dates as $date) {
+                try {
+                    foreach ($this->getAvailableSlots($specialtyId, $physicianId, $date) as $slot) {
+                        $slots[] = [
+                            'fecha' => $date,
+                            'hora_inicio' => $slot['hora_inicio'],
+                            'hora_fin' => $slot['hora_fin'],
+                            'id_medico' => $physicianId,
+                        ];
+                    }
+                } catch (InvalidAvailabilityInput|PhysicianNotEligible) {
+                    continue;
+                }
+            }
+        }
+
+        return $slots;
+    }
+
+    /**
      * CU22: validates a requested interval without reserving it.
      *
      * @return array{available: true}|never

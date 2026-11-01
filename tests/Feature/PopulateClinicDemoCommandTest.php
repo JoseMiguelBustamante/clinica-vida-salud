@@ -48,6 +48,7 @@ class PopulateClinicDemoCommandTest extends TestCase
         $this->assertSame(1, Artisan::call('clinic:populate-demo', ['--force' => true]));
         $output = Artisan::output();
         $this->assertStringContainsString('Unable to load demo data; stop and contact the operator.', $output);
+        $this->assertStringContainsString('RuntimeException', $output);
         $this->assertStringNotContainsString('dsn secret', $output);
         $this->assertSame([], $database->getConnections());
     }

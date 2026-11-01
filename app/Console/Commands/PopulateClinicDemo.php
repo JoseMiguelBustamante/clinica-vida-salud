@@ -9,7 +9,9 @@ use App\Modules\Appointments\AvailabilityService;
 use App\Modules\Identity\DuplicateAccountIdentifier;
 use App\Modules\Identity\IdentityAccountService;
 use App\Modules\Identity\IdentityRepository;
+use App\Modules\Identity\InvalidAccountInput;
 use App\Modules\Identity\PatientPortalService;
+use App\Modules\Identity\PatientRegistrationDisabled;
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Identity\PermissionCatalogService;
 use App\Modules\MedicalStaff\DuplicateProfessionalLicense;
@@ -19,11 +21,11 @@ use App\Modules\MedicalStaff\SpecialtyService;
 use App\Modules\Patients\DuplicatePatientDocument;
 use App\Modules\Patients\MedicalInformationService;
 use App\Modules\Patients\PatientService;
-use App\Modules\Schedules\OverlappingSchedule;
 use App\Modules\Schedules\ScheduleService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -101,28 +103,32 @@ class PopulateClinicDemo extends Command
             $this->ensureSpecialties();
             $physicians = $this->bookablePhysicians();
             foreach ($physicians as $index => $physician) {
-                $this->ensureWeekdayHours((int) $physician->id_medico, $index);
+                try {
+                    $this->ensureWeekdayHours((int) $physician->id_medico, $index);
+                } catch (Throwable $exception) {
+                    Log::error('[PopulateClinicDemo - hours] '.$exception::class);
+                }
             }
             $patients = $this->ensurePatients();
             $password = $this->ensureDemoUsers($physicians, $patients);
             if ($this->option('reset-passwords')) {
                 $password = $this->resetDemoPasswords() ?? $password;
             }
-            $this->ensureAppointments($physicians, $patients, $actorId);
-        } catch (Throwable) {
+            $this->info('Demo catalog is available. Existing passwords were not changed unless --reset-passwords was used.');
+            $this->printDemoPassword(is_string($password) ? $password : null);
+            try {
+                $this->ensureAppointments($physicians, $patients, $actorId);
+            } catch (Throwable $exception) {
+                Log::error('[PopulateClinicDemo - appointments] '.$exception::class);
+                $this->warn('Demo users were saved; appointments could not be completed.');
+                $this->warn($exception::class);
+            }
+        } catch (Throwable $exception) {
+            Log::error('[PopulateClinicDemo] '.$exception::class);
             $this->error('Unable to load demo data; stop and contact the operator.');
+            $this->warn($exception::class);
 
             return self::FAILURE;
-        }
-
-        $this->info('Demo catalog is available. Existing passwords were not changed unless --reset-passwords was used.');
-        if (isset($password) && is_string($password) && $password !== '') {
-            $this->newLine();
-            $this->warn('Password for accounts created in this run (shown once):');
-            $this->line($password);
-            $this->line('demo.recepcionista  Recepcionista');
-            $this->line('demo.medico         Médico');
-            $this->line('demo.1001 … demo.1008  Paciente');
         }
 
         return self::SUCCESS;
@@ -137,6 +143,19 @@ class PopulateClinicDemo extends Command
         return $admin === null ? null : (int) $admin->id_usuario;
     }
 
+    private function printDemoPassword(?string $password): void
+    {
+        if ($password === null || $password === '') {
+            return;
+        }
+        $this->newLine();
+        $this->warn('Password for accounts created in this run (shown once):');
+        $this->line($password);
+        $this->line('demo.recepcionista  Recepcionista');
+        $this->line('demo.medico         Médico');
+        $this->line('demo.1001 … demo.1008  Paciente');
+    }
+
     /**
      * @param  list<object>  $physicians
      * @param  list<object>  $patients
@@ -144,17 +163,25 @@ class PopulateClinicDemo extends Command
     private function ensureDemoUsers(array $physicians, array $patients): ?string
     {
         $password = $this->missingDemoUsernames($patients) === [] ? null : $this->generatedDemoPassword();
-        $this->ensureStaffUser(PermissionCatalog::RECEPTIONIST_ROLE, 'demo.recepcionista', 'demo.recepcionista@demo.test', $password);
-        $medicoId = $this->ensureStaffUser(PermissionCatalog::PHYSICIAN_ROLE, 'demo.medico', 'demo.medico@demo.test', $password);
+        $this->ensureStaffUser(PermissionCatalog::RECEPTIONIST_ROLE, 'demo.recepcionista', 'demo.recepcionista@example.com', $password);
+        $medicoId = $this->ensureStaffUser(PermissionCatalog::PHYSICIAN_ROLE, 'demo.medico', 'demo.medico@example.com', $password);
         if ($medicoId !== null) {
-            $this->linkFirstUnlinkedPhysician($physicians, $medicoId);
+            try {
+                $this->linkFirstUnlinkedPhysician($physicians, $medicoId);
+            } catch (Throwable $exception) {
+                Log::error('[PopulateClinicDemo - physician-link] '.$exception::class);
+            }
         }
         foreach ($patients as $patient) {
             $suffix = str_replace('DEMO-', '', (string) $patient->ci);
             $username = 'demo.'.$suffix;
-            $userId = $this->ensurePatientUser($username, $username.'@demo.test', $password);
+            $userId = $this->ensurePatientUser($username, $username.'@example.com', $password);
             if ($userId !== null) {
-                $this->linkPatientAndPortalData($patient, $userId);
+                try {
+                    $this->linkPatientAndPortalData($patient, $userId);
+                } catch (Throwable $exception) {
+                    Log::error('[PopulateClinicDemo - patient-link] '.$exception::class);
+                }
             }
         }
 
@@ -196,12 +223,16 @@ class PopulateClinicDemo extends Command
             if ($account === null) {
                 continue;
             }
-            $this->accounts->updateAccountCredentials((int) $account->id_usuario, [
-                'nombre_usuario' => (string) $account->nombre_usuario,
-                'correo_acceso' => $account->correo_acceso,
-                'password' => $password,
-            ]);
-            $updated++;
+            try {
+                $this->accounts->updateAccountCredentials((int) $account->id_usuario, [
+                    'nombre_usuario' => (string) $account->nombre_usuario,
+                    'correo_acceso' => $this->usableAccountEmail($username, $account->correo_acceso ?? null),
+                    'password' => $password,
+                ]);
+                $updated++;
+            } catch (Throwable $exception) {
+                Log::error('[PopulateClinicDemo - reset] '.$exception::class);
+            }
         }
 
         return $updated === 0 ? null : $password;
@@ -239,6 +270,10 @@ class PopulateClinicDemo extends Command
             $again = $this->accountByUsername($username);
 
             return $again === null ? null : (int) $again->id_usuario;
+        } catch (InvalidAccountInput $exception) {
+            Log::error('[PopulateClinicDemo - staff] '.$exception::class);
+
+            return null;
         }
     }
 
@@ -261,7 +296,22 @@ class PopulateClinicDemo extends Command
             $again = $this->accountByUsername($username);
 
             return $again === null ? null : (int) $again->id_usuario;
+        } catch (PatientRegistrationDisabled) {
+            return $this->ensureStaffUser(PermissionCatalog::PATIENT_ROLE, $username, $email, $password);
+        } catch (InvalidAccountInput $exception) {
+            Log::error('[PopulateClinicDemo - patient-user] '.$exception::class);
+
+            return null;
         }
+    }
+
+    private function usableAccountEmail(string $username, mixed $current): string
+    {
+        if (is_string($current) && $current !== '' && filter_var($current, FILTER_VALIDATE_EMAIL) !== false) {
+            return $current;
+        }
+
+        return $username.'@example.com';
     }
 
     /**
@@ -274,6 +324,10 @@ class PopulateClinicDemo extends Command
             if ($current->id_usuario !== null && (int) $current->id_usuario > 0) {
                 continue;
             }
+            $specialtyIds = $current->id_especialidades ?? [];
+            if ($specialtyIds === []) {
+                continue;
+            }
             $this->physicians->updatePhysician((int) $current->id_medico, [
                 'registro_profesional' => (string) $current->registro_profesional,
                 'nombres' => (string) $current->nombres,
@@ -282,7 +336,7 @@ class PopulateClinicDemo extends Command
                 'correo_contacto' => $current->correo_contacto,
                 'activo' => (bool) $current->activo,
                 'id_usuario' => $userId,
-                'especialidades' => $current->id_especialidades,
+                'especialidades' => $specialtyIds,
             ]);
 
             return;
@@ -305,24 +359,28 @@ class PopulateClinicDemo extends Command
                 'id_usuario' => $userId,
             ]);
         }
-        $this->portal->verifyPatientEmail($userId);
-        $account = $this->identities->getAccountById($userId);
-        if ($account !== null) {
-            $this->portal->updatePatientProfile($userId, [
-                'nombre_usuario' => (string) $account->nombre_usuario,
-                'correo_acceso' => $account->correo_acceso,
-                'recordatorios_habilitados' => true,
-            ]);
-        }
-        $declared = $this->medicalInformation->getDeclaredMedicalInformation($userId);
-        if ($declared['information'] === null) {
-            $this->medicalInformation->updateDeclaredMedicalInformation($userId, [
-                'grupo_sanguineo' => 'O+',
-                'situacion_alergias' => 'Ninguna',
-                'situacion_enfermedades' => 'Ninguna',
-                'situacion_medicamentos' => 'Ninguna',
-                'antecedentes' => 'Declaración de demostración.',
-            ]);
+        try {
+            $this->portal->verifyPatientEmail($userId);
+            $account = $this->identities->getAccountById($userId);
+            if ($account !== null) {
+                $this->portal->updatePatientProfile($userId, [
+                    'nombre_usuario' => (string) $account->nombre_usuario,
+                    'correo_acceso' => $account->correo_acceso,
+                    'recordatorios_habilitados' => true,
+                ]);
+            }
+            $declared = $this->medicalInformation->getDeclaredMedicalInformation($userId);
+            if ($declared['information'] === null) {
+                $this->medicalInformation->updateDeclaredMedicalInformation($userId, [
+                    'grupo_sanguineo' => 'O+',
+                    'situacion_alergias' => 'Ninguna',
+                    'situacion_enfermedades' => 'Ninguna',
+                    'situacion_medicamentos' => 'Ninguna',
+                    'antecedentes' => 'Declaración de demostración.',
+                ]);
+            }
+        } catch (Throwable $exception) {
+            Log::error('[PopulateClinicDemo - portal] '.$exception::class);
         }
     }
 
@@ -375,7 +433,7 @@ class PopulateClinicDemo extends Command
                 'nombres' => 'Ana',
                 'apellidos' => 'Rojas',
                 'telefono' => '70000000',
-                'correo_contacto' => 'ana.rojas@demo.local',
+                'correo_contacto' => 'ana.rojas@example.com',
                 'activo' => true,
                 'id_usuario' => null,
                 'especialidades' => [$specialtyId],
@@ -440,7 +498,7 @@ class PopulateClinicDemo extends Command
                     'duracion_cita_minutos' => 30,
                     'activo' => true,
                 ]);
-            } catch (OverlappingSchedule) {
+            } catch (Throwable) {
                 continue;
             }
         }
@@ -452,14 +510,14 @@ class PopulateClinicDemo extends Command
     private function ensurePatients(): array
     {
         $rows = [
-            ['ci' => 'DEMO-1001', 'nombres' => 'Lucía', 'apellidos' => 'Vargas', 'fecha_nacimiento' => '1988-03-12', 'sexo' => 'Femenino', 'telefono' => '70000001', 'correo_contacto' => 'lucia.vargas@demo.local', 'direccion' => 'Av. Arce 1201, La Paz'],
-            ['ci' => 'DEMO-1002', 'nombres' => 'Marco', 'apellidos' => 'Quispe', 'fecha_nacimiento' => '1975-11-04', 'sexo' => 'Masculino', 'telefono' => '70000002', 'correo_contacto' => 'marco.quispe@demo.local', 'direccion' => 'Calle Sagárnaga 45, La Paz'],
-            ['ci' => 'DEMO-1003', 'nombres' => 'Elena', 'apellidos' => 'Soto', 'fecha_nacimiento' => '1994-07-21', 'sexo' => 'Femenino', 'telefono' => '70000003', 'correo_contacto' => 'elena.soto@demo.local', 'direccion' => 'Av. Busch 890, La Paz'],
-            ['ci' => 'DEMO-1004', 'nombres' => 'Diego', 'apellidos' => 'Mamani', 'fecha_nacimiento' => '1969-01-30', 'sexo' => 'Masculino', 'telefono' => '70000004', 'correo_contacto' => 'diego.mamani@demo.local', 'direccion' => 'Zona Sur, Calle 21, La Paz'],
-            ['ci' => 'DEMO-1005', 'nombres' => 'Rosa', 'apellidos' => 'Flores', 'fecha_nacimiento' => '2001-09-08', 'sexo' => 'Femenino', 'telefono' => '70000005', 'correo_contacto' => 'rosa.flores@demo.local', 'direccion' => 'Villa Fátima, Av. Las Américas 310, La Paz'],
-            ['ci' => 'DEMO-1006', 'nombres' => 'Pablo', 'apellidos' => 'Choque', 'fecha_nacimiento' => '1982-05-16', 'sexo' => 'Masculino', 'telefono' => '70000006', 'correo_contacto' => 'pablo.choque@demo.local', 'direccion' => 'El Alto, Av. Juan Pablo II 1500'],
-            ['ci' => 'DEMO-1007', 'nombres' => 'Nadia', 'apellidos' => 'Rojas', 'fecha_nacimiento' => '1990-12-02', 'sexo' => 'Femenino', 'telefono' => '70000007', 'correo_contacto' => 'nadia.rojas@demo.local', 'direccion' => 'Sopocachi, Av. 6 de Agosto 2200, La Paz'],
-            ['ci' => 'DEMO-1008', 'nombres' => 'Luis', 'apellidos' => 'Condori', 'fecha_nacimiento' => '1964-08-19', 'sexo' => 'Masculino', 'telefono' => '70000008', 'correo_contacto' => 'luis.condori@demo.local', 'direccion' => 'Miraflores, Plaza Villarroel 12, La Paz'],
+            ['ci' => 'DEMO-1001', 'nombres' => 'Lucía', 'apellidos' => 'Vargas', 'fecha_nacimiento' => '1988-03-12', 'sexo' => 'Femenino', 'telefono' => '70000001', 'correo_contacto' => 'lucia.vargas@example.com', 'direccion' => 'Av. Arce 1201, La Paz'],
+            ['ci' => 'DEMO-1002', 'nombres' => 'Marco', 'apellidos' => 'Quispe', 'fecha_nacimiento' => '1975-11-04', 'sexo' => 'Masculino', 'telefono' => '70000002', 'correo_contacto' => 'marco.quispe@example.com', 'direccion' => 'Calle Sagarnaga 45, La Paz'],
+            ['ci' => 'DEMO-1003', 'nombres' => 'Elena', 'apellidos' => 'Soto', 'fecha_nacimiento' => '1994-07-21', 'sexo' => 'Femenino', 'telefono' => '70000003', 'correo_contacto' => 'elena.soto@example.com', 'direccion' => 'Av. Busch 890, La Paz'],
+            ['ci' => 'DEMO-1004', 'nombres' => 'Diego', 'apellidos' => 'Mamani', 'fecha_nacimiento' => '1969-01-30', 'sexo' => 'Masculino', 'telefono' => '70000004', 'correo_contacto' => 'diego.mamani@example.com', 'direccion' => 'Zona Sur, Calle 21, La Paz'],
+            ['ci' => 'DEMO-1005', 'nombres' => 'Rosa', 'apellidos' => 'Flores', 'fecha_nacimiento' => '2001-09-08', 'sexo' => 'Femenino', 'telefono' => '70000005', 'correo_contacto' => 'rosa.flores@example.com', 'direccion' => 'Villa Fatima, Av. Las Americas 310, La Paz'],
+            ['ci' => 'DEMO-1006', 'nombres' => 'Pablo', 'apellidos' => 'Choque', 'fecha_nacimiento' => '1982-05-16', 'sexo' => 'Masculino', 'telefono' => '70000006', 'correo_contacto' => 'pablo.choque@example.com', 'direccion' => 'El Alto, Av. Juan Pablo II 1500'],
+            ['ci' => 'DEMO-1007', 'nombres' => 'Nadia', 'apellidos' => 'Rojas', 'fecha_nacimiento' => '1990-12-02', 'sexo' => 'Femenino', 'telefono' => '70000007', 'correo_contacto' => 'nadia.rojas@example.com', 'direccion' => 'Sopocachi, Av. 6 de Agosto 2200, La Paz'],
+            ['ci' => 'DEMO-1008', 'nombres' => 'Luis', 'apellidos' => 'Condori', 'fecha_nacimiento' => '1964-08-19', 'sexo' => 'Masculino', 'telefono' => '70000008', 'correo_contacto' => 'luis.condori@example.com', 'direccion' => 'Miraflores, Plaza Villarroel 12, La Paz'],
         ];
 
         $patients = [];
@@ -500,13 +558,17 @@ class PopulateClinicDemo extends Command
             if ($this->patientHasAppointments((int) $patient->id_paciente)) {
                 continue;
             }
-            $this->bookPatientReservation(
-                $physicians[$index % count($physicians)],
-                $patient,
-                $actions[$index % count($actions)],
-                $actorUserId,
-                $used,
-            );
+            try {
+                $this->bookPatientReservation(
+                    $physicians[$index % count($physicians)],
+                    $patient,
+                    $actions[$index % count($actions)],
+                    $actorUserId,
+                    $used,
+                );
+            } catch (Throwable $exception) {
+                Log::error('[PopulateClinicDemo - appointment] '.$exception::class);
+            }
         }
     }
 
@@ -563,13 +625,17 @@ class PopulateClinicDemo extends Command
         if ($action === 'attend') {
             $linked = $this->linkedActivePhysicianUserId($physician);
             if ($linked !== null) {
-                $this->appointments->recordAppointmentCare($appointmentId, [
-                    'resumen_atencion' => 'Control de demostración realizado.',
-                    'diagnostico' => 'Sin hallazgos de urgencia.',
-                    'indicaciones' => 'Control en 30 días.',
-                ], $linked);
+                try {
+                    $this->appointments->recordAppointmentCare($appointmentId, [
+                        'resumen_atencion' => 'Control de demostración realizado.',
+                        'diagnostico' => 'Sin hallazgos de urgencia.',
+                        'indicaciones' => 'Control en 30 días.',
+                    ], $linked);
 
-                return;
+                    return;
+                } catch (Throwable $exception) {
+                    Log::error('[PopulateClinicDemo - attend] '.$exception::class);
+                }
             }
             $this->appointments->confirmAppointment($appointmentId, $actorUserId);
         }

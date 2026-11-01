@@ -11,6 +11,7 @@
         'medico' => $medico,
         'estado' => $estado,
         'vista' => $vista,
+        'escala' => $escala === 'normal' ? null : $escala,
     ], static fn ($value) => $value !== null && $value !== '');
     $bookingKeep = array_filter([
         'id_paciente' => $id_paciente,
@@ -76,6 +77,9 @@
         <form class="filter-bar availability-filters" method="get" action="{{ route('availability.consult', absolute: false) }}">
             <input type="hidden" name="vista" value="{{ $vista }}">
             <input type="hidden" name="fecha" value="{{ $fecha }}">
+            @if ($escala !== 'normal')
+                <input type="hidden" name="escala" value="{{ $escala }}">
+            @endif
             @if ($bookingOpen)
                 <input type="hidden" name="nueva" value="1">
                 <input type="hidden" name="hora_inicio" value="{{ $hora_inicio }}">
@@ -118,7 +122,7 @@
         </form>
 
         <div class="booking-layout @if ($bookingOpen) is-open @endif">
-            <div class="week-board">
+            <div class="week-board @if ($escala === 'amplia') is-amplia @endif">
                 <div class="week-toolbar">
                     <div class="week-nav">
                         <a class="week-chip" href="{{ route('availability.consult', $queryBase + ['fecha' => $today->toDateString()], false) }}">Hoy</a>
@@ -130,11 +134,18 @@
                         <a class="calendar-nav-btn" href="{{ route('availability.consult', $queryBase + ['fecha' => $nextFecha], false) }}" aria-label="Periodo siguiente">›</a>
                         <p class="week-range">{{ $rangeLabel }}</p>
                     </div>
-                    <nav class="week-switch" aria-label="Vista del calendario">
-                        <a class="@if ($vista === 'dia') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'dia'] + $bookingKeep), false) }}">Día</a>
-                        <a class="@if ($vista === 'semana') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'semana'] + $bookingKeep), false) }}">Semana</a>
-                        <a class="@if ($vista === 'mes') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'mes'] + $bookingKeep), false) }}">Mes</a>
-                    </nav>
+                    <div class="week-toolbar-end">
+                        <nav class="week-switch" aria-label="Altura de las horas">
+                            <a class="@if ($escala === 'compacta') is-current @endif" href="{{ route('availability.consult', ['escala' => 'compacta'] + $queryBase + ['fecha' => $fecha], false) }}">Compacta</a>
+                            <a class="@if ($escala === 'normal') is-current @endif" href="{{ route('availability.consult', ['escala' => 'normal'] + $queryBase + ['fecha' => $fecha], false) }}">Normal</a>
+                            <a class="@if ($escala === 'amplia') is-current @endif" href="{{ route('availability.consult', ['escala' => 'amplia'] + $queryBase + ['fecha' => $fecha], false) }}">Ampliar horas</a>
+                        </nav>
+                        <nav class="week-switch" aria-label="Vista del calendario">
+                            <a class="@if ($vista === 'dia') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'dia'] + $bookingKeep + ['escala' => $escala === 'normal' ? null : $escala]), false) }}">Día</a>
+                            <a class="@if ($vista === 'semana') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'semana'] + $bookingKeep + ['escala' => $escala === 'normal' ? null : $escala]), false) }}">Semana</a>
+                            <a class="@if ($vista === 'mes') is-current @endif" href="{{ route('availability.consult', array_filter(['especialidad' => $especialidad, 'medico' => $medico, 'estado' => $estado, 'fecha' => $fecha, 'vista' => 'mes'] + $bookingKeep + ['escala' => $escala === 'normal' ? null : $escala]), false) }}">Mes</a>
+                        </nav>
+                    </div>
                 </div>
 
                 @if ($vista === 'mes')

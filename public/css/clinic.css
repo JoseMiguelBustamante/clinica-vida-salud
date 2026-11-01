@@ -1176,18 +1176,30 @@ body.is-app .button:hover {
 }
 
 .week-scroll {
-    overflow-x: auto;
+    overflow: auto;
+    max-height: min(70vh, 54rem);
 }
 
 .week-grid {
     display: grid;
-    grid-template-columns: 4.25rem repeat(var(--week-days, 5), minmax(9.5rem, 1fr));
-    min-width: 52rem;
+    grid-template-columns: 4.25rem repeat(var(--week-days, 5), minmax(7.25rem, 1fr));
+    min-width: 42rem;
 }
 
 .week-hours {
+    position: sticky;
+    left: 0;
+    z-index: 4;
     display: grid;
     grid-template-rows: 3.6rem repeat(var(--week-hour-count, 10), var(--week-hour, 4.75rem));
+    background: #ffffff;
+}
+
+.week-toolbar-end {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.45rem;
 }
 
 .week-hour {
@@ -1203,10 +1215,14 @@ body.is-app .button:hover {
 }
 
 .week-day-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
     display: grid;
     gap: 0.1rem;
     height: 3.6rem;
     padding: 0.45rem 0.65rem 0.3rem;
+    background: #ffffff;
 }
 
 .week-day-head span {
@@ -1284,6 +1300,17 @@ body.is-app .button:hover {
     border-color: #12b981;
     background: #ecfdf5;
     color: #0b5c45;
+}
+
+.week-board.is-amplia .week-slot {
+    border-color: #a7f3d0;
+    color: #0b5c45;
+}
+
+.week-board.is-amplia .week-slot:hover,
+.week-board.is-amplia .week-slot.is-draft {
+    background: #ecfdf5;
+    border-color: #12b981;
 }
 
 .week-slot.is-draft {
@@ -1412,13 +1439,21 @@ body.is-app .button:hover {
 }
 
 .booking-search,
+.booking-care,
 .booking-form {
     display: grid;
     gap: 0.65rem;
 }
 
-.booking-search {
+.booking-search,
+.booking-care {
     margin-bottom: 0.85rem;
+}
+
+.booking-help {
+    margin: 0;
+    color: var(--clinic-muted);
+    font-size: 0.82rem;
 }
 
 .booking-register {
@@ -1741,7 +1776,12 @@ body.is-app .booking-cancel:hover {
     }
 
     .booking-layout.is-open {
-        grid-template-columns: minmax(0, 1fr) 22.5rem;
+        grid-template-columns: minmax(0, 1fr) 20.5rem;
+    }
+
+    .booking-layout.is-open .week-grid {
+        min-width: 36rem;
+        grid-template-columns: 3.6rem repeat(var(--week-days, 5), minmax(6.4rem, 1fr));
     }
 
     .booking-when {

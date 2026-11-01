@@ -51,15 +51,26 @@ final class AvailabilityController
             $horaFin = $this->defaultEndClock($horaInicio);
         }
         $bookingOpen = $canBook && (($input['nueva'] ?? '') === '1' || $horaInicio !== '');
+        $escala = in_array($input['escala'] ?? '', ['compacta', 'amplia'], true) ? $input['escala'] : 'normal';
+        $hourHeight = match ($escala) {
+            'compacta' => 3.35,
+            'amplia' => 7.6,
+            default => self::HOUR_HEIGHT_REM,
+        };
+        $patientQuery = $input['q'] ?? '';
         $patientId = isset($input['id_paciente']) ? (int) $input['id_paciente'] : null;
         $patients = collect();
         $selectedPatient = null;
         if ($bookingOpen) {
-            $patients = $this->appointments->getBookablePatients($input['q'] ?? null);
+            $patients = $this->appointments->getBookablePatients($patientQuery);
             if ($patientId !== null) {
                 $selectedPatient = $patients->first(
                     fn (object $patient): bool => (int) $patient->id_paciente === $patientId,
                 );
+            }
+            if ($selectedPatient === null && $patientQuery !== '' && $patients->count() === 1) {
+                $selectedPatient = $patients->first();
+                $patientId = (int) $selectedPatient->id_paciente;
             }
         }
 
@@ -93,7 +104,7 @@ final class AvailabilityController
             $status = 'No fue posible obtener la disponibilidad.';
         }
 
-        $events = $this->boardEvents($appointments, $slots, $physicians);
+        $events = $this->boardEvents($appointments, $slots, $physicians, $hourHeight);
 
         return view('appointments.availability', [
             'specialties' => $this->availability->getConsultSpecialties(),
@@ -112,7 +123,8 @@ final class AvailabilityController
             'hours' => $this->boardHourLabels(),
             'boardStartHour' => self::BOARD_START_HOUR,
             'boardEndHour' => self::BOARD_END_HOUR,
-            'hourHeight' => self::HOUR_HEIGHT_REM,
+            'hourHeight' => $hourHeight,
+            'escala' => $escala,
             'rangeLabel' => $this->rangeLabel($vista, $days, $focus),
             'prevFecha' => $this->shiftFocus($vista, $focus, -1, $today),
             'nextFecha' => $this->shiftFocus($vista, $focus, 1, $today),
@@ -120,7 +132,7 @@ final class AvailabilityController
             'bookingOpen' => $bookingOpen,
             'hora_inicio' => $horaInicio,
             'hora_fin' => $horaFin,
-            'q' => $input['q'] ?? '',
+            'q' => $patientQuery,
             'id_paciente' => $patientId,
             'patients' => $patients,
             'selectedPatient' => $selectedPatient,
@@ -229,7 +241,7 @@ final class AvailabilityController
      * @param  list<array{fecha: string, hora_inicio: string, hora_fin: string, id_medico: int}>  $slots
      * @return list<array{kind: string, fecha: string, hora_inicio: string, hora_fin: string, id_medico: int, medico: string, paciente: string, estado: string, id_cita: ?int, tone: int, top: float, height: float}>
      */
-    private function boardEvents(Collection $appointments, array $slots, Collection $physicians): array
+    private function boardEvents(Collection $appointments, array $slots, Collection $physicians, float $hourHeight): array
     {
         $tones = [];
         $names = [];
@@ -255,7 +267,7 @@ final class AvailabilityController
                 $names[$physicianId] = trim((string) $appointment->medico_nombres.' '.(string) $appointment->medico_apellidos);
                 $tones[$physicianId] = count($tones) % 3;
             }
-            $layout = $this->eventLayout($horaInicio, $horaFin);
+            $layout = $this->eventLayout($horaInicio, $horaFin, $hourHeight);
             if ($layout === null) {
                 continue;
             }
@@ -280,7 +292,7 @@ final class AvailabilityController
             if (isset($occupied[$slot['fecha'].'|'.$physicianId.'|'.$slot['hora_inicio']])) {
                 continue;
             }
-            $layout = $this->eventLayout($slot['hora_inicio'], $slot['hora_fin']);
+            $layout = $this->eventLayout($slot['hora_inicio'], $slot['hora_fin'], $hourHeight);
             if ($layout === null) {
                 continue;
             }
@@ -306,7 +318,7 @@ final class AvailabilityController
     /**
      * @return array{top: float, height: float}|null
      */
-    private function eventLayout(string $horaInicio, string $horaFin): ?array
+    private function eventLayout(string $horaInicio, string $horaFin, float $hourHeight): ?array
     {
         $start = $this->clockMinutes($horaInicio);
         $end = $this->clockMinutes($horaFin);
@@ -315,8 +327,8 @@ final class AvailabilityController
         }
 
         return [
-            'top' => round((($start - (self::BOARD_START_HOUR * 60)) / 60) * self::HOUR_HEIGHT_REM, 2),
-            'height' => round(max(2.15, (($end - $start) / 60) * self::HOUR_HEIGHT_REM), 2),
+            'top' => round((($start - (self::BOARD_START_HOUR * 60)) / 60) * $hourHeight, 2),
+            'height' => round(max($hourHeight * 0.42, (($end - $start) / 60) * $hourHeight), 2),
         ];
     }
 
@@ -429,8 +441,11 @@ final class AvailabilityController
         if (! $bookingOpen || $horaInicio === '') {
             return null;
         }
-        if ($specialtyId === null || $physicianId === null) {
+        if ($specialtyId === null) {
             return 'need-selection';
+        }
+        if ($physicianId === null) {
+            return 'need-physician';
         }
         foreach ($events as $event) {
             if ($event['fecha'] === $fecha && $event['id_medico'] === $physicianId && $event['hora_inicio'] === $horaInicio) {

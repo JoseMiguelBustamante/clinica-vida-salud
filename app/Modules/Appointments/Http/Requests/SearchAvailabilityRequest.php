@@ -36,6 +36,7 @@ final class SearchAvailabilityRequest extends FormRequest
             'hora_inicio' => ['nullable', 'date_format:H:i'],
             'hora_fin' => ['nullable', 'date_format:H:i'],
             'nueva' => ['nullable', 'in:1'],
+            'escala' => ['nullable', 'in:compacta,normal,amplia'],
         ];
     }
 

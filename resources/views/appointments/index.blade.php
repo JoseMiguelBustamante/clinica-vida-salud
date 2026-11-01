@@ -99,12 +99,16 @@
                                 </td>
                                 <td>{{ $appointment->paciente_apellidos }}, {{ $appointment->paciente_nombres }}</td>
                                 <td class="staff-cell">
-                                    <strong>{{ $appointment->medico_apellidos }}, {{ $appointment->medico_nombres }}</strong>
-                                    <span>{{ $appointment->especialidad_nombre }}</span>
+                                    <span class="staff-line">
+                                        <strong>{{ $appointment->medico_apellidos }}, {{ $appointment->medico_nombres }}</strong>
+                                        <span class="staff-specialty">{{ $appointment->especialidad_nombre }}</span>
+                                    </span>
                                 </td>
                                 <td class="when-cell">
-                                    <strong>{{ $start->day }} {{ $months[(int) $start->month] }} {{ $start->year }}</strong>
-                                    <span>{{ $start->format('H:i') }}</span>
+                                    <span class="when-line">
+                                        <strong>{{ $start->day }} {{ $months[(int) $start->month] }} {{ $start->year }}</strong>
+                                        <span>{{ $start->format('H:i') }}</span>
+                                    </span>
                                 </td>
                                 <td>
                                     <span class="status-pill {{ $statusClass }}">{{ $appointment->estado }}</span>

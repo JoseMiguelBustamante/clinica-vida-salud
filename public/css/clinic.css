@@ -1013,16 +1013,47 @@ body.is-app .button:hover {
     font-weight: 750;
 }
 
-.appointment-table .staff-cell,
-.appointment-table .when-cell {
-    display: grid;
-    gap: 0.1rem;
+.appointment-table {
+    min-width: 64rem;
+    table-layout: auto;
 }
 
-.appointment-table .staff-cell span,
-.appointment-table .when-cell span {
+.appointment-table th,
+.appointment-table td {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.appointment-table th:last-child,
+.appointment-table td:last-child {
+    text-align: right;
+}
+
+.appointment-table .staff-line,
+.appointment-table .when-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.appointment-table .staff-specialty {
     color: var(--clinic-muted);
     font-size: 0.88rem;
+    font-weight: 550;
+    padding-left: 0.7rem;
+    border-left: 1px solid var(--clinic-line);
+}
+
+.appointment-table .when-line span {
+    color: var(--clinic-muted);
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.appointment-table .row-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    align-items: center;
 }
 
 .code-link {

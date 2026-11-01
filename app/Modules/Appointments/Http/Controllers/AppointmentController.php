@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Appointments\Http\Controllers;
 
+use App\Modules\Appointments\AppointmentAttendanceNotAllowed;
 use App\Modules\Appointments\AppointmentNotCancellable;
 use App\Modules\Appointments\AppointmentNotFound;
 use App\Modules\Appointments\AppointmentNotReschedulable;
 use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
 use App\Modules\Appointments\Http\Requests\CancelAppointmentRequest;
+use App\Modules\Appointments\Http\Requests\ConfirmAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\PrepareAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\PrepareRescheduleRequest;
+use App\Modules\Appointments\Http\Requests\RegisterAbsenceRequest;
+use App\Modules\Appointments\Http\Requests\RegisterArrivalRequest;
 use App\Modules\Appointments\Http\Requests\RescheduleAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\SearchAppointmentsRequest;
 use App\Modules\Appointments\Http\Requests\StoreAppointmentRequest;
@@ -242,5 +246,80 @@ final class AppointmentController
 
         return redirect()->route('appointments.show', $cita)
             ->with('status', 'La cita quedó cancelada. El intervalo queda libre para otra programación.');
+    }
+
+    public function showAttendanceForm(int $cita): View|RedirectResponse
+    {
+        try {
+            return view('appointments.attendance', [
+                'appointment' => $this->appointments->getAppointmentById($cita),
+            ]);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        }
+    }
+
+    public function confirmAppointment(ConfirmAppointmentRequest $request, int $cita): RedirectResponse
+    {
+        $actor = $request->attributes->get('identity');
+        try {
+            $this->appointments->confirmAppointment($cita, (int) $actor->id_usuario);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentAttendanceNotAllowed) {
+            return redirect()->route('appointments.attendance', $cita)
+                ->withErrors(['estado' => 'La cita no está Programada. Si ya está Confirmada, no se repite la operación.']);
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - confirmAppointment] '.$exception::class);
+
+            return back()->withErrors(['estado' => 'No fue posible registrar la confirmación.']);
+        }
+
+        return redirect()->route('appointments.show', $cita)
+            ->with('status', 'La cita quedó Confirmada. Eso no acredita llegada ni atención médica.');
+    }
+
+    public function registerAppointmentArrival(RegisterArrivalRequest $request, int $cita): RedirectResponse
+    {
+        $actor = $request->attributes->get('identity');
+        try {
+            $this->appointments->registerAppointmentArrival($cita, (int) $actor->id_usuario);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentAttendanceNotAllowed) {
+            return redirect()->route('appointments.attendance', $cita)
+                ->withErrors(['estado' => 'No se puede registrar la llegada. La cita está cancelada, atendida, con inasistencia o ya tiene llegada.']);
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - registerAppointmentArrival] '.$exception::class);
+
+            return back()->withErrors(['estado' => 'No fue posible registrar la llegada.']);
+        }
+
+        return redirect()->route('appointments.show', $cita)
+            ->with('status', 'Se registró la llegada. Eso no marca la cita como Atendida.');
+    }
+
+    public function registerAppointmentAbsence(RegisterAbsenceRequest $request, int $cita): RedirectResponse
+    {
+        $actor = $request->attributes->get('identity');
+        try {
+            $this->appointments->registerAppointmentAbsence($cita, (int) $actor->id_usuario);
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (AppointmentAttendanceNotAllowed) {
+            return redirect()->route('appointments.attendance', $cita)
+                ->withErrors(['verificado' => 'La inasistencia solo se registra después del fin del intervalo, si no hay llegada y la cita no está Cancelada ni Atendida.']);
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - registerAppointmentAbsence] '.$exception::class);
+
+            return back()->withErrors(['verificado' => 'No fue posible registrar la inasistencia.']);
+        }
+
+        return redirect()->route('appointments.show', $cita)
+            ->with('status', 'La cita quedó en Inasistencia. El transcurso del tiempo no la cambia solo.');
     }
 }

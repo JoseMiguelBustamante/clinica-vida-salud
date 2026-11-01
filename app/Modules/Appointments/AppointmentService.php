@@ -140,6 +140,105 @@ final class AppointmentService
         });
     }
 
+    public function confirmAppointment(int $id, int $actorUserId): void
+    {
+        $current = $this->getAppointmentById($id);
+        $this->assertConfirmable($current);
+
+        DB::transaction(function () use ($id, $current, $actorUserId): void {
+            $this->appointments->lockPhysicianAppointments((int) $current->id_medico);
+            $verified = $this->getAppointmentById($id);
+            $this->assertConfirmable($verified);
+            $this->appointments->confirmAppointment($id);
+            $this->appointments->createAppointmentEvent([
+                'tipo' => 'Confirmacion',
+                'fecha_hora' => Carbon::now('UTC')->toIso8601String(),
+                'motivo' => null,
+                'id_cita' => $id,
+                'id_usuario' => $actorUserId,
+            ]);
+        });
+    }
+
+    public function registerAppointmentArrival(int $id, int $actorUserId): void
+    {
+        $current = $this->getAppointmentById($id);
+        $this->assertArrivalAllowed($current);
+
+        DB::transaction(function () use ($id, $current, $actorUserId): void {
+            $this->appointments->lockPhysicianAppointments((int) $current->id_medico);
+            $verified = $this->getAppointmentById($id);
+            $this->assertArrivalAllowed($verified);
+            $arrivedAt = Carbon::now('UTC')->toIso8601String();
+            $this->appointments->registerAppointmentArrival($id, $arrivedAt);
+            $this->appointments->createAppointmentEvent([
+                'tipo' => 'Llegada',
+                'fecha_hora' => $arrivedAt,
+                'motivo' => null,
+                'id_cita' => $id,
+                'id_usuario' => $actorUserId,
+            ]);
+        });
+    }
+
+    public function registerAppointmentAbsence(int $id, int $actorUserId): void
+    {
+        $current = $this->getAppointmentById($id);
+        $this->assertAbsenceAllowed($current);
+
+        DB::transaction(function () use ($id, $current, $actorUserId): void {
+            $this->appointments->lockPhysicianAppointments((int) $current->id_medico);
+            $verified = $this->getAppointmentById($id);
+            $this->assertAbsenceAllowed($verified);
+            $this->appointments->registerAppointmentAbsence($id);
+            $this->appointments->createAppointmentEvent([
+                'tipo' => 'Inasistencia',
+                'fecha_hora' => Carbon::now('UTC')->toIso8601String(),
+                'motivo' => null,
+                'id_cita' => $id,
+                'id_usuario' => $actorUserId,
+            ]);
+        });
+    }
+
+    private function assertConfirmable(object $appointment): void
+    {
+        if ((string) $appointment->estado !== 'Programada') {
+            throw new AppointmentAttendanceNotAllowed;
+        }
+    }
+
+    private function assertArrivalAllowed(object $appointment): void
+    {
+        if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {
+            throw new AppointmentAttendanceNotAllowed;
+        }
+        if ($this->hasRecordedArrival($appointment)) {
+            throw new AppointmentAttendanceNotAllowed;
+        }
+    }
+
+    private function assertAbsenceAllowed(object $appointment): void
+    {
+        if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {
+            throw new AppointmentAttendanceNotAllowed;
+        }
+        if ($this->hasRecordedArrival($appointment)) {
+            throw new AppointmentAttendanceNotAllowed;
+        }
+        $end = Carbon::parse((string) $appointment->fin, 'UTC');
+        if (! Carbon::now('UTC')->gt($end)) {
+            throw new AppointmentAttendanceNotAllowed;
+        }
+    }
+
+    private function hasRecordedArrival(object $appointment): bool
+    {
+        $arrival = $appointment->fecha_hora_llegada ?? null;
+
+        return $arrival !== null && $arrival !== '';
+    }
+
     private function assertCancellable(object $appointment): void
     {
         if (! in_array((string) $appointment->estado, ['Programada', 'Confirmada'], true)) {

@@ -69,6 +69,9 @@
                                 && in_array(\App\Modules\Identity\PermissionCatalog::CANCEL_APPOINTMENTS, $identityPermissions ?? [], true))
                                 · <a href="{{ route('appointments.cancel', $appointment->id_cita) }}">Cancelar</a>
                             @endif
+                            @if (in_array(\App\Modules\Identity\PermissionCatalog::RECORD_ATTENDANCE, $identityPermissions ?? [], true))
+                                · <a href="{{ route('appointments.attendance', $appointment->id_cita) }}">Asistencia</a>
+                            @endif
                         </td>
                     </tr>
                 @empty

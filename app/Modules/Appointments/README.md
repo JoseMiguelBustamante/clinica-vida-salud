@@ -1,27 +1,20 @@
-# Appointments (CU08–CU11 and CU22)
+# Appointments (CU08–CU12 and CU22)
 
-Owns the public `GET /` landing page, availability lookup, booking,
-rescheduling and cancellation.
+Owns the public `GET /` landing page and the appointment workflow through
+confirmation, arrival and no-show.
 
-CU08 (`GET /disponibilidad`) requires `citas.consultar`. Showing a slot does
-not reserve it.
+CU08 consults availability (`citas.consultar`). Showing a slot does not reserve
+it. CU09 books (`citas.programar`) as Programada. CU10 reschedules the same
+row (`citas.reprogramar`). CU11 cancels (`citas.cancelar`) to Cancelada and
+discards pending reminders.
 
-CU09 (`GET /citas/programar`, `POST /citas`) requires `citas.programar`. The
-service locks the physician (`pg_advisory_xact_lock(847201, id_medico)`), runs
-CU22 and inserts `cita_medica` as Programada with a unique `codigo`. HTML forms
-use CSRF, not Idempotency-Key. Booking does not confirm attendance.
+CU12 (`GET /citas/{cita}/asistencia`) requires `citas.asistencia`:
+- Confirmación: Programada → Confirmada. Already Confirmada is not repeated.
+- Llegada: stores `fecha_hora_llegada` without changing the appointment to
+  Atendida.
+- Inasistencia: only after the scheduled end, with verified no-show and no
+  recorded arrival. Schema value `Inasistencia`. Time does not change the
+  state by itself.
 
-CU10 (`GET /citas`, `GET|POST /citas/{cita}/reprogramar`) requires
-`citas.reprogramar`. The same row keeps its `codigo`. CU22 excludes that
-appointment from overlap. Programada stays Programada; Confirmada returns to
-Programada and needs a new confirmation. A failed attempt leaves interval and
-state untouched.
-
-CU11 (`GET|POST /citas/{cita}/cancelar`) requires `citas.cancelar`. Programada
-and Confirmada become Cancelada, keep the row, free the interval and discard
-pending reminders (`Pendiente`/`EnProceso` → `Descartado`). Atendida, Cancelada
-and Inasistencia cannot be cancelled. Confirmation and attendance (CU12) are
-not implemented.
-
-CU22 is `AvailabilityService::validateRequestedSlot`. English `/appointments`
-stays 404.
+HTML forms use CSRF, not Idempotency-Key. Marking attended (CU13) is not
+implemented. English `/appointments` stays 404.

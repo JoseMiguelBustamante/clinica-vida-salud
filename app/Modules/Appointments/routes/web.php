@@ -51,3 +51,18 @@ Route::middleware([
     Route::post('/citas/{cita}/cancelar', [AppointmentController::class, 'cancelAppointment'])
         ->name('appointments.cancel.store')->whereNumber('cita');
 });
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::RECORD_ATTENDANCE,
+])->group(function (): void {
+    Route::get('/citas/{cita}/asistencia', [AppointmentController::class, 'showAttendanceForm'])
+        ->name('appointments.attendance')->whereNumber('cita');
+    Route::post('/citas/{cita}/confirmar', [AppointmentController::class, 'confirmAppointment'])
+        ->name('appointments.confirm')->whereNumber('cita');
+    Route::post('/citas/{cita}/llegada', [AppointmentController::class, 'registerAppointmentArrival'])
+        ->name('appointments.arrival')->whereNumber('cita');
+    Route::post('/citas/{cita}/inasistencia', [AppointmentController::class, 'registerAppointmentAbsence'])
+        ->name('appointments.absence')->whereNumber('cita');
+});

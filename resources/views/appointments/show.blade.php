@@ -24,6 +24,9 @@
             · {{ $appointment->registro_profesional }}</p>
         <p>Intervalo: {{ \Illuminate\Support\Carbon::parse((string) $appointment->inicio)->timezone('UTC')->format('Y-m-d H:i') }}
             – {{ \Illuminate\Support\Carbon::parse((string) $appointment->fin)->timezone('UTC')->format('H:i') }} UTC</p>
+        <p>Llegada: {{ isset($appointment->fecha_hora_llegada) && $appointment->fecha_hora_llegada
+            ? \Illuminate\Support\Carbon::parse((string) $appointment->fecha_hora_llegada)->timezone('UTC')->format('Y-m-d H:i')
+            : 'no registrada' }}</p>
         <p>Motivo: {{ $appointment->motivo_consulta ?: '—' }}</p>
         @if ($appointment->estado === 'Cancelada')
             <p>Motivo de cancelación: {{ $appointment->motivo_cancelacion ?: '—' }}</p>
@@ -37,6 +40,9 @@
             @if (in_array(\App\Modules\Identity\PermissionCatalog::CANCEL_APPOINTMENTS, $identityPermissions ?? [], true)
                 && in_array($appointment->estado, ['Programada', 'Confirmada'], true))
                 <a class="button button-inline" href="{{ route('appointments.cancel', $appointment->id_cita) }}">Cancelar cita</a>
+            @endif
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::RECORD_ATTENDANCE, $identityPermissions ?? [], true))
+                <a class="button button-inline" href="{{ route('appointments.attendance', $appointment->id_cita) }}">Confirmación y asistencia</a>
             @endif
             @if (in_array(\App\Modules\Identity\PermissionCatalog::BOOK_APPOINTMENTS, $identityPermissions ?? [], true))
                 <a href="{{ route('appointments.create') }}">Programar otra cita</a>

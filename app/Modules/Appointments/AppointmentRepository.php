@@ -125,6 +125,21 @@ class AppointmentRepository
             ->update(['estado' => 'Descartado']);
     }
 
+    public function confirmAppointment(int $id): void
+    {
+        DB::table('cita_medica')->where('id_cita', $id)->update(['estado' => 'Confirmada']);
+    }
+
+    public function registerAppointmentArrival(int $id, string $arrivedAt): void
+    {
+        DB::table('cita_medica')->where('id_cita', $id)->update(['fecha_hora_llegada' => $arrivedAt]);
+    }
+
+    public function registerAppointmentAbsence(int $id): void
+    {
+        DB::table('cita_medica')->where('id_cita', $id)->update(['estado' => 'Inasistencia']);
+    }
+
     public function lockPhysicianAppointments(int $physicianId): void
     {
         DB::select('SELECT pg_advisory_xact_lock(847201, ?)', [$physicianId]);
@@ -167,6 +182,7 @@ class AppointmentRepository
                 'cita_medica.modalidad',
                 'cita_medica.estado',
                 'cita_medica.fecha_creacion',
+                'cita_medica.fecha_hora_llegada',
                 'cita_medica.id_paciente',
                 'cita_medica.id_medico',
                 'cita_medica.id_especialidad',

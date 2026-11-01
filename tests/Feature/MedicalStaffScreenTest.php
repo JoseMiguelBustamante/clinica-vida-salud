@@ -110,6 +110,31 @@ class MedicalStaffScreenTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
+    public function test_create_physician_form_keeps_specialty_checkboxes_in_a_choice_list(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 1]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::MANAGE_PHYSICIANS]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 2, 'nombre' => 'Dermatología', 'activo' => true],
+        ]));
+        $this->app->instance(SpecialtyRepository::class, $specialties);
+
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $physicians->shouldReceive('getLinkableStaffAccounts')->once()->with(null)->andReturn(collect());
+        $this->app->instance(PhysicianRepository::class, $physicians);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/medicos/registrar')->assertOk()->assertSee('Registrar médico')->assertSee('Dermatología')
+            ->assertSee('choice-fieldset', false)->assertSee('choice-list', false)
+            ->assertDontSee('<fieldset class="field"', false);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
     public function test_create_physician_validation_does_not_query_sql(): void
     {
         $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 1]);

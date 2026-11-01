@@ -54,6 +54,8 @@ class ModuleFoundationTest extends TestCase
         $stylesheet = file_get_contents(public_path('css/clinic.css'));
         $this->assertStringContainsString(':focus-visible', $stylesheet);
         $this->assertStringContainsString('@media', $stylesheet);
+        $this->assertStringContainsString('input:not([type="checkbox"])', $stylesheet);
+        $this->assertStringContainsString('.choice-list', $stylesheet);
         $response->assertDontSee('/build/', false)->assertDontSee('vite', false);
     }
 

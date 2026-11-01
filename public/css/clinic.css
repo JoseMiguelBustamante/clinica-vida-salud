@@ -291,7 +291,7 @@ h1 {
     font-weight: 650;
 }
 
-.field input,
+.field input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
 .field textarea {
     width: 100%;
     min-height: 2.75rem;
@@ -307,11 +307,25 @@ h1 {
     resize: vertical;
 }
 
-.field input:focus,
+.field input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
 .field textarea:focus {
     outline: 3px solid #975000;
     outline-offset: 2px;
     background: #ffffff;
+}
+
+.field input[type="checkbox"],
+.field input[type="radio"] {
+    width: auto;
+    min-width: 1.15rem;
+    min-height: 1.15rem;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #c3d5d0;
+    border-radius: 0.25rem;
+    background: #ffffff;
+    flex: 0 0 auto;
+    accent-color: var(--clinic-green);
 }
 
 .button {
@@ -346,16 +360,50 @@ h1 {
     justify-self: start;
 }
 
-.choice-list {
-    display: grid;
-    gap: 0.45rem;
+.choice-fieldset {
+    margin: 0 0 1rem;
+    min-width: 0;
+    padding: 0.75rem 1rem 1rem;
+    border: 1px solid var(--clinic-line);
+    border-radius: 0.75rem;
+    background: #ffffff;
 }
 
-.choice-list label {
+.choice-fieldset legend {
+    font-size: 0.9rem;
+    font-weight: 650;
+    padding-inline: 0.35rem;
+}
+
+.choice-list {
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+}
+
+.choice-list label,
+.field label:has(> input[type="checkbox"]),
+.field label:has(> input[type="radio"]) {
+    display: inline-flex;
     align-items: center;
     gap: 0.55rem;
+    width: auto;
+    max-width: 100%;
     font-weight: 450;
+}
+
+.choice-list input[type="checkbox"] {
+    box-sizing: border-box;
+    width: 1.15rem;
+    height: 1.15rem;
+    min-width: 1.15rem;
+    min-height: 1.15rem;
+    max-width: 1.15rem;
+    margin: 0;
+    padding: 0;
+    flex: none;
+    accent-color: var(--clinic-green);
 }
 
 .slot-list {

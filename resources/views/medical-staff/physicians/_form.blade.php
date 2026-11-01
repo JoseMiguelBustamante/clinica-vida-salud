@@ -27,7 +27,7 @@
     <input id="correo_contacto" name="correo_contacto" type="text" maxlength="255"
         value="{{ old('correo_contacto', $row->correo_contacto ?? '') }}" autocomplete="off">
 </div>
-<fieldset class="field">
+<fieldset class="choice-fieldset">
     <legend>Especialidades</legend>
     @if ($specialties->isEmpty())
         <p>No hay especialidades registradas. Primero registre el catálogo.</p>

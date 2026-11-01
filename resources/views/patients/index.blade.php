@@ -49,6 +49,10 @@
                             <a href="{{ route('patients.show', $patient->id_paciente) }}">Ver</a>
                             ·
                             <a href="{{ route('patients.edit', $patient->id_paciente) }}">Modificar</a>
+                            @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $identityPermissions ?? [], true))
+                                ·
+                                <a href="{{ route('appointments.history', ['id_paciente' => $patient->id_paciente]) }}">Historial</a>
+                            @endif
                         </td>
                     </tr>
                 @empty

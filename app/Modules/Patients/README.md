@@ -13,5 +13,5 @@ Deactivation keeps related appointment rows.
 | `GET /pacientes/{id}/editar` + `POST /pacientes/{id}` | update |
 | `POST /pacientes/{id}/desactivar` / `activar` | change state without deleting history |
 
-Do not send Idempotency-Key on these HTML forms. CU15 history and CU17 account
-linking are not part of this module.
+Do not send Idempotency-Key on these HTML forms. Appointment history (CU15)
+lives in Appointments. CU17 account linking is not part of this module.

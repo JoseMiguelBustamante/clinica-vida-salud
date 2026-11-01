@@ -15,6 +15,7 @@ use App\Modules\Appointments\PhysicianNotEligible;
 use App\Modules\Appointments\SlotUnavailable;
 use App\Modules\MedicalStaff\PhysicianRepository;
 use App\Modules\MedicalStaff\SpecialtyRepository;
+use App\Modules\Patients\PatientNotFound;
 use App\Modules\Patients\PatientRepository;
 use App\Modules\Schedules\ScheduleService;
 use Illuminate\Support\Carbon;
@@ -607,6 +608,65 @@ class AppointmentServiceTest extends TestCase
 
         $this->assertNull($result['appointments']);
         $this->assertSame(4, $result['physician_id']);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_missing_patient_is_rejected_before_listing_history(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getAllPatients')->never();
+        $patients->shouldReceive('getPatientById')->once()->with(8)->andReturn(null);
+        $appointments->shouldReceive('getAppointmentsForPatient')->never();
+
+        try {
+            $this->service($appointments, $patients)->consultPatientHistory([
+                'id_paciente' => 8,
+            ]);
+            $this->fail('Expected PatientNotFound');
+        } catch (PatientNotFound) {
+        }
+
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_patient_history_query_passes_the_optional_status(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getAllPatients')->never();
+        $patients->shouldReceive('getPatientById')->once()->with(8)
+            ->andReturn((object) ['id_paciente' => 8, 'nombres' => 'Ana', 'apellidos' => 'Rojas', 'activo' => false]);
+        $appointments->shouldReceive('getAppointmentsForPatient')->once()->with(8, 'Atendida')
+            ->andReturn(collect([(object) ['id_cita' => 21, 'estado' => 'Atendida']]));
+
+        $result = $this->service($appointments, $patients)->consultPatientHistory([
+            'id_paciente' => 8,
+            'estado' => 'Atendida',
+        ]);
+
+        $this->assertSame(8, (int) $result['patient']->id_paciente);
+        $this->assertCount(1, $result['appointments']);
+        $this->assertSame('Atendida', $result['estado']);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_patient_history_without_a_patient_does_not_list_appointments(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getAllPatients')->once()->with('Rojas')
+            ->andReturn(collect([(object) ['id_paciente' => 8, 'nombres' => 'Ana', 'apellidos' => 'Rojas']]));
+        $patients->shouldReceive('getPatientById')->never();
+        $appointments->shouldReceive('getAppointmentsForPatient')->never();
+
+        $result = $this->service($appointments, $patients)->consultPatientHistory([
+            'q' => 'Rojas',
+        ]);
+
+        $this->assertCount(1, $result['matches']);
+        $this->assertNull($result['patient']);
+        $this->assertNull($result['appointments']);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

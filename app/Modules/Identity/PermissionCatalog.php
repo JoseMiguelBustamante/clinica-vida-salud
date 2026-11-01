@@ -30,6 +30,8 @@ final class PermissionCatalog
 
     public const CONSULT_AGENDA = 'citas.agenda';
 
+    public const CONSULT_HISTORY = 'citas.historial';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -54,6 +56,7 @@ final class PermissionCatalog
             ['codigo' => self::RECORD_ATTENDANCE, 'descripcion' => 'Registrar confirmación, llegada e inasistencia'],
             ['codigo' => self::MARK_ATTENDED, 'descripcion' => 'Marcar una cita como atendida'],
             ['codigo' => self::CONSULT_AGENDA, 'descripcion' => 'Consultar la agenda médica por médico, fecha y estado'],
+            ['codigo' => self::CONSULT_HISTORY, 'descripcion' => 'Consultar citas e historial de un paciente'],
         ];
     }
 
@@ -88,6 +91,7 @@ final class PermissionCatalog
                 self::RECORD_ATTENDANCE,
                 self::MARK_ATTENDED,
                 self::CONSULT_AGENDA,
+                self::CONSULT_HISTORY,
             ],
             self::RECEPTIONIST_ROLE => [
                 self::MANAGE_PATIENTS,
@@ -97,6 +101,7 @@ final class PermissionCatalog
                 self::CANCEL_APPOINTMENTS,
                 self::RECORD_ATTENDANCE,
                 self::CONSULT_AGENDA,
+                self::CONSULT_HISTORY,
             ],
             self::PHYSICIAN_ROLE => [
                 self::MARK_ATTENDED,

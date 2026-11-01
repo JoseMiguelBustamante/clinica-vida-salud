@@ -92,3 +92,11 @@ Route::middleware([
     Route::post('/citas/{cita}/atender', [AppointmentController::class, 'recordAppointmentCare'])
         ->name('appointments.attend.store')->whereNumber('cita');
 });
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::CONSULT_HISTORY,
+])->group(function (): void {
+    Route::get('/historial', [AppointmentController::class, 'consultPatientHistory'])->name('appointments.history');
+});

@@ -21,12 +21,14 @@ use App\Modules\Appointments\Http\Requests\RegisterArrivalRequest;
 use App\Modules\Appointments\Http\Requests\RescheduleAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\SearchAgendaRequest;
 use App\Modules\Appointments\Http\Requests\SearchAppointmentsRequest;
+use App\Modules\Appointments\Http\Requests\SearchPatientHistoryRequest;
 use App\Modules\Appointments\Http\Requests\StoreAppointmentRequest;
 use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PatientNotEligible;
 use App\Modules\Appointments\PhysicianNotEligible;
 use App\Modules\Appointments\SlotUnavailable;
 use App\Modules\Identity\PermissionCatalog;
+use App\Modules\Patients\PatientNotFound;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -431,6 +433,42 @@ final class AppointmentController
 
         return redirect()->route('appointments.show', $cita)
             ->with('status', 'La cita quedó Atendida. La llegada o la confirmación no sustituyen este registro.');
+    }
+
+    public function consultPatientHistory(SearchPatientHistoryRequest $request): View
+    {
+        $input = $request->validated();
+        $status = null;
+        $result = [
+            'matches' => collect(),
+            'patient' => null,
+            'appointments' => null,
+            'q' => $input['q'] ?? '',
+            'estado' => $input['estado'] ?? '',
+        ];
+        try {
+            $result = $this->appointments->consultPatientHistory([
+                'q' => $input['q'] ?? null,
+                'id_paciente' => isset($input['id_paciente']) ? (int) $input['id_paciente'] : null,
+                'estado' => $input['estado'] ?? null,
+            ]);
+        } catch (PatientNotFound) {
+            $status = 'El paciente no existe o no puede identificarse.';
+        } catch (InvalidAvailabilityInput) {
+            $status = 'El filtro de estado no es válido.';
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - consultPatientHistory] '.$exception::class);
+            $status = 'No fue posible consultar el historial.';
+        }
+
+        return view('appointments.history', [
+            'matches' => $result['matches'],
+            'patient' => $result['patient'],
+            'appointments' => $result['appointments'],
+            'q' => $result['q'],
+            'estado' => $result['estado'],
+            'status' => $status,
+        ]);
     }
 
     /**

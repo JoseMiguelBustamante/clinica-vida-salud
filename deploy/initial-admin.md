@@ -116,7 +116,7 @@ There is no public registration or recovery in this private-bootstrap procedure.
 deployed, the first signed-in request applies missing `rol`, `permiso` and
 `rol_permiso` rows from `PermissionCatalog` (including later codes such as
 `pacientes.gestionar`, `especialidades.gestionar`, `medicos.gestionar`,
-`horarios.gestionar`, `citas.consultar`, `citas.programar`, `citas.reprogramar`, `citas.cancelar`, `citas.asistencia`, `citas.atender` and `citas.agenda`).
+`horarios.gestionar`, `citas.consultar`, `citas.programar`, `citas.reprogramar`, `citas.cancelar`, `citas.asistencia`, `citas.atender`, `citas.agenda` and `citas.historial`).
 No docker exec is required on each catalog change. Sign out and back in, or
 reload `/panel`, so the session reads the new links.
 

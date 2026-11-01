@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Appointments;
 
+use App\Modules\Patients\PatientNotFound;
 use App\Modules\Patients\PatientRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -217,6 +218,45 @@ final class AppointmentService
             'fecha' => $date ?? '',
             'estado' => $status ?? '',
         ];
+    }
+
+    /**
+     * @param  array{q?: ?string, id_paciente?: ?int, estado?: ?string}  $input
+     * @return array{matches: Collection, patient: ?object, appointments: ?Collection, q: string, estado: string}
+     */
+    public function consultPatientHistory(array $input): array
+    {
+        $fragment = $this->optionalSearchFragment($input['q'] ?? null);
+        $status = $this->optionalAgendaStatus($input['estado'] ?? null);
+        $patientId = isset($input['id_paciente']) ? (int) $input['id_paciente'] : null;
+        $matches = $fragment === null ? collect() : $this->patients->getAllPatients($fragment);
+        $patient = null;
+        $appointments = null;
+        if ($patientId !== null && $patientId > 0) {
+            $patient = $this->patients->getPatientById($patientId);
+            if ($patient === null) {
+                throw new PatientNotFound;
+            }
+            $appointments = $this->appointments->getAppointmentsForPatient($patientId, $status);
+        }
+
+        return [
+            'matches' => $matches,
+            'patient' => $patient,
+            'appointments' => $appointments,
+            'q' => $fragment ?? '',
+            'estado' => $status ?? '',
+        ];
+    }
+
+    private function optionalSearchFragment(?string $fragment): ?string
+    {
+        if ($fragment === null) {
+            return null;
+        }
+        $trimmed = trim($fragment);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 
     private function optionalAgendaDate(?string $date): ?string

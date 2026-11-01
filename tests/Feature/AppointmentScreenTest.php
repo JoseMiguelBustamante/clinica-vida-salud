@@ -455,4 +455,144 @@ class AppointmentScreenTest extends TestCase
             ->assertRedirect('/agenda')->assertSessionHasErrors('fecha');
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_guests_are_sent_to_login_for_patient_history(): void
+    {
+        $this->get('/historial')->assertRedirect(route('login'));
+        $this->get('/history')->assertNotFound();
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_a_session_without_history_permission_is_denied(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 3]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([
+            PermissionCatalog::MARK_ATTENDED,
+            PermissionCatalog::CONSULT_AGENDA,
+        ]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/historial')->assertForbidden()->assertSee('No tiene permiso para realizar esta operación.');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_the_patient_history_form_opens_without_listing_appointments(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::CONSULT_HISTORY]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getAllPatients')->never();
+        $patients->shouldReceive('getPatientById')->never();
+        $this->app->instance(PatientRepository::class, $patients);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getAppointmentsForPatient')->never();
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/historial')->assertOk()->assertSee('Citas e historial del paciente')
+            ->assertSee('Busque y seleccione un paciente')->assertDontSee('Diagnóstico');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_selected_patient_history_lists_without_clinical_notes(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::CONSULT_HISTORY]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getPatientById')->once()->with(8)
+            ->andReturn((object) [
+                'id_paciente' => 8,
+                'nombres' => 'Ana',
+                'apellidos' => 'Rojas',
+                'ci' => '123',
+                'activo' => true,
+            ]);
+        $patients->shouldReceive('getAllPatients')->never();
+        $this->app->instance(PatientRepository::class, $patients);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getAppointmentsForPatient')->once()->with(8, null)
+            ->andReturn(collect([
+                (object) [
+                    'id_cita' => 21,
+                    'codigo' => 'CIT-1',
+                    'inicio' => '2026-11-01T08:00:00+00:00',
+                    'fin' => '2026-11-01T08:30:00+00:00',
+                    'estado' => 'Atendida',
+                    'modalidad' => 'Presencial',
+                    'motivo_consulta' => 'Nota clínica secreta',
+                    'paciente_nombres' => 'Ana',
+                    'paciente_apellidos' => 'Rojas',
+                    'paciente_ci' => '123',
+                    'medico_nombres' => 'Luis',
+                    'medico_apellidos' => 'Soto',
+                    'especialidad_nombre' => 'Pediatría',
+                ],
+            ]));
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/historial?id_paciente=8')->assertOk()->assertSee('Ana')
+            ->assertSee('CIT-1')->assertSee('Pediatría')->assertSee('Atendida')
+            ->assertSee('No muestra diagnósticos ni notas médicas')
+            ->assertDontSee('Nota clínica secreta');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_history_rejects_an_invalid_status_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::CONSULT_HISTORY]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->from('/historial')->get('/historial?estado=Noasistio')
+            ->assertRedirect('/historial')->assertSessionHasErrors('estado');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_empty_patient_history_is_not_an_error(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 2]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::CONSULT_HISTORY]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getPatientById')->once()->with(8)
+            ->andReturn((object) [
+                'id_paciente' => 8,
+                'nombres' => 'Ana',
+                'apellidos' => 'Rojas',
+                'ci' => '123',
+                'activo' => true,
+            ]);
+        $this->app->instance(PatientRepository::class, $patients);
+
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getAppointmentsForPatient')->once()->with(8, null)
+            ->andReturn(collect());
+        $this->app->instance(AppointmentRepository::class, $appointments);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/historial?id_paciente=8')->assertOk()
+            ->assertSee('No hay citas que coincidan con los criterios.')
+            ->assertDontSee('No fue posible consultar el historial.');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

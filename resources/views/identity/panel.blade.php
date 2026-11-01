@@ -70,6 +70,12 @@
                 <span>Consultar citas por médico, fecha y estado.</span>
             </a>
         @endif
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('appointments.history') }}">
+                <strong>Historial</strong>
+                <span>Consultar las citas registradas de un paciente.</span>
+            </a>
+        @endif
     </nav>
 
     <section class="implementation" aria-labelledby="permissions-title">

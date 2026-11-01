@@ -63,6 +63,9 @@
             @if (in_array(\App\Modules\Identity\PermissionCatalog::MARK_ATTENDED, $identityPermissions ?? [], true))
                 · <a href="{{ route('appointments.agenda') }}">Agenda</a>
             @endif
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $identityPermissions ?? [], true))
+                · <a href="{{ route('appointments.history', ['id_paciente' => $appointment->id_paciente]) }}">Historial</a>
+            @endif
         </p>
     </section>
 @endsection

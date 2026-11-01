@@ -24,6 +24,9 @@
         <p>Correo de contacto: {{ $patient->correo_contacto ?: '—' }}</p>
         <p>Dirección: {{ $patient->direccion ?: '—' }}</p>
         <p><a href="{{ route('patients.edit', $patient->id_paciente) }}">Modificar</a>
+            @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $identityPermissions ?? [], true))
+                · <a href="{{ route('appointments.history', ['id_paciente' => $patient->id_paciente]) }}">Historial de citas</a>
+            @endif
             · <a href="{{ route('patients.index') }}">Volver al listado</a></p>
         @if ($patient->activo)
             <form method="post" action="{{ route('patients.deactivate', $patient->id_paciente, false) }}">

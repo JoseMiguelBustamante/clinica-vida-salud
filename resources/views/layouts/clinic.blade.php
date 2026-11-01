@@ -44,6 +44,9 @@
                     @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $identityPermissions ?? [], true))
                         <a href="{{ route('appointments.history') }}">Historial</a>
                     @endif
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::GENERATE_REPORTS, $identityPermissions ?? [], true))
+                        <a href="{{ route('reports.generate') }}">Reportes</a>
+                    @endif
                     <form class="inline-form" method="post" action="{{ route('logout', absolute: false) }}">
                         @csrf
                         <button class="text-button" type="submit">Cerrar sesión</button>

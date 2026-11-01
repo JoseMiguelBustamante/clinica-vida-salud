@@ -2,6 +2,7 @@
 
 use App\Modules\Appointments\Http\Controllers\AppointmentController;
 use App\Modules\Appointments\Http\Controllers\AvailabilityController;
+use App\Modules\Appointments\Http\Controllers\ReportController;
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Identity\RequireActiveSession;
 use App\Modules\Identity\RequirePermission;
@@ -99,4 +100,12 @@ Route::middleware([
     RequirePermission::class.':'.PermissionCatalog::CONSULT_HISTORY,
 ])->group(function (): void {
     Route::get('/historial', [AppointmentController::class, 'consultPatientHistory'])->name('appointments.history');
+});
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::GENERATE_REPORTS,
+])->group(function (): void {
+    Route::get('/reportes', [ReportController::class, 'generateAdministrativeReport'])->name('reports.generate');
 });

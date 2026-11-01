@@ -235,6 +235,64 @@ class AppointmentRepository
         return $query->get();
     }
 
+    /** @return Collection<int, object> */
+    public function getAppointmentsInRange(
+        string $rangeStart,
+        string $rangeEnd,
+        ?int $physicianId,
+        ?int $specialtyId,
+        ?string $status,
+    ): Collection {
+        $query = DB::table('cita_medica')
+            ->join('paciente', 'paciente.id_paciente', '=', 'cita_medica.id_paciente')
+            ->join('medico', 'medico.id_medico', '=', 'cita_medica.id_medico')
+            ->join('especialidad', 'especialidad.id_especialidad', '=', 'cita_medica.id_especialidad')
+            ->select(
+                'cita_medica.id_cita',
+                'cita_medica.codigo',
+                'cita_medica.inicio',
+                'cita_medica.fin',
+                'cita_medica.estado',
+                'cita_medica.modalidad',
+                'cita_medica.id_medico',
+                'paciente.nombres as paciente_nombres',
+                'paciente.apellidos as paciente_apellidos',
+                'paciente.ci as paciente_ci',
+                'medico.nombres as medico_nombres',
+                'medico.apellidos as medico_apellidos',
+                'especialidad.nombre as especialidad_nombre',
+            )
+            ->where('cita_medica.inicio', '>=', $rangeStart)
+            ->where('cita_medica.inicio', '<', $rangeEnd)
+            ->orderBy('medico.apellidos')
+            ->orderBy('medico.nombres')
+            ->orderBy('cita_medica.inicio');
+
+        if ($physicianId !== null) {
+            $query->where('cita_medica.id_medico', $physicianId);
+        }
+        if ($specialtyId !== null) {
+            $query->where('cita_medica.id_especialidad', $specialtyId);
+        }
+        if ($status !== null && $status !== '') {
+            $query->where('cita_medica.estado', $status);
+        }
+
+        return $query->get();
+    }
+
+    /** @return Collection<int, object> */
+    public function getAppointmentStatusCountsInRange(string $rangeStart, string $rangeEnd): Collection
+    {
+        return DB::table('cita_medica')
+            ->select('cita_medica.estado', DB::raw('count(*) as total'))
+            ->where('cita_medica.inicio', '>=', $rangeStart)
+            ->where('cita_medica.inicio', '<', $rangeEnd)
+            ->whereIn('cita_medica.estado', ['Atendida', 'Cancelada', 'Inasistencia'])
+            ->groupBy('cita_medica.estado')
+            ->get();
+    }
+
     public function markAppointmentAttended(int $id, string $recordedAt): void
     {
         DB::table('cita_medica')->where('id_cita', $id)->update([

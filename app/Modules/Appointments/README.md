@@ -1,7 +1,7 @@
-# Appointments (CU08–CU15 and CU22)
+# Appointments (CU08–CU16 and CU22)
 
 Owns the public `GET /` landing page and the appointment workflow through
-patient appointment history.
+administrative reports.
 
 CU08 consults availability (`citas.consultar`). Showing a slot does not reserve
 it. CU09 books (`citas.programar`) as Programada. CU10 reschedules the same
@@ -23,6 +23,13 @@ Recepcionista and Administrador. Search by CI or name, then select the patient.
 An optional estado filter narrows the list; an empty filter returns the complete
 history, including finished visits. Empty results are not an error. Clinical notes
 and diagnoses are omitted. The patient portal is not part of this slice.
+
+CU16 (`GET /reportes`, `reportes.generar`) is read-only for Administrador. The
+available reports are appointments on a date, by physician, specialty or status,
+registered patients, period totals of Atendida/Cancelada/Inasistencia, and each
+physician's daily agenda. Empty results are not an error. A processing failure
+is not shown as an empty list or a total of zero. CSV/PDF export is not
+implemented. Clinical notes and diagnoses are omitted.
 
 HTML forms use CSRF, not Idempotency-Key. English `/appointments` stays 404.
 The physician account must be linked on the physician record (`id_usuario`).

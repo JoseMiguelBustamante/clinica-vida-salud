@@ -76,6 +76,12 @@
                 <span>Consultar las citas registradas de un paciente.</span>
             </a>
         @endif
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::GENERATE_REPORTS, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('reports.generate') }}">
+                <strong>Reportes</strong>
+                <span>Consultar totales y listados administrativos de citas y pacientes.</span>
+            </a>
+        @endif
     </nav>
 
     <section class="implementation" aria-labelledby="permissions-title">

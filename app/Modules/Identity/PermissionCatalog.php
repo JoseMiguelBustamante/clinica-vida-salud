@@ -32,6 +32,8 @@ final class PermissionCatalog
 
     public const CONSULT_HISTORY = 'citas.historial';
 
+    public const GENERATE_REPORTS = 'reportes.generar';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -57,6 +59,7 @@ final class PermissionCatalog
             ['codigo' => self::MARK_ATTENDED, 'descripcion' => 'Marcar una cita como atendida'],
             ['codigo' => self::CONSULT_AGENDA, 'descripcion' => 'Consultar la agenda médica por médico, fecha y estado'],
             ['codigo' => self::CONSULT_HISTORY, 'descripcion' => 'Consultar citas e historial de un paciente'],
+            ['codigo' => self::GENERATE_REPORTS, 'descripcion' => 'Generar reportes administrativos de citas, pacientes y agendas'],
         ];
     }
 
@@ -92,6 +95,7 @@ final class PermissionCatalog
                 self::MARK_ATTENDED,
                 self::CONSULT_AGENDA,
                 self::CONSULT_HISTORY,
+                self::GENERATE_REPORTS,
             ],
             self::RECEPTIONIST_ROLE => [
                 self::MANAGE_PATIENTS,

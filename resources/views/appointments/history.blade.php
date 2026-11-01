@@ -3,110 +3,140 @@
 @section('title', 'Historial de citas — Clínica Vida Salud')
 
 @section('content')
-    <section class="page-head" aria-labelledby="page-title">
-        <p class="eyebrow">Citas</p>
+    <section class="app-page" aria-labelledby="page-title">
+        <p class="app-breadcrumb">Atención / Historial</p>
         <h1 id="page-title">Citas e historial del paciente</h1>
         <p class="lead">Consulta por paciente y estado. No muestra diagnósticos ni notas médicas. El historial del portal es una consulta distinta.</p>
-    </section>
 
-    @if (session('status'))
-        <p class="form-errors" role="status">{{ session('status') }}</p>
-    @endif
-    @if ($errors->any())
-        <div class="form-errors" role="alert"><p>{{ $errors->first() }}</p></div>
-    @endif
-    @if ($status)
-        <p class="form-errors" role="status">{{ $status }}</p>
-    @endif
-
-    <form class="search-bar" method="get" action="{{ route('appointments.history', absolute: false) }}">
-        <div class="field">
-            <label for="q">Buscar paciente por CI, nombres o apellidos</label>
-            <input id="q" name="q" type="search" value="{{ $q }}">
-        </div>
-        @if ($patient)
-            <input type="hidden" name="id_paciente" value="{{ $patient->id_paciente }}">
+        @if (session('status'))
+            <p class="form-status" role="status">{{ session('status') }}</p>
         @endif
-        <div class="field">
-            <label for="estado">Estado (opcional)</label>
-            <select id="estado" name="estado">
-                <option value="">Todos</option>
-                @foreach (['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'] as $option)
-                    <option value="{{ $option }}" @selected($estado === $option)>{{ $option }}</option>
-                @endforeach
-            </select>
-        </div>
-        <button class="button button-inline" type="submit">Consultar</button>
-    </form>
+        @if ($errors->any())
+            <div class="form-errors" role="alert"><p>{{ $errors->first() }}</p></div>
+        @endif
+        @if ($status)
+            <p class="form-status" role="status">{{ $status }}</p>
+        @endif
 
-    @if ($matches->isNotEmpty())
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Paciente</th>
-                        <th>CI</th>
-                        <th>Estado ficha</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($matches as $match)
-                        <tr>
-                            <td>{{ $match->apellidos }}, {{ $match->nombres }}</td>
-                            <td>{{ $match->ci ?: '—' }}</td>
-                            <td>{{ $match->activo ? 'Activo' : 'Inactivo' }}</td>
-                            <td>
-                                <a href="{{ route('appointments.history', ['id_paciente' => $match->id_paciente, 'estado' => $estado]) }}">Ver historial</a>
-                            </td>
-                        </tr>
+        <form class="filter-bar" method="get" action="{{ route('appointments.history', absolute: false) }}">
+            <div class="field">
+                <label for="q">Buscar paciente por CI, nombres o apellidos</label>
+                <input id="q" name="q" type="search" value="{{ $q }}" placeholder="CI, nombres o apellidos">
+            </div>
+            @if ($patient)
+                <input type="hidden" name="id_paciente" value="{{ $patient->id_paciente }}">
+            @endif
+            <div class="field">
+                <label for="estado">Estado (opcional)</label>
+                <select id="estado" name="estado">
+                    <option value="">Todos</option>
+                    @foreach (['Programada', 'Confirmada', 'Atendida', 'Cancelada', 'Inasistencia'] as $option)
+                        <option value="{{ $option }}" @selected($estado === $option)>{{ $option }}</option>
                     @endforeach
-                </tbody>
-            </table>
-        </div>
-    @elseif ($q !== '')
-        <p>No hay pacientes que coincidan con la búsqueda.</p>
-    @endif
+                </select>
+            </div>
+            <button class="button" type="submit">Consultar</button>
+        </form>
 
-    @if ($patient)
-        <section class="implementation">
-            <p>Paciente: {{ $patient->apellidos }}, {{ $patient->nombres }}
-                · CI {{ $patient->ci ?: 'no indicado' }}
-                · {{ $patient->activo ? 'Activo' : 'Inactivo' }}</p>
-        </section>
+        @if ($matches->isNotEmpty())
+            <div class="list-card">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Paciente</th>
+                                <th>CI</th>
+                                <th>Estado ficha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($matches as $match)
+                                <tr>
+                                    <td><strong class="person-name">{{ $match->apellidos }}, {{ $match->nombres }}</strong></td>
+                                    <td>{{ $match->ci ?: '—' }}</td>
+                                    <td>
+                                        <span class="status-pill {{ $match->activo ? 'is-active' : 'is-inactive' }}">
+                                            {{ $match->activo ? 'Activo' : 'Inactivo' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <nav class="row-actions">
+                                            <a class="row-action" href="{{ route('appointments.history', ['id_paciente' => $match->id_paciente, 'estado' => $estado]) }}">Ver historial</a>
+                                        </nav>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @elseif ($q !== '')
+            <p>No hay pacientes que coincidan con la búsqueda.</p>
+        @endif
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Horario</th>
-                        <th>Código</th>
-                        <th>Médico</th>
-                        <th>Especialidad</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($appointments as $appointment)
-                        <tr>
-                            <td>{{ \Illuminate\Support\Carbon::parse((string) $appointment->inicio)->timezone('UTC')->format('Y-m-d') }}</td>
-                            <td>{{ \Illuminate\Support\Carbon::parse((string) $appointment->inicio)->timezone('UTC')->format('H:i') }}
-                                – {{ \Illuminate\Support\Carbon::parse((string) $appointment->fin)->timezone('UTC')->format('H:i') }} UTC</td>
-                            <td>{{ $appointment->codigo }}</td>
-                            <td>{{ $appointment->medico_apellidos }}, {{ $appointment->medico_nombres }}</td>
-                            <td>{{ $appointment->especialidad_nombre }}</td>
-                            <td>{{ $appointment->estado }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6">No hay citas que coincidan con los criterios.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    @elseif ($q === '')
-        <p>Busque y seleccione un paciente para ver su historial de citas.</p>
-    @endif
+        @if ($patient)
+            <article class="list-card detail-card">
+                <dl class="detail-list">
+                    <div>
+                        <dt>Paciente</dt>
+                        <dd>{{ $patient->apellidos }}, {{ $patient->nombres }}</dd>
+                    </div>
+                    <div>
+                        <dt>CI</dt>
+                        <dd>{{ $patient->ci ?: 'no indicado' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Estado de ficha</dt>
+                        <dd>
+                            <span class="status-pill {{ $patient->activo ? 'is-active' : 'is-inactive' }}">
+                                {{ $patient->activo ? 'Activo' : 'Inactivo' }}
+                            </span>
+                        </dd>
+                    </div>
+                </dl>
+            </article>
+
+            <div class="list-card">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Horario</th>
+                                <th>Código</th>
+                                <th>Médico</th>
+                                <th>Especialidad</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($appointments as $appointment)
+                                <tr>
+                                    <td>{{ \Illuminate\Support\Carbon::parse((string) $appointment->inicio)->timezone('UTC')->format('Y-m-d') }}</td>
+                                    <td>{{ \Illuminate\Support\Carbon::parse((string) $appointment->inicio)->timezone('UTC')->format('H:i') }}
+                                        – {{ \Illuminate\Support\Carbon::parse((string) $appointment->fin)->timezone('UTC')->format('H:i') }} UTC</td>
+                                    <td>{{ $appointment->codigo }}</td>
+                                    <td>{{ $appointment->medico_apellidos }}, {{ $appointment->medico_nombres }}</td>
+                                    <td>{{ $appointment->especialidad_nombre }}</td>
+                                    <td>
+                                        <span class="status-pill {{ in_array($appointment->estado, ['Atendida', 'Confirmada'], true) ? 'is-active' : (in_array($appointment->estado, ['Cancelada', 'Inasistencia'], true) ? 'is-inactive' : '') }}">
+                                            {{ $appointment->estado }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6">No hay citas que coincidan con los criterios.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <p class="list-meta">{{ $appointments->count() === 1 ? 'Mostrando 1 cita' : 'Mostrando '.$appointments->count().' citas' }}</p>
+            </div>
+        @elseif ($q === '')
+            <p class="list-meta">Busque y seleccione un paciente para ver su historial de citas.</p>
+        @endif
+    </section>
 @endsection

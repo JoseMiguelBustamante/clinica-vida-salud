@@ -3,30 +3,46 @@
 @section('title', 'Especialidad — Clínica Vida Salud')
 
 @section('content')
-    <section class="page-head" aria-labelledby="page-title">
-        <p class="eyebrow">Personal médico</p>
-        <h1 id="page-title">{{ $specialty->nombre }}</h1>
-        <p class="lead">{{ $specialty->activo ? 'Activa' : 'Inactiva' }}</p>
-    </section>
+    <section class="app-page" aria-labelledby="page-title">
+        <p class="app-breadcrumb">Atención / Especialidades</p>
+        <div class="page-toolbar">
+            <div>
+                <h1 id="page-title">{{ $specialty->nombre }}</h1>
+                <p class="lead">
+                    <span class="status-pill {{ $specialty->activo ? 'is-active' : 'is-inactive' }}">
+                        {{ $specialty->activo ? 'Activa' : 'Inactiva' }}
+                    </span>
+                </p>
+            </div>
+            <nav class="row-actions" aria-label="Acciones">
+                <a class="row-action" href="{{ route('specialties.edit', $specialty->id_especialidad) }}">Modificar</a>
+                <a class="row-action" href="{{ route('specialties.index') }}">Volver al listado</a>
+            </nav>
+        </div>
 
-    @if (session('status'))
-        <p class="form-errors" role="status">{{ session('status') }}</p>
-    @endif
-    @if ($errors->any())
-        <div class="form-errors" role="alert"><p>{{ $errors->first() }}</p></div>
-    @endif
+        @if (session('status'))
+            <p class="form-status" role="status">{{ session('status') }}</p>
+        @endif
+        @if ($errors->any())
+            <div class="form-errors" role="alert"><p>{{ $errors->first() }}</p></div>
+        @endif
 
-    <section class="implementation">
-        <p>Descripción: {{ $specialty->descripcion ?: '—' }}</p>
-        <p><a href="{{ route('specialties.edit', $specialty->id_especialidad) }}">Modificar</a>
-            · <a href="{{ route('specialties.index') }}">Volver al listado</a></p>
+        <article class="list-card detail-card">
+            <dl class="detail-list">
+                <div>
+                    <dt>Descripción</dt>
+                    <dd>{{ $specialty->descripcion ?: '—' }}</dd>
+                </div>
+            </dl>
+        </article>
+
         @if ($specialty->activo)
-            <form method="post" action="{{ route('specialties.deactivate', $specialty->id_especialidad, false) }}">
+            <form class="status-form" method="post" action="{{ route('specialties.deactivate', $specialty->id_especialidad, false) }}">
                 @csrf
                 <button class="button button-inline" type="submit">Desactivar</button>
             </form>
         @else
-            <form method="post" action="{{ route('specialties.activate', $specialty->id_especialidad, false) }}">
+            <form class="status-form" method="post" action="{{ route('specialties.activate', $specialty->id_especialidad, false) }}">
                 @csrf
                 <button class="button button-inline" type="submit">Activar</button>
             </form>

@@ -723,16 +723,93 @@ body.is-app :focus-visible {
     flex: 1;
 }
 
+.app-content .page-head {
+    padding-block: 0;
+}
+
+.app-content h1,
 .app-page h1 {
     font-size: clamp(1.7rem, 3vw, 2.1rem);
     margin: 0.2rem 0 0.5rem;
 }
 
+.app-content .lead,
 .app-page .lead {
     margin: 0 0 0.25rem;
     color: var(--clinic-muted);
     font-size: 1rem;
     font-weight: 600;
+}
+
+.app-content .eyebrow {
+    color: var(--clinic-green-dark);
+}
+
+body.is-app .button {
+    background: var(--clinic-green);
+}
+
+body.is-app .button:hover {
+    background: var(--clinic-green-dark);
+}
+
+.session-card {
+    margin: 1.25rem 0 0;
+    padding: 1.15rem 1.2rem 1.25rem;
+    border: 1px solid var(--clinic-line);
+    border-radius: 1rem;
+    background: var(--clinic-panel);
+}
+
+.session-card h2 {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+}
+
+.session-card p {
+    margin: 0;
+    color: var(--clinic-muted);
+}
+
+.session-next {
+    margin: 1.5rem 0 0.75rem;
+    font-size: 1.05rem;
+}
+
+.session-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1rem;
+}
+
+.session-action {
+    display: grid;
+    align-content: start;
+    gap: 0.35rem;
+    min-height: 6.25rem;
+    padding: 1.15rem 1.2rem;
+    border: 1px solid var(--clinic-line);
+    border-radius: 1rem;
+    background: #ffffff;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.session-action strong {
+    font-size: 1.05rem;
+    color: var(--clinic-ink);
+}
+
+.session-action span {
+    color: var(--clinic-muted);
+    font-size: 0.95rem;
+}
+
+.session-action:hover {
+    border-color: var(--clinic-green);
+    box-shadow: inset 0 0 0 1px var(--clinic-green);
+    color: inherit;
 }
 
 .app-breadcrumb {

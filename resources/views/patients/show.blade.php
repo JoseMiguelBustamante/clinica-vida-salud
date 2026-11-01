@@ -23,6 +23,7 @@
         <p>Teléfono: {{ $patient->telefono ?: '—' }}</p>
         <p>Correo de contacto: {{ $patient->correo_contacto ?: '—' }}</p>
         <p>Dirección: {{ $patient->direccion ?: '—' }}</p>
+        <p>Cuenta de portal: {{ $patient->id_usuario ? 'vinculada' : 'sin vincular' }}</p>
         <p><a href="{{ route('patients.edit', $patient->id_paciente) }}">Modificar</a>
             @if (in_array(\App\Modules\Identity\PermissionCatalog::CONSULT_HISTORY, $identityPermissions ?? [], true))
                 · <a href="{{ route('appointments.history', ['id_paciente' => $patient->id_paciente]) }}">Historial de citas</a>

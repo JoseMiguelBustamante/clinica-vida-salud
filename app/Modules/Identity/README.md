@@ -6,6 +6,7 @@ the signed-in panel, CU03 account administration, CU17 patient portal
 registration and CU18 profile preferences. It does not provide password recovery
 or clinical modules. Creating a patient account does not approve a link to a
 `paciente` row. Updating the profile does not change role, permissions or that link.
+Declared medical information (CU19) lives in Patients and requires that approved link.
 
 ## HTTP contract
 

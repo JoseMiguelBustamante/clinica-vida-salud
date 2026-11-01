@@ -20,6 +20,7 @@ class PatientServiceTest extends TestCase
                 && $values['nombres'] === 'Ana'
                 && $values['apellidos'] === 'Rojas'
                 && $values['activo'] === true
+                && $values['id_usuario'] === null
                 && isset($values['fecha_registro']);
         }))->andReturn(8);
 

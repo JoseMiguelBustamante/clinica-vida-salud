@@ -24,6 +24,7 @@ final class UpdatePatientRequest extends FormRequest
             'telefono' => ['nullable', 'string', 'max:30'],
             'correo_contacto' => ['nullable', 'string', 'max:255', 'email'],
             'direccion' => ['nullable', 'string', 'max:2000'],
+            'id_usuario' => ['nullable', 'integer'],
         ];
     }
 

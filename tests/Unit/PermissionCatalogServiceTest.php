@@ -51,6 +51,7 @@ class PermissionCatalogServiceTest extends TestCase
                     && ! in_array(PermissionCatalog::UPDATE_PROFILE, $assignments[PermissionCatalog::ADMINISTRATOR_ROLE], true)
                     && $assignments[PermissionCatalog::PATIENT_ROLE] === [
                         PermissionCatalog::UPDATE_PROFILE,
+                        PermissionCatalog::DECLARE_HEALTH,
                     ];
             }),
         );

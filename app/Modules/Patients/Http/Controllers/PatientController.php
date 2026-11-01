@@ -32,7 +32,9 @@ final class PatientController
 
     public function showCreatePatientForm(): View
     {
-        return view('patients.create');
+        return view('patients.create', [
+            'accounts' => $this->patients->getLinkablePatientAccounts(null),
+        ]);
     }
 
     public function createPatient(StorePatientRequest $request): RedirectResponse
@@ -67,8 +69,11 @@ final class PatientController
     public function showEditPatientForm(int $paciente): View|RedirectResponse
     {
         try {
+            $patient = $this->patients->getPatientById($paciente);
+
             return view('patients.edit', [
-                'patient' => $this->patients->getPatientById($paciente),
+                'patient' => $patient,
+                'accounts' => $this->patients->getLinkablePatientAccounts((int) $patient->id_paciente),
             ]);
         } catch (PatientNotFound) {
             return redirect()->route('patients.index')

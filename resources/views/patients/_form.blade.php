@@ -45,3 +45,16 @@
     <input id="direccion" name="direccion" type="text" maxlength="2000"
         value="{{ old('direccion', $row->direccion ?? '') }}" autocomplete="off">
 </div>
+<div class="field">
+    <label for="id_usuario">Cuenta de portal (opcional)</label>
+    <select id="id_usuario" name="id_usuario">
+        <option value="">Sin vincular</option>
+        @foreach ($accounts ?? [] as $account)
+            <option value="{{ $account->id_usuario }}"
+                @selected((string) old('id_usuario', $row->id_usuario ?? '') === (string) $account->id_usuario)>
+                {{ $account->nombre_usuario }}
+            </option>
+        @endforeach
+    </select>
+    <p>El vínculo aprobado asocia una cuenta con rol Paciente a esta ficha. El registro del portal no lo crea solo.</p>
+</div>

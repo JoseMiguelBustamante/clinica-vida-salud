@@ -3,8 +3,20 @@
 use App\Modules\Identity\PermissionCatalog;
 use App\Modules\Identity\RequireActiveSession;
 use App\Modules\Identity\RequirePermission;
+use App\Modules\Patients\Http\Controllers\MedicalInformationController;
 use App\Modules\Patients\Http\Controllers\PatientController;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware([
+    'web',
+    RequireActiveSession::class,
+    RequirePermission::class.':'.PermissionCatalog::DECLARE_HEALTH,
+])->group(function (): void {
+    Route::get('/informacion-medica', [MedicalInformationController::class, 'showDeclaredMedicalInformation'])
+        ->name('patients.declared');
+    Route::post('/informacion-medica', [MedicalInformationController::class, 'updateDeclaredMedicalInformation'])
+        ->name('patients.declared.update');
+});
 
 Route::middleware([
     'web',

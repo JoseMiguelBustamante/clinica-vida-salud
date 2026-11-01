@@ -15,11 +15,11 @@
         <h2 id="status-title">Implementation status</h2>
         <p>The public landing page and modular route registration are in place.
             Clinical workflows are still pending implementation.</p>
-            <p>Staff sign-in, accounts, patients, physicians, specialties, schedules, availability lookup, booking, rescheduling, cancellation, confirmation, attendance, marking visits as attended, physician agenda lookup, patient appointment history, administrative reports, patient portal registration and patient profile preferences are available.</p>
+            <p>Staff sign-in, accounts, patients, physicians, specialties, schedules, availability lookup, booking, rescheduling, cancellation, confirmation, attendance, marking visits as attended, physician agenda lookup, patient appointment history, administrative reports, patient portal registration, patient profile preferences and declared medical information are available.</p>
         <h3>Planned module boundaries</h3>
         <ul class="module-list">
             <li><strong>Identity</strong> — staff sign-in, panel, account administration, patient portal registration and profile preferences.</li>
-            <li><strong>Patients</strong> — patient identification and contact records.</li>
+            <li><strong>Patients</strong> — patient identification, contact records and declared medical information.</li>
             <li><strong>MedicalStaff</strong> — physicians and specialty catalog.</li>
             <li><strong>Schedules</strong> — physician weekly hours and slot duration.</li>
             <li><strong>Appointments</strong> — availability, booking, rescheduling, cancellation, confirmation, attendance, marking attended, physician agenda, patient history and administrative reports.</li>

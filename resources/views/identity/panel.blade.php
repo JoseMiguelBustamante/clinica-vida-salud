@@ -88,6 +88,12 @@
                 <span>Actualizar la cuenta propia y los recordatorios de citas.</span>
             </a>
         @endif
+        @if (in_array(\App\Modules\Identity\PermissionCatalog::DECLARE_HEALTH, $user['permissions'], true))
+            <a class="module-tile" href="{{ route('patients.declared') }}">
+                <strong>Información médica</strong>
+                <span>Consultar y actualizar la declaración personal de salud.</span>
+            </a>
+        @endif
     </nav>
 
     <section class="implementation" aria-labelledby="permissions-title">

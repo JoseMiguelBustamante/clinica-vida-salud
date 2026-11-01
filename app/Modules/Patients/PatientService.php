@@ -26,8 +26,14 @@ final class PatientService
         return $patient;
     }
 
+    /** @return Collection<int, object> */
+    public function getLinkablePatientAccounts(?int $currentPatientId): Collection
+    {
+        return $this->patients->getLinkablePatientAccounts($currentPatientId);
+    }
+
     /**
-     * @param  array{ci?: ?string, nombres: string, apellidos: string, fecha_nacimiento?: ?string, sexo?: ?string, telefono?: ?string, correo_contacto?: ?string, direccion?: ?string}  $input
+     * @param  array{ci?: ?string, nombres: string, apellidos: string, fecha_nacimiento?: ?string, sexo?: ?string, telefono?: ?string, correo_contacto?: ?string, direccion?: ?string, id_usuario?: ?int}  $input
      */
     public function createPatient(array $input): int
     {
@@ -39,7 +45,7 @@ final class PatientService
     }
 
     /**
-     * @param  array{ci?: ?string, nombres: string, apellidos: string, fecha_nacimiento?: ?string, sexo?: ?string, telefono?: ?string, correo_contacto?: ?string, direccion?: ?string}  $input
+     * @param  array{ci?: ?string, nombres: string, apellidos: string, fecha_nacimiento?: ?string, sexo?: ?string, telefono?: ?string, correo_contacto?: ?string, direccion?: ?string, id_usuario?: ?int}  $input
      */
     public function updatePatient(int $id, array $input): void
     {
@@ -60,8 +66,8 @@ final class PatientService
     }
 
     /**
-     * @param  array{ci?: ?string, nombres: string, apellidos: string, fecha_nacimiento?: ?string, sexo?: ?string, telefono?: ?string, correo_contacto?: ?string, direccion?: ?string}  $input
-     * @return array{ci: ?string, nombres: string, apellidos: string, fecha_nacimiento: ?string, sexo: ?string, telefono: ?string, correo_contacto: ?string, direccion: ?string}
+     * @param  array{ci?: ?string, nombres: string, apellidos: string, fecha_nacimiento?: ?string, sexo?: ?string, telefono?: ?string, correo_contacto?: ?string, direccion?: ?string, id_usuario?: ?int}  $input
+     * @return array{ci: ?string, nombres: string, apellidos: string, fecha_nacimiento: ?string, sexo: ?string, telefono: ?string, correo_contacto: ?string, direccion: ?string, id_usuario: ?int}
      */
     private function normalizedRecord(array $input, ?int $exceptId): array
     {
@@ -84,7 +90,21 @@ final class PatientService
             'telefono' => $this->optionalText($input['telefono'] ?? null, 30),
             'correo_contacto' => $email,
             'direccion' => $this->optionalText($input['direccion'] ?? null, 2000),
+            'id_usuario' => $this->optionalAccountId($input['id_usuario'] ?? null, $exceptId),
         ];
+    }
+
+    private function optionalAccountId(mixed $value, ?int $exceptPatientId): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $accountId = (int) $value;
+        if ($accountId < 1 || ! $this->patients->patientAccountIsLinkable($accountId, $exceptPatientId)) {
+            throw new InvalidPatientInput;
+        }
+
+        return $accountId;
     }
 
     private function requiredText(string $value, int $maximum): string

@@ -6,9 +6,9 @@ Identity, Patients, MedicalStaff, Schedules and Appointments under `app/Modules`
 Identity provides the session-authentication backend, the staff login/panel
 screens, CU03 account administration, CU17 patient portal registration and CU18
 profile preferences. Patients provides CU04 record
-administration. MedicalStaff provides CU05 physicians and CU06 specialties.
+administration and CU19 declared medical information. MedicalStaff provides CU05 physicians and CU06 specialties.
 Schedules provides CU07 weekly hours. Appointments owns the public foundation
-page and CU08–CU16 appointment operations. Declared medical information (CU19) is not implemented.
+page and CU08–CU16 appointment operations. Clinical history for the patient portal (CU20) is not implemented.
 
 ## Backend authentication (deployed; private bootstrap pending)
 

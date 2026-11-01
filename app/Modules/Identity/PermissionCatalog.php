@@ -36,6 +36,8 @@ final class PermissionCatalog
 
     public const UPDATE_PROFILE = 'perfil.actualizar';
 
+    public const DECLARE_HEALTH = 'informacion.declarar';
+
     public const ADMINISTRATOR_ROLE = 'Administrador';
 
     public const RECEPTIONIST_ROLE = 'Recepcionista';
@@ -65,6 +67,7 @@ final class PermissionCatalog
             ['codigo' => self::CONSULT_HISTORY, 'descripcion' => 'Consultar citas e historial de un paciente'],
             ['codigo' => self::GENERATE_REPORTS, 'descripcion' => 'Generar reportes administrativos de citas, pacientes y agendas'],
             ['codigo' => self::UPDATE_PROFILE, 'descripcion' => 'Actualizar el perfil propio y las preferencias de recordatorios'],
+            ['codigo' => self::DECLARE_HEALTH, 'descripcion' => 'Consultar y actualizar la información médica declarada por el paciente'],
         ];
     }
 
@@ -119,6 +122,7 @@ final class PermissionCatalog
             ],
             self::PATIENT_ROLE => [
                 self::UPDATE_PROFILE,
+                self::DECLARE_HEALTH,
             ],
             default => [],
         };

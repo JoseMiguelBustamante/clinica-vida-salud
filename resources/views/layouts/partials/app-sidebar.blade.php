@@ -5,7 +5,7 @@
     $identityUser = request()->attributes->get('identity');
 @endphp
 <aside class="app-sidebar" aria-label="Módulos">
-    <a class="login-logo app-brand" href="{{ route('home') }}">
+    <a class="login-logo app-brand" href="{{ route('panel') }}">
         <span class="brand-badge" aria-hidden="true">+</span>
         <span>Clínica Vida Salud</span>
     </a>

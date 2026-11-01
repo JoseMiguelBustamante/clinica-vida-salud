@@ -183,7 +183,7 @@ class ClinicalHistoryScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/panel')->assertOk()->assertSee('Historial médico')
-            ->assertSee('historial.consultar');
+            ->assertDontSee('historial.consultar');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

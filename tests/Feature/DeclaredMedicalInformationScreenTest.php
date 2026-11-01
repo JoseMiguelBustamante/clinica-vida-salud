@@ -160,7 +160,7 @@ class DeclaredMedicalInformationScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/panel')->assertOk()->assertSee('Información médica')
-            ->assertSee('informacion.declarar');
+            ->assertDontSee('informacion.declarar');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

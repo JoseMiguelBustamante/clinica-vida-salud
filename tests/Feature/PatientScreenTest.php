@@ -85,7 +85,7 @@ class PatientScreenTest extends TestCase
         $this->app->instance(IdentityRepository::class, $identities);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
-        $this->get('/panel')->assertOk()->assertSee('Pacientes')->assertSee('pacientes.gestionar')
+        $this->get('/panel')->assertOk()->assertSee('Pacientes')
             ->assertDontSee('Usuarios y roles')->assertDontSee('Médicos')->assertDontSee('Especialidades')
             ->assertDontSee('Horarios');
         $this->assertSame([], $this->app['db']->getConnections());

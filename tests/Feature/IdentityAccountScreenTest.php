@@ -96,7 +96,7 @@ class IdentityAccountScreenTest extends TestCase
         $this->app->instance(IdentityRepository::class, $repository);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
-        $this->get('/panel')->assertOk()->assertSee('Usuarios y roles')->assertSee('usuarios.administrar');
+        $this->get('/panel')->assertOk()->assertSee('Usuarios y roles')->assertDontSee('usuarios.administrar');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

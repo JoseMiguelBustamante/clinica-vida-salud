@@ -65,7 +65,7 @@ class AvailabilityScreenTest extends TestCase
         $this->app->instance(IdentityRepository::class, $identities);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
-        $this->get('/panel')->assertOk()->assertSee('Citas')->assertDontSee('Horarios')
+        $this->get('/panel')->assertOk()->assertSee('Disponibilidad')->assertDontSee('Horarios')
             ->assertDontSee('Pendiente — aún no está implementado.');
         $this->assertSame([], $this->app['db']->getConnections());
     }

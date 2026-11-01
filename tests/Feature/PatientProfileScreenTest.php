@@ -224,7 +224,7 @@ class PatientProfileScreenTest extends TestCase
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/panel')->assertOk()->assertSee('Perfil y preferencias')
-            ->assertSee('perfil.actualizar')
+            ->assertDontSee('perfil.actualizar')
             ->assertSee('vínculo aprobado');
         $this->assertSame([], $this->app['db']->getConnections());
     }

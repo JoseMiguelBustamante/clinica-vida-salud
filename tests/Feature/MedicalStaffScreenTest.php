@@ -73,8 +73,9 @@ class MedicalStaffScreenTest extends TestCase
         $this->app->instance(PhysicianRepository::class, $physicians);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
-        $this->get('/medicos')->assertOk()->assertSee('Médicos')->assertSee('Luis')->assertSee('Pediatría')
-            ->assertSee('Registrar médico');
+        $this->get('/medicos')->assertOk()->assertSee('Médicos')->assertSee('Luis Soto')->assertSee('Pediatría')
+            ->assertSee('Registrar médico')->assertSee('Mostrando 1 médico')
+            ->assertDontSee('<script', false);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

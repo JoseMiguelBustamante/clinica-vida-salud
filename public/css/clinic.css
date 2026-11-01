@@ -877,7 +877,8 @@ body.is-app .button:hover {
     border-bottom: 0;
 }
 
-.patient-name {
+.patient-name,
+.person-name {
     font-weight: 700;
 }
 

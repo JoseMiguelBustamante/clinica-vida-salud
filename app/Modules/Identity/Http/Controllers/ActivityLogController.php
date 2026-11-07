@@ -38,8 +38,8 @@ final class ActivityLogController
             'q' => $input['q'] ?? '',
             'id_usuario' => isset($input['id_usuario']) ? (string) $input['id_usuario'] : '',
             'accion' => $input['accion'] ?? '',
-            'desde' => $input['desde'] ?? '',
-            'hasta' => $input['hasta'] ?? '',
+            'desde' => $page['from'] ?? '',
+            'hasta' => $page['to'] ?? '',
         ]);
     }
 }

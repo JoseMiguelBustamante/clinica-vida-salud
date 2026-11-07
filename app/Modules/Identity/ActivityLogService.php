@@ -29,6 +29,8 @@ final class ActivityLogService
 
     public const PER_PAGE = 8;
 
+    public const DEFAULT_RANGE_DAYS = 7;
+
     public function __construct(private ActivityLogRepository $logs) {}
 
     /**
@@ -118,7 +120,7 @@ final class ActivityLogService
     }
 
     /**
-     * @return array{entries: Collection<int, object>, total: int, page: int, pages: int, perPage: int}
+     * @return array{entries: Collection<int, object>, total: int, page: int, pages: int, perPage: int, from: ?string, to: ?string}
      */
     public function getActivityLogs(
         ?string $fragment,
@@ -131,8 +133,7 @@ final class ActivityLogService
         $perPage = self::PER_PAGE;
         $page = max(1, $page);
         $fragment = $fragment === '' ? null : $fragment;
-        $from = $from === '' ? null : $from;
-        $to = $to === '' ? null : $to;
+        [$from, $to] = $this->period($from, $to);
         $total = $this->logs->countActivityLogs($fragment, $userId, $action, $from, $to);
         $pages = max(1, (int) ceil($total / $perPage));
         if ($page > $pages) {
@@ -155,6 +156,27 @@ final class ActivityLogService
             'page' => $page,
             'pages' => $total === 0 ? 1 : $pages,
             'perPage' => $perPage,
+            'from' => $from,
+            'to' => $to,
+        ];
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function period(?string $from, ?string $to): array
+    {
+        $from = $from === '' ? null : $from;
+        $to = $to === '' ? null : $to;
+        if ($from !== null || $to !== null) {
+            return [$from, $to];
+        }
+
+        $today = Carbon::now('UTC')->startOfDay();
+
+        return [
+            $today->copy()->subDays(self::DEFAULT_RANGE_DAYS - 1)->toDateString(),
+            $today->toDateString(),
         ];
     }
 

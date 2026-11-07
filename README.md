@@ -58,8 +58,8 @@ make login work.
 | `bootstrap/providers.php` | Registers `ModuleServiceProvider` with Laravel. |
 | `app/Providers/ModuleServiceProvider.php` | Explicitly loads existing `routes/web.php` files for the five approved modules using Laravel's cache-aware route loader. |
 | `app/Modules/Appointments/routes/web.php` | Owns the public `GET /` route, named `home`, with `web` middleware. Booking is not implemented. |
-| `resources/views/layouts/clinic.blade.php` | Shared semantic Blade shell, skip link and implementation status. |
-| `resources/views/home.blade.php` | Public foundation status; no patient or medical data. |
+| `resources/views/layouts/clinic.blade.php` | Shared semantic Blade shell and skip link. |
+| `resources/views/home.blade.php` | Public landing with access links; no patient or medical data. |
 | `public/css/clinic.css` | Local responsive stylesheet, served directly without a frontend build. |
 
 Identity and Appointments now have module directories for their implemented routes.

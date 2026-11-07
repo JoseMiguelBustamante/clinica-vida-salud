@@ -54,7 +54,7 @@ HTML activity log, session required plus `bitacora.consultar`:
 
 | Request | Response |
 | --- | --- |
-| `GET /bitacora` | read-only list of accesses and changes, with filters |
+| `GET /bitacora` | read-only list of accesses and changes; dates default to the last 7 days |
 
 Roles and permission codes come from `PermissionCatalog`. A signed-in request
 applies any missing `rol` / `permiso` / `rol_permiso` rows automatically.

@@ -52,8 +52,7 @@
                                 </svg>
                             </span>
                             <input id="identifier" name="identifier" type="text" value="{{ old('identifier') }}"
-                                autocomplete="username" required maxlength="255"
-                                placeholder="usuario o correo">
+                                autocomplete="username" required maxlength="255">
                         </div>
                     </div>
                     <div class="field">
@@ -64,8 +63,7 @@
                                     <path fill="currentColor" d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h1.5Zm2 0h3V7.5a1.5 1.5 0 0 0-3 0V10Z"/>
                                 </svg>
                             </span>
-                            <input id="password" name="password" type="password" autocomplete="current-password" required
-                                placeholder="••••••••">
+                            <input id="password" name="password" type="password" autocomplete="current-password" required>
                             <span class="login-input-trail" aria-hidden="true" title="La contraseña permanece oculta">
                                 <svg viewBox="0 0 24 24" focusable="false">
                                     <path fill="currentColor" d="M12 5c5.2 0 9.3 4.1 10 7-.7 2.9-4.8 7-10 7S2.7 14.9 2 12c.7-2.9 4.8-7 10-7Zm0 2c-3.7 0-6.8 2.7-7.8 5 1 2.3 4.1 5 7.8 5s6.8-2.7 7.8-5c-1-2.3-4.1-5-7.8-5Zm0 1.8A3.2 3.2 0 1 1 8.8 12 3.2 3.2 0 0 1 12 8.8Zm0 1.7A1.5 1.5 0 1 0 13.5 12 1.5 1.5 0 0 0 12 10.5Z"/>

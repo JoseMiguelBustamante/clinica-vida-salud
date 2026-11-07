@@ -20,7 +20,7 @@ class ModuleFoundationTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
-    public function test_the_layout_is_semantic_and_honest_about_implementation_status(): void
+    public function test_the_public_landing_page_is_semantic_and_hides_implementation_status(): void
     {
         $response = $this->get('/');
 
@@ -28,10 +28,13 @@ class ModuleFoundationTest extends TestCase
             ->assertSee('Clínica Vida Salud')
             ->assertSee('Sistema web')
             ->assertSee('Gestión de citas médicas')
-            ->assertSee('Los casos de uso CU01 a CU22 están disponibles en esta aplicación.')
-            ->assertSee('Inicio de sesión del personal, cuentas, pacientes, médicos, especialidades, horarios, consulta de disponibilidad, programación, reprogramación, cancelación, confirmación, asistencia, atención, agenda del médico, historial de citas, reportes administrativos, registro del portal, perfil, información médica declarada, historial clínico autorizado y recordatorios de cita están disponibles.')
-            ->assertDontSee('Clinical workflows are still pending implementation.')
-            ->assertSee('href="'.url('/login').'"', false);
+            ->assertSee('Coordine pacientes, médicos, horarios y citas desde un solo sistema web.')
+            ->assertDontSee('Estado de implementación')
+            ->assertDontSee('Los casos de uso CU01 a CU22 están disponibles en esta aplicación.')
+            ->assertDontSee('Módulos de la aplicación')
+            ->assertDontSee('Ver el estado de implementación')
+            ->assertSee('href="'.url('/login').'"', false)
+            ->assertSee('href="'.url('/registro').'"', false);
 
         $document = new DOMDocument;
         @$document->loadHTML($response->getContent());

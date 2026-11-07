@@ -106,24 +106,12 @@ h1 {
     font-weight: 700;
 }
 
-.implementation {
-    padding: 2rem;
-    background: #ffffff;
-    border: 1px solid #c3d5d0;
-    border-radius: 1rem;
-    scroll-margin-top: 1rem;
-}
-
-.implementation h2 {
-    margin-top: 0;
-}
-
-.module-list {
-    padding-left: 1.5rem;
-}
-
-.module-list li {
-    margin-block: 0.75rem;
+.intro-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    margin-top: 1.75rem;
 }
 
 .site-footer {
@@ -497,7 +485,6 @@ h1 {
         padding-block: 2rem;
     }
 
-    .implementation,
     .page-form {
         padding: 1.25rem;
     }

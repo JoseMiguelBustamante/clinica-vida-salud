@@ -994,27 +994,100 @@ body.is-app .button:hover {
     color: #ffffff;
 }
 
+.panel-home {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    position: relative;
+    isolation: isolate;
+}
+
+.panel-home-head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.panel-home-head .lead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 0.75rem;
+    margin: 0.15rem 0 0;
+}
+
+.panel-user {
+    color: var(--clinic-ink);
+    font-weight: 700;
+}
+
+.panel-role-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.7rem;
+    padding: 0.15rem 0.7rem;
+    border-radius: 999px;
+    background: var(--landing-mint, #dff3ee);
+    color: var(--landing-deep, #0f5c52);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
 .session-card {
-    margin: 1.25rem 0 0;
-    padding: 1.15rem 1.2rem 1.25rem;
-    border: 1px solid var(--clinic-line);
-    border-radius: 1rem;
-    background: var(--clinic-panel);
+    position: relative;
+    z-index: 0;
+    margin: 0;
+    padding: 1.25rem 1.3rem 1.35rem;
+    border: 1px solid rgba(15, 92, 82, 0.12);
+    border-radius: 1.15rem;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.7) 0%, transparent 42%),
+        linear-gradient(135deg, #e7f5f1 0%, #dceff5 100%);
+    box-shadow: 0 10px 24px rgba(22, 50, 56, 0.05);
+}
+
+.session-card-copy {
+    max-width: 46rem;
+}
+
+.session-card-label {
+    margin: 0 0 0.35rem;
+    color: var(--landing-deep, #0f5c52);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .session-card h2 {
-    margin: 0 0 0.35rem;
-    font-size: 1.15rem;
+    margin: 0 0 0.45rem;
+    color: var(--landing-deep, #0f5c52);
+    font-size: 1.25rem;
+    font-weight: 800;
 }
 
 .session-card p {
     margin: 0;
-    color: var(--clinic-muted);
+    color: #4d6762;
+    line-height: 1.6;
+}
+
+.panel-next {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin: 0;
+    padding: 0;
+    background: transparent;
 }
 
 .session-next {
-    margin: 1.5rem 0 0.75rem;
-    font-size: 1.05rem;
+    margin: 0;
+    color: var(--clinic-ink);
+    font-size: 1.08rem;
+    font-weight: 800;
 }
 
 .session-actions {
@@ -1026,15 +1099,32 @@ body.is-app .button:hover {
 .session-action {
     display: grid;
     align-content: start;
-    gap: 0.35rem;
-    min-height: 6.25rem;
-    padding: 1.15rem 1.2rem;
+    gap: 0.45rem;
+    min-height: 8rem;
+    padding: 1.2rem 1.2rem 1.25rem;
     border: 1px solid var(--clinic-line);
-    border-radius: 1rem;
+    border-radius: 1.1rem;
     background: #ffffff;
     text-decoration: none;
     color: inherit;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 8px 18px rgba(22, 50, 56, 0.04);
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.session-action-icon {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    margin-bottom: 0.15rem;
+    border-radius: 0.8rem;
+    background: var(--landing-mint, #dff3ee);
+    color: var(--landing-deep, #0f5c52);
+}
+
+.session-action-icon svg {
+    width: 1.2rem;
+    height: 1.2rem;
 }
 
 .session-action strong {
@@ -1042,15 +1132,26 @@ body.is-app .button:hover {
     color: var(--clinic-ink);
 }
 
-.session-action span {
+.session-action > span:last-child {
     color: var(--clinic-muted);
-    font-size: 0.95rem;
+    font-size: 0.94rem;
+    line-height: 1.45;
 }
 
 .session-action:hover {
-    border-color: var(--clinic-green);
-    box-shadow: inset 0 0 0 1px var(--clinic-green);
+    transform: translateY(-2px);
+    border-color: rgba(15, 92, 82, 0.35);
+    box-shadow: 0 14px 28px rgba(22, 50, 56, 0.1);
     color: inherit;
+}
+
+.panel-note {
+    margin: 0;
+    padding: 0.95rem 1.05rem;
+    border: 1px solid var(--clinic-line);
+    border-radius: 0.95rem;
+    background: #ffffff;
+    color: var(--clinic-muted);
 }
 
 .page-toolbar {

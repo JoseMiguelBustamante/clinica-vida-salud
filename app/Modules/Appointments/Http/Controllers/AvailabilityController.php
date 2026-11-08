@@ -111,6 +111,7 @@ final class AvailabilityController
 
         return view('appointments.availability', [
             'specialties' => $this->availability->getConsultSpecialties(),
+            'bookableSpecialties' => $this->availability->getBookableSpecialties(),
             'physicians' => $physicians,
             'slots' => $slots === [] && $specialtyId === null ? null : $slots,
             'events' => $events,

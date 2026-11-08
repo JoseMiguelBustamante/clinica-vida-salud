@@ -48,6 +48,9 @@ class AvailabilityScreenTest extends TestCase
         $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
             (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
         ]));
+        $specialties->shouldReceive('getActiveSpecialtiesWithPhysicians')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);
 
         $appointments = Mockery::mock(AppointmentRepository::class);
@@ -130,6 +133,9 @@ class AvailabilityScreenTest extends TestCase
         $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
             (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
         ]));
+        $specialties->shouldReceive('getActiveSpecialtiesWithPhysicians')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);
 
         $appointments = Mockery::mock(AppointmentRepository::class);
@@ -168,6 +174,9 @@ class AvailabilityScreenTest extends TestCase
 
         $specialties = Mockery::mock(SpecialtyRepository::class);
         $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
+        $specialties->shouldReceive('getActiveSpecialtiesWithPhysicians')->once()->andReturn(collect([
             (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
         ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);
@@ -227,6 +236,9 @@ class AvailabilityScreenTest extends TestCase
         $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
             (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
         ]));
+        $specialties->shouldReceive('getActiveSpecialtiesWithPhysicians')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);
 
         $appointments = Mockery::mock(AppointmentRepository::class);
@@ -273,6 +285,9 @@ class AvailabilityScreenTest extends TestCase
 
         $specialties = Mockery::mock(SpecialtyRepository::class);
         $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
+        $specialties->shouldReceive('getActiveSpecialtiesWithPhysicians')->once()->andReturn(collect([
             (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
         ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);
@@ -322,6 +337,9 @@ class AvailabilityScreenTest extends TestCase
         $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
             (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
         ]));
+        $specialties->shouldReceive('getActiveSpecialtiesWithPhysicians')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);
 
         $appointments = Mockery::mock(AppointmentRepository::class);
@@ -364,6 +382,9 @@ class AvailabilityScreenTest extends TestCase
 
         $specialties = Mockery::mock(SpecialtyRepository::class);
         $specialties->shouldReceive('getActiveSpecialties')->once()->andReturn(collect([
+            (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
+        ]));
+        $specialties->shouldReceive('getActiveSpecialtiesWithPhysicians')->once()->andReturn(collect([
             (object) ['id_especialidad' => 3, 'nombre' => 'Pediatría', 'activo' => true],
         ]));
         $this->app->instance(SpecialtyRepository::class, $specialties);

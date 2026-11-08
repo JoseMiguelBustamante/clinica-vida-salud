@@ -31,6 +31,20 @@ class SpecialtyRepository
             ->where('activo', true)->orderBy('nombre')->get();
     }
 
+    /** @return Collection<int, object> */
+    public function getActiveSpecialtiesWithPhysicians(): Collection
+    {
+        return DB::table('especialidad')
+            ->join('medico_especialidad', 'medico_especialidad.id_especialidad', '=', 'especialidad.id_especialidad')
+            ->join('medico', 'medico.id_medico', '=', 'medico_especialidad.id_medico')
+            ->select('especialidad.id_especialidad', 'especialidad.nombre', 'especialidad.descripcion', 'especialidad.activo')
+            ->where('especialidad.activo', true)
+            ->where('medico.activo', true)
+            ->distinct()
+            ->orderBy('especialidad.nombre')
+            ->get();
+    }
+
     public function getSpecialtyById(int $id): ?object
     {
         return DB::table('especialidad')->select('id_especialidad', 'nombre', 'descripcion', 'activo')

@@ -23,6 +23,11 @@ final class AvailabilityService
         return $this->specialties->getActiveSpecialties();
     }
 
+    public function getBookableSpecialties(): Collection
+    {
+        return $this->specialties->getActiveSpecialtiesWithPhysicians();
+    }
+
     public function getConsultPhysicians(int $specialtyId): Collection
     {
         $this->requireActiveSpecialty($specialtyId);

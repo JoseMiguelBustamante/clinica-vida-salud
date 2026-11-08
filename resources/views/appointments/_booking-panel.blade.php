@@ -112,18 +112,23 @@
         @endforeach
     </ul>
 
+    @php
+        $careSpecialties = ($bookableSpecialties ?? collect())->isNotEmpty()
+            ? $bookableSpecialties
+            : ($specialties ?? collect());
+    @endphp
     <form class="booking-care" method="get" action="{{ route('availability.consult', absolute: false) }}">
         @foreach ($panelState as $name => $value)
-            @if ($name !== 'especialidad')
+            @if (! in_array($name, ['especialidad', 'medico'], true))
                 <input type="hidden" name="{{ $name }}" value="{{ $value }}">
             @endif
         @endforeach
         <h3>Atención</h3>
         <div class="field">
             <label for="booking_especialidad">Especialidad</label>
-            <select id="booking_especialidad" name="especialidad">
+            <select id="booking_especialidad" name="especialidad" required onchange="this.form.requestSubmit()">
                 <option value="">Seleccione</option>
-                @foreach ($specialties as $specialty)
+                @foreach ($careSpecialties as $specialty)
                     <option value="{{ $specialty->id_especialidad }}" @selected((string) $especialidad === (string) $specialty->id_especialidad)>
                         {{ $specialty->nombre }}
                     </option>
@@ -131,7 +136,7 @@
             </select>
         </div>
         <button class="button button-inline" type="submit">Cargar médicos</button>
-        <p class="booking-help">Carga los médicos activos de esa especialidad. El paciente y el horario no se pierden.</p>
+        <p class="booking-help">Solo aparecen especialidades con al menos un médico activo asignado. Al elegirla se cargan esos médicos.</p>
     </form>
 
     <form class="booking-slot" method="get" action="{{ route('availability.consult', absolute: false) }}">
@@ -196,10 +201,20 @@
 
         <div class="field">
             <label for="id_medico">Médico</label>
-            @if ($especialidad && $physicians->isEmpty())
-                <p class="booking-hint is-warn">{{ $chosenSpecialty ? $chosenSpecialty->nombre : 'Esta especialidad' }} no tiene médicos activos. Pulse Cargar médicos con otra especialidad.</p>
+            @if (! $especialidad)
+                <p class="booking-hint">Elija una especialidad arriba para cargar médicos.</p>
+            @elseif ($physicians->isEmpty())
+                <p class="booking-hint is-warn">
+                    {{ $chosenSpecialty ? $chosenSpecialty->nombre : 'Esta especialidad' }} no tiene médicos activos asignados.
+                    Elija otra especialidad de la lista
+                    @if (in_array(\App\Modules\Identity\PermissionCatalog::MANAGE_PHYSICIANS, $identityPermissions ?? [], true))
+                        o <a href="{{ route('physicians.index') }}">asigne esa especialidad a un médico</a>.
+                    @else
+                        o pida a administración que asigne la especialidad a un médico.
+                    @endif
+                </p>
             @endif
-            <select id="id_medico" name="id_medico" required>
+            <select id="id_medico" name="id_medico" required @disabled(! $especialidad || $physicians->isEmpty())>
                 <option value="">Seleccione</option>
                 @foreach ($physicians as $physician)
                     <option value="{{ $physician->id_medico }}" @selected((string) old('id_medico', $medico) === (string) $physician->id_medico)>

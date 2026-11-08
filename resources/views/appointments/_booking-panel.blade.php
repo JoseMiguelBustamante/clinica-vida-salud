@@ -31,49 +31,78 @@
         $summaryDateLabel = count($summaryDate) === 3 ? $summaryDate[2].'/'.$summaryDate[1].'/'.$summaryDate[0] : '';
     @endphp
 
-    <form class="booking-search" method="get" action="{{ route('availability.consult', absolute: false) }}">
-        @foreach ($panelState as $name => $value)
-            @if (! in_array($name, ['q', 'id_paciente'], true))
-                <input type="hidden" name="{{ $name }}" value="{{ $value }}">
-            @endif
-        @endforeach
+    <div class="booking-search">
         <div class="field">
             <label for="booking_q">Buscar paciente</label>
-            <input id="booking_q" name="q" type="search" value="{{ $q }}" placeholder="Nombre o cédula" autocomplete="off"
-                oninput="clearTimeout(window.__bookingPatientSearch);window.__bookingPatientSearch=setTimeout(function(){this.form.requestSubmit()}.bind(this),280)">
+            <input id="booking_q" type="search" value="{{ $q }}" placeholder="Nombre o cédula" autocomplete="off"
+                aria-controls="booking_matches"
+                oninput="(function(input){var raw=input.value.trim().toLowerCase().replace(/\s+/g,' ');var tokens=raw===''?[]:raw.split(' ');var list=document.getElementById('booking_matches');var empty=document.getElementById('booking_no_match');var selected=document.getElementById('booking_selected');if(!list){return;}var shown=0;Array.prototype.forEach.call(list.children,function(li){var hay=li.getAttribute('data-search')||'';var ok=tokens.length!==0&&tokens.every(function(token){return hay.indexOf(token)!==-1;});li.hidden=!ok;if(ok){shown+=1;}});list.hidden=tokens.length===0||shown===0;if(empty){empty.hidden=!(tokens.length!==0&&shown===0);if(tokens.length!==0&&shown===0){empty.textContent='Ningún paciente coincide con «'+input.value.trim()+'».';}}if(selected){selected.hidden=tokens.length!==0;}})(this)">
         </div>
-        <button class="button button-inline" type="submit">Buscar paciente</button>
-        <p class="booking-help">Escriba parte del nombre, apellido o cédula; la lista se actualiza al teclear.</p>
+        <p class="booking-help">Escriba parte del nombre, apellido o cédula; la lista se filtra al teclear sin recargar.</p>
         @if ($canManagePatients)
             <p class="booking-register"><a href="{{ route('patients.create') }}">Registrar paciente</a></p>
         @endif
-    </form>
+    </div>
 
-    @if ($q !== '' && $patients->isEmpty())
-        <p class="booking-hint is-warn">Ningún paciente coincide con «{{ $q }}».</p>
-    @elseif ($selectedPatient)
-        <div class="booking-patient is-selected">
+    @if ($selectedPatient)
+        <div id="booking_selected" class="booking-patient is-selected" @if ($q !== '') hidden @endif>
             <strong>{{ $selectedPatient->nombres }} {{ $selectedPatient->apellidos }}</strong>
             <span>Paciente registrado</span>
         </div>
-    @elseif ($q !== '' && $patients->isNotEmpty())
-        <ul class="booking-matches" role="listbox" aria-label="Pacientes encontrados">
-            @foreach ($patients as $patient)
-                @php
-                    $pickQuery = array_merge($panelState, [
-                        'q' => $q,
-                        'id_paciente' => $patient->id_paciente,
-                    ]);
-                @endphp
-                <li>
-                    <a class="booking-patient" role="option" href="{{ route('availability.consult', $pickQuery, false) }}">
-                        <strong>{{ $patient->nombres }} {{ $patient->apellidos }}</strong>
-                        <span>{{ $patient->ci ? 'CI '.$patient->ci : 'Sin documento' }} · Elegir</span>
-                    </a>
-                </li>
-            @endforeach
-        </ul>
     @endif
+
+    @php
+        $normalizeSearch = static function (object $patient): string {
+            return mb_strtolower(trim(preg_replace('/\s+/u', ' ', $patient->nombres.' '.$patient->apellidos.' '.($patient->ci ?? ''))), 'UTF-8');
+        };
+        $tokens = $q === '' ? [] : preg_split('/\s+/u', mb_strtolower(trim($q), 'UTF-8'), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $initialMatchCount = 0;
+        if ($tokens !== []) {
+            foreach ($patients as $patient) {
+                $hay = $normalizeSearch($patient);
+                $ok = true;
+                foreach ($tokens as $token) {
+                    if (! str_contains($hay, $token)) {
+                        $ok = false;
+                        break;
+                    }
+                }
+                if ($ok) {
+                    $initialMatchCount++;
+                }
+            }
+        }
+    @endphp
+
+    <p id="booking_no_match" class="booking-hint is-warn" @if ($tokens === [] || $initialMatchCount > 0) hidden @endif>@if ($tokens !== [] && $initialMatchCount === 0)Ningún paciente coincide con «{{ $q }}».@endif</p>
+
+    <ul id="booking_matches" class="booking-matches" role="listbox" aria-label="Pacientes encontrados"
+        @if ($tokens === [] || $initialMatchCount === 0) hidden @endif>
+        @foreach ($patients as $patient)
+            @php
+                $hay = $normalizeSearch($patient);
+                $isMatch = $tokens !== [];
+                if ($isMatch) {
+                    foreach ($tokens as $token) {
+                        if (! str_contains($hay, $token)) {
+                            $isMatch = false;
+                            break;
+                        }
+                    }
+                }
+                $pickQuery = array_merge($panelState, [
+                    'id_paciente' => $patient->id_paciente,
+                ]);
+                unset($pickQuery['q']);
+            @endphp
+            <li data-search="{{ $hay }}" @if (! $isMatch) hidden @endif>
+                <a class="booking-patient" role="option" href="{{ route('availability.consult', $pickQuery, false) }}">
+                    <strong>{{ $patient->nombres }} {{ $patient->apellidos }}</strong>
+                    <span>{{ $patient->ci ? 'CI '.$patient->ci : 'Sin documento' }} · Elegir</span>
+                </a>
+            </li>
+        @endforeach
+    </ul>
 
     <form class="booking-care" method="get" action="{{ route('availability.consult', absolute: false) }}">
         @foreach ($panelState as $name => $value)

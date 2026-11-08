@@ -237,8 +237,9 @@ class AvailabilityScreenTest extends TestCase
         $this->app->instance(AppointmentRepository::class, $appointments);
 
         $patients = Mockery::mock(PatientRepository::class);
-        $patients->shouldReceive('getActivePatients')->once()->with('ele')->andReturn(collect([
+        $patients->shouldReceive('getActivePatients')->once()->with(null)->andReturn(collect([
             (object) ['id_paciente' => 9, 'nombres' => 'Elena', 'apellidos' => 'Vargas', 'ci' => '1002'],
+            (object) ['id_paciente' => 10, 'nombres' => 'Mario', 'apellidos' => 'Soto', 'ci' => '1003'],
         ]));
         $this->app->instance(PatientRepository::class, $patients);
 
@@ -246,11 +247,11 @@ class AvailabilityScreenTest extends TestCase
         try {
             $this->get('/disponibilidad?nueva=1&fecha=2026-11-03&hora_inicio=08:00&hora_fin=08:30&q=ele')
                 ->assertOk()
-                ->assertSee('Elena')
-                ->assertSee('Paciente registrado')
+                ->assertSee('Elena Vargas')
+                ->assertSee('Elegir')
                 ->assertDontSee('Ningún paciente coincide')
                 ->assertSee('Ampliar horas')
-                ->assertSee('se actualiza al teclear')
+                ->assertSee('sin recargar')
                 ->assertDontSee('<script', false);
             $this->assertSame([], $this->app['db']->getConnections());
         } finally {
@@ -284,7 +285,7 @@ class AvailabilityScreenTest extends TestCase
         $this->app->instance(AppointmentRepository::class, $appointments);
 
         $patients = Mockery::mock(PatientRepository::class);
-        $patients->shouldReceive('getActivePatients')->once()->with('Jose')->andReturn(collect([
+        $patients->shouldReceive('getActivePatients')->once()->with(null)->andReturn(collect([
             (object) ['id_paciente' => 8, 'nombres' => 'Jose Miguel', 'apellidos' => 'Bustamante Condori', 'ci' => null],
             (object) ['id_paciente' => 11, 'nombres' => 'Josefina', 'apellidos' => 'Rojas', 'ci' => '2001'],
         ]));

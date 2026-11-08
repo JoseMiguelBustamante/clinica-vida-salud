@@ -62,15 +62,12 @@ final class AvailabilityController
         $patients = collect();
         $selectedPatient = null;
         if ($bookingOpen) {
-            $patients = $this->appointments->getBookablePatients($patientQuery);
+            // Full list for client-side filtering while typing (avoids focus loss on reload).
+            $patients = $this->appointments->getBookablePatients(null);
             if ($patientId !== null) {
                 $selectedPatient = $patients->first(
                     fn (object $patient): bool => (int) $patient->id_paciente === $patientId,
                 );
-            }
-            if ($selectedPatient === null && $patientQuery !== '' && $patients->count() === 1) {
-                $selectedPatient = $patients->first();
-                $patientId = (int) $selectedPatient->id_paciente;
             }
         }
 

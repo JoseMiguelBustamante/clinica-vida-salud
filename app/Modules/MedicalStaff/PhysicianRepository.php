@@ -41,6 +41,11 @@ class PhysicianRepository
             ->where('id_medico', $id)->first();
     }
 
+    public function countActivePhysicians(): int
+    {
+        return (int) DB::table('medico')->where('activo', true)->count();
+    }
+
     public function licenseTaken(string $license, ?int $exceptId = null): bool
     {
         $query = DB::table('medico')->where('registro_profesional', $license);

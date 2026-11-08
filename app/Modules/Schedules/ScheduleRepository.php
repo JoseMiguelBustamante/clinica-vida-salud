@@ -64,6 +64,11 @@ class ScheduleRepository
             ->first();
     }
 
+    public function countActiveSchedules(): int
+    {
+        return (int) DB::table('horario_atencion')->where('activo', true)->count();
+    }
+
     public function lockPhysicianSchedules(int $physicianId): void
     {
         DB::select('SELECT pg_advisory_xact_lock(847201, ?)', [$physicianId]);

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Modules\Identity\IdentityRepository;
+use App\Modules\Identity\PanelDashboardService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -106,6 +107,43 @@ class IdentitySessionScreenTest extends TestCase
             ->assertSee('siguiente paso de esta sesión')
             ->assertDontSee('Usuarios y roles')->assertDontSee('Registrar paciente')
             ->assertDontSee('pacientes.registrar')->assertDontSee('Permisos del rol');
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_the_panel_shows_dashboard_indicators_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true]);
+        $representation = ['id' => 17, 'username' => 'admin', 'email' => null,
+            'role' => ['id' => 1, 'name' => 'Administrador'], 'permissions' => ['usuarios.administrar']];
+        $repository = Mockery::mock(IdentityRepository::class);
+        $repository->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $repository->shouldReceive('representation')->once()->with($user)->andReturn($representation);
+        $this->app->instance(IdentityRepository::class, $repository);
+
+        $dashboard = Mockery::mock(PanelDashboardService::class);
+        $dashboard->shouldReceive('indicatorsFor')->once()->with($representation)->andReturn([
+            [
+                'label' => 'Citas de hoy',
+                'value' => 5,
+                'hint' => 'Citas programadas o atendidas hoy',
+                'href' => 'https://localhost/agenda',
+            ],
+            [
+                'label' => 'Pacientes activos',
+                'value' => 12,
+                'hint' => 'Registros habilitados para atención',
+                'href' => 'https://localhost/pacientes',
+            ],
+        ]);
+        $this->app->instance(PanelDashboardService::class, $dashboard);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/panel')->assertOk()
+            ->assertSee('Indicadores')
+            ->assertSee('Citas de hoy')
+            ->assertSee('5')
+            ->assertSee('Pacientes activos')
+            ->assertSee('12');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

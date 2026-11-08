@@ -37,6 +37,11 @@ class SpecialtyRepository
             ->where('id_especialidad', $id)->first();
     }
 
+    public function countActiveSpecialties(): int
+    {
+        return (int) DB::table('especialidad')->where('activo', true)->count();
+    }
+
     public function nameTaken(string $name, ?int $exceptId = null): bool
     {
         $query = DB::table('especialidad')->whereRaw('lower(nombre) = lower(?)', [$name]);

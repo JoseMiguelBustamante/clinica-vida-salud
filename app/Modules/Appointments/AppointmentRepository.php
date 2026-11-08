@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Appointments;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -283,6 +284,32 @@ class AppointmentRepository
             ->select('id_medico', 'registro_profesional', 'nombres', 'apellidos', 'activo', 'id_usuario')
             ->where('id_usuario', $userId)
             ->first();
+    }
+
+    /**
+     * @param  list<string>|null  $statuses
+     */
+    public function countAppointmentsOnDate(string $date, ?int $physicianId = null, ?array $statuses = null): int
+    {
+        $query = DB::table('cita_medica')->whereDate('inicio', $date);
+        if ($physicianId !== null) {
+            $query->where('id_medico', $physicianId);
+        }
+        if ($statuses !== null && $statuses !== []) {
+            $query->whereIn('estado', $statuses);
+        }
+
+        return (int) $query->count();
+    }
+
+    public function countUpcomingAppointmentsForPatientAccount(int $userId): int
+    {
+        return (int) DB::table('cita_medica')
+            ->join('paciente', 'paciente.id_paciente', '=', 'cita_medica.id_paciente')
+            ->where('paciente.id_usuario', $userId)
+            ->whereIn('cita_medica.estado', ['Programada', 'Confirmada'])
+            ->where('cita_medica.inicio', '>=', Carbon::now('UTC')->toIso8601String())
+            ->count();
     }
 
     public function getRegisteredPhysicianById(int $id): ?object

@@ -3,6 +3,7 @@
 namespace Tests;
 
 use App\Modules\Identity\ActivityLogRepository;
+use App\Modules\Identity\PanelDashboardService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
@@ -43,6 +44,10 @@ abstract class TestCase extends BaseTestCase
         }
 
         $this->app->instance(ActivityLogRepository::class, Mockery::mock(ActivityLogRepository::class)->shouldIgnoreMissing());
+
+        $dashboard = Mockery::mock(PanelDashboardService::class);
+        $dashboard->shouldReceive('indicatorsFor')->andReturn([])->byDefault();
+        $this->app->instance(PanelDashboardService::class, $dashboard);
     }
 
     protected function tearDown(): void

@@ -77,6 +77,29 @@
             </div>
         </article>
 
+        @if (($indicators ?? []) !== [])
+            <section class="panel-indicators" aria-labelledby="indicators-title">
+                <h2 id="indicators-title" class="session-next">Indicadores</h2>
+                <div class="panel-indicator-grid">
+                    @foreach ($indicators as $indicator)
+                        @if (! empty($indicator['href']))
+                            <a class="panel-indicator" href="{{ $indicator['href'] }}">
+                                <p class="panel-indicator-value">{{ $indicator['value'] }}</p>
+                                <p class="panel-indicator-label">{{ $indicator['label'] }}</p>
+                                <p class="panel-indicator-hint">{{ $indicator['hint'] }}</p>
+                            </a>
+                        @else
+                            <div class="panel-indicator">
+                                <p class="panel-indicator-value">{{ $indicator['value'] }}</p>
+                                <p class="panel-indicator-label">{{ $indicator['label'] }}</p>
+                                <p class="panel-indicator-hint">{{ $indicator['hint'] }}</p>
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         @if ($actions !== [])
             <section class="panel-next" aria-labelledby="next-title">
                 <h2 id="next-title" class="session-next">Siguiente paso</h2>

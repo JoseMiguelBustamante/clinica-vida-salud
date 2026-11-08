@@ -8,6 +8,7 @@ use App\Modules\Identity\ActivityLogService;
 use App\Modules\Identity\AuthenticationRejected;
 use App\Modules\Identity\Http\Requests\CreateSessionRequest;
 use App\Modules\Identity\IdentitySessionService;
+use App\Modules\Identity\PanelDashboardService;
 use App\Modules\Identity\TooManyLoginAttempts;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ final class IdentitySessionController
     public function __construct(
         private IdentitySessionService $sessions,
         private ActivityLogService $activity,
+        private PanelDashboardService $dashboard,
     ) {}
 
     public function showLoginForm(Request $request): View|RedirectResponse
@@ -90,6 +92,9 @@ final class IdentitySessionController
         $user = $this->sessions->representation($request->attributes->get('identity'));
         view()->share('identityPermissions', $user['permissions']);
 
-        return view('identity.panel', ['user' => $user]);
+        return view('identity.panel', [
+            'user' => $user,
+            'indicators' => $this->dashboard->indicatorsFor($user),
+        ]);
     }
 }

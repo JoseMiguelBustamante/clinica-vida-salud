@@ -81,6 +81,11 @@ class IdentityRepository
             ->where('usuario.id_usuario', $id)->first();
     }
 
+    public function countActiveAccounts(): int
+    {
+        return (int) DB::table('usuario')->where('activo', true)->count();
+    }
+
     public function identifierTaken(string $identifier, ?int $exceptId = null): bool
     {
         $query = User::query()->where(function ($inner) use ($identifier): void {

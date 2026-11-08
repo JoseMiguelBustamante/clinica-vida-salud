@@ -68,6 +68,11 @@ class PatientRepository
             ->first();
     }
 
+    public function countActivePatients(): int
+    {
+        return (int) DB::table('paciente')->where('activo', true)->count();
+    }
+
     public function getMedicalInformationByPatientId(int $patientId): ?object
     {
         return DB::table('informacion_medica')

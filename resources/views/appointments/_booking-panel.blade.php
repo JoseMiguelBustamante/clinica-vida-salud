@@ -33,16 +33,17 @@
 
     <form class="booking-search" method="get" action="{{ route('availability.consult', absolute: false) }}">
         @foreach ($panelState as $name => $value)
-            @if ($name !== 'q')
+            @if (! in_array($name, ['q', 'id_paciente'], true))
                 <input type="hidden" name="{{ $name }}" value="{{ $value }}">
             @endif
         @endforeach
         <div class="field">
             <label for="booking_q">Buscar paciente</label>
-            <input id="booking_q" name="q" type="search" value="{{ $q }}" placeholder="Nombre o cédula" autocomplete="off">
+            <input id="booking_q" name="q" type="search" value="{{ $q }}" placeholder="Nombre o cédula" autocomplete="off"
+                oninput="clearTimeout(window.__bookingPatientSearch);window.__bookingPatientSearch=setTimeout(function(){this.form.requestSubmit()}.bind(this),280)">
         </div>
         <button class="button button-inline" type="submit">Buscar paciente</button>
-        <p class="booking-help">Filtra la lista de pacientes registrados por nombre o cédula.</p>
+        <p class="booking-help">Escriba parte del nombre, apellido o cédula; la lista se actualiza al teclear.</p>
         @if ($canManagePatients)
             <p class="booking-register"><a href="{{ route('patients.create') }}">Registrar paciente</a></p>
         @endif
@@ -55,6 +56,23 @@
             <strong>{{ $selectedPatient->nombres }} {{ $selectedPatient->apellidos }}</strong>
             <span>Paciente registrado</span>
         </div>
+    @elseif ($q !== '' && $patients->isNotEmpty())
+        <ul class="booking-matches" role="listbox" aria-label="Pacientes encontrados">
+            @foreach ($patients as $patient)
+                @php
+                    $pickQuery = array_merge($panelState, [
+                        'q' => $q,
+                        'id_paciente' => $patient->id_paciente,
+                    ]);
+                @endphp
+                <li>
+                    <a class="booking-patient" role="option" href="{{ route('availability.consult', $pickQuery, false) }}">
+                        <strong>{{ $patient->nombres }} {{ $patient->apellidos }}</strong>
+                        <span>{{ $patient->ci ? 'CI '.$patient->ci : 'Sin documento' }} · Elegir</span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
     @endif
 
     <form class="booking-care" method="get" action="{{ route('availability.consult', absolute: false) }}">

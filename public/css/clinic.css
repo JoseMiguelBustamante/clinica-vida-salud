@@ -2150,6 +2150,30 @@ a.code-link:hover {
     margin: 0;
 }
 
+.booking-matches {
+    list-style: none;
+    margin: 0 0 0.85rem;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+    max-height: 14rem;
+    overflow: auto;
+}
+
+.booking-matches .booking-patient {
+    margin: 0;
+    text-decoration: none;
+    border: 1px solid #d1fae5;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.booking-matches .booking-patient:hover,
+.booking-matches .booking-patient:focus-visible {
+    background: #d1fae5;
+    border-color: #6ee7b7;
+    outline: none;
+}
+
 .booking-patient {
     display: grid;
     gap: 0.1rem;

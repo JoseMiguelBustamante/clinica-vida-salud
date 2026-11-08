@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Patients;
 
 use App\Modules\Identity\PermissionCatalog;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -18,14 +19,7 @@ class PatientRepository
                 'telefono', 'correo_contacto', 'direccion', 'activo', 'fecha_registro', 'id_usuario')
             ->orderBy('apellidos')->orderBy('nombres');
 
-        if ($fragment !== null && $fragment !== '') {
-            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $fragment).'%';
-            $query->where(function ($inner) use ($like): void {
-                $inner->whereRaw('paciente.ci ILIKE ? ESCAPE \'!\'', [$like])
-                    ->orWhereRaw('paciente.nombres ILIKE ? ESCAPE \'!\'', [$like])
-                    ->orWhereRaw('paciente.apellidos ILIKE ? ESCAPE \'!\'', [$like]);
-            });
-        }
+        $this->applyPatientSearch($query, $fragment);
 
         return $query->get();
     }
@@ -39,14 +33,7 @@ class PatientRepository
             ->where('activo', true)
             ->orderBy('apellidos')->orderBy('nombres');
 
-        if ($fragment !== null && $fragment !== '') {
-            $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $fragment).'%';
-            $query->where(function ($inner) use ($like): void {
-                $inner->whereRaw('paciente.ci ILIKE ? ESCAPE \'!\'', [$like])
-                    ->orWhereRaw('paciente.nombres ILIKE ? ESCAPE \'!\'', [$like])
-                    ->orWhereRaw('paciente.apellidos ILIKE ? ESCAPE \'!\'', [$like]);
-            });
-        }
+        $this->applyPatientSearch($query, $fragment);
 
         return $query->get();
     }
@@ -212,5 +199,34 @@ class PatientRepository
     public function setPatientActive(int $id, bool $active): void
     {
         DB::table('paciente')->where('id_paciente', $id)->update(['activo' => $active]);
+    }
+
+    private function applyPatientSearch(Builder $query, ?string $fragment): void
+    {
+        if ($fragment === null || $fragment === '') {
+            return;
+        }
+
+        $tokens = preg_split('/\s+/u', trim($fragment), -1, PREG_SPLIT_NO_EMPTY);
+        if ($tokens === false || $tokens === []) {
+            return;
+        }
+
+        foreach ($tokens as $token) {
+            $like = '%'.$this->escapedLikeFragment($token).'%';
+            $query->where(function (Builder $inner) use ($like): void {
+                $inner->whereRaw('paciente.ci ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw('paciente.nombres ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw('paciente.apellidos ILIKE ? ESCAPE \'!\'', [$like])
+                    ->orWhereRaw("(paciente.nombres || ' ' || paciente.apellidos) ILIKE ? ESCAPE '!'", [$like]);
+            });
+        }
+
+        $query->limit(25);
+    }
+
+    private function escapedLikeFragment(string $fragment): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $fragment);
     }
 }

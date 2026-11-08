@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Modules\Appointments\AppointmentReminderMailer;
 use App\Modules\Appointments\AppointmentReminderService;
 use App\Modules\Appointments\AppointmentRepository;
+use App\Modules\Appointments\ReminderNotSendable;
 use Illuminate\Support\Carbon;
 use Mockery;
 use RuntimeException;
@@ -276,6 +277,72 @@ class AppointmentReminderServiceTest extends TestCase
         $appointments->shouldReceive('recordReminderResult')->once()->andThrow(new RuntimeException('dsn secret host=internal'));
 
         $this->assertSame(1, $this->service($appointments, $mailer)->sendDueReminders());
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_send_pending_reminder_now_claims_and_dispatches(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-30T12:00:00Z'));
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $mailer = Mockery::mock(AppointmentReminderMailer::class);
+        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($this->appointment());
+        $appointments->shouldReceive('getLatestReminderForAppointment')->twice()->with(21)->andReturn(
+            (object) [
+                'id_recordatorio' => 9,
+                'fecha_programada' => '2026-10-31T08:00:00+00:00',
+                'fecha_intento' => null,
+                'estado' => 'Pendiente',
+                'referencia_envio' => null,
+                'id_cita' => 21,
+            ],
+            (object) [
+                'id_recordatorio' => 9,
+                'fecha_programada' => '2026-10-30T12:00:00+00:00',
+                'fecha_intento' => '2026-10-30T12:00:00+00:00',
+                'estado' => 'AceptadoPorProveedor',
+                'referencia_envio' => 'aviso-9-20261030120000',
+                'id_cita' => 21,
+            ],
+        );
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)
+            ->andReturn($this->enabledPreferences());
+        $appointments->shouldReceive('markReminderDueNow')->once()
+            ->with(9, '2026-10-30T12:00:00+00:00')->andReturn(true);
+        $appointments->shouldReceive('claimReminder')->once()
+            ->with(9, '2026-10-30T12:00:00+00:00')->andReturn(true);
+        $appointments->shouldReceive('getReminderDispatchContext')->once()->with(9)
+            ->andReturn($this->dispatchContext());
+        $mailer->shouldReceive('requestSend')->once()
+            ->with('ana@example.test', Mockery::type('string'), Mockery::type('string'))
+            ->andReturn(AppointmentReminderService::PROVIDER_ACCEPTED);
+        $appointments->shouldReceive('recordReminderResult')->once()
+            ->with(9, AppointmentReminderService::PROVIDER_ACCEPTED, Mockery::type('string'), '2026-10-30T12:00:00+00:00');
+
+        $status = $this->service($appointments, $mailer)->sendPendingReminderNow(21);
+        $this->assertSame('AceptadoPorProveedor', $status);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_send_pending_reminder_now_rejects_when_preferences_are_missing(): void
+    {
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $mailer = Mockery::mock(AppointmentReminderMailer::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn($this->appointment());
+        $appointments->shouldReceive('getLatestReminderForAppointment')->once()->with(21)->andReturn((object) [
+            'id_recordatorio' => 9,
+            'fecha_programada' => '2026-10-31T08:00:00+00:00',
+            'estado' => 'Pendiente',
+            'id_cita' => 21,
+        ]);
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)->andReturn(null);
+        $mailer->shouldReceive('requestSend')->never();
+
+        try {
+            $this->service($appointments, $mailer)->sendPendingReminderNow(21);
+            $this->fail('Expected ReminderNotSendable');
+        } catch (ReminderNotSendable) {
+        }
+
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

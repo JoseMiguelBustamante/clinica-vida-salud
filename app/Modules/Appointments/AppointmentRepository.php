@@ -164,6 +164,23 @@ class AppointmentRepository
             ->exists();
     }
 
+    public function getLatestReminderForAppointment(int $appointmentId): ?object
+    {
+        return DB::table('recordatorio_cita')
+            ->select('id_recordatorio', 'fecha_programada', 'fecha_intento', 'estado', 'referencia_envio', 'id_cita')
+            ->where('id_cita', $appointmentId)
+            ->orderByDesc('id_recordatorio')
+            ->first();
+    }
+
+    public function markReminderDueNow(int $reminderId, string $scheduledAt): bool
+    {
+        return DB::table('recordatorio_cita')
+            ->where('id_recordatorio', $reminderId)
+            ->where('estado', 'Pendiente')
+            ->update(['fecha_programada' => $scheduledAt]) > 0;
+    }
+
     public function appointmentWasOriginallyEligibleForReminders(int $appointmentId): bool
     {
         return DB::table('recordatorio_cita')->where('id_cita', $appointmentId)->exists()

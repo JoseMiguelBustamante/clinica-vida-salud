@@ -9,6 +9,7 @@ use App\Modules\Appointments\AppointmentNotAttendable;
 use App\Modules\Appointments\AppointmentNotCancellable;
 use App\Modules\Appointments\AppointmentNotFound;
 use App\Modules\Appointments\AppointmentNotReschedulable;
+use App\Modules\Appointments\AppointmentReminderService;
 use App\Modules\Appointments\AppointmentService;
 use App\Modules\Appointments\AvailabilityService;
 use App\Modules\Appointments\Http\Requests\CancelAppointmentRequest;
@@ -22,10 +23,12 @@ use App\Modules\Appointments\Http\Requests\RescheduleAppointmentRequest;
 use App\Modules\Appointments\Http\Requests\SearchAgendaRequest;
 use App\Modules\Appointments\Http\Requests\SearchAppointmentsRequest;
 use App\Modules\Appointments\Http\Requests\SearchPatientHistoryRequest;
+use App\Modules\Appointments\Http\Requests\SendAppointmentReminderRequest;
 use App\Modules\Appointments\Http\Requests\StoreAppointmentRequest;
 use App\Modules\Appointments\InvalidAvailabilityInput;
 use App\Modules\Appointments\PatientNotEligible;
 use App\Modules\Appointments\PhysicianNotEligible;
+use App\Modules\Appointments\ReminderNotSendable;
 use App\Modules\Appointments\SlotUnavailable;
 use App\Modules\Identity\ActivityLogService;
 use App\Modules\Identity\PermissionCatalog;
@@ -41,6 +44,7 @@ final class AppointmentController
     public function __construct(
         private AppointmentService $appointments,
         private AvailabilityService $availability,
+        private AppointmentReminderService $reminders,
         private ActivityLogService $activity,
     ) {}
 
@@ -149,8 +153,20 @@ final class AppointmentController
                 ? $this->appointments->getAppointmentForCare($cita, (int) $actor->id_usuario)
                 : $this->appointments->getAppointmentById($cita);
 
+            $canManageReminders = in_array(PermissionCatalog::BOOK_APPOINTMENTS, $codes, true);
+            $reminder = null;
+            if ($canManageReminders) {
+                try {
+                    $reminder = $this->reminders->overviewForAppointment($cita);
+                } catch (Throwable $exception) {
+                    Log::error('[AppointmentController - reminder overview] '.$exception::class);
+                }
+            }
+
             return view('appointments.show', [
                 'appointment' => $appointment,
+                'reminder' => $reminder,
+                'canManageReminders' => $canManageReminders,
             ]);
         } catch (AppointmentNotFound) {
             return $restrictedToOwnAgenda
@@ -160,6 +176,39 @@ final class AppointmentController
             return redirect()->route('appointments.agenda')
                 ->withErrors(['q' => 'No puede consultar una cita que no está en su agenda.']);
         }
+    }
+
+    public function sendAppointmentReminder(SendAppointmentReminderRequest $request, int $cita): RedirectResponse
+    {
+        try {
+            $this->appointments->getAppointmentById($cita);
+            $result = $this->reminders->sendPendingReminderNow($cita);
+            $this->activity->record(
+                'Envío',
+                'Citas',
+                'Prueba de recordatorio de la cita '.$cita.' ('.$result.')',
+                $cita,
+            );
+        } catch (AppointmentNotFound) {
+            return redirect()->route('appointments.index')
+                ->withErrors(['q' => 'No puede realizarse la operación solicitada.']);
+        } catch (ReminderNotSendable) {
+            return redirect()->route('appointments.show', $cita)
+                ->withErrors(['q' => 'No se puede enviar el recordatorio ahora. Revise preferencias del paciente y el estado del aviso.']);
+        } catch (Throwable $exception) {
+            Log::error('[AppointmentController - sendAppointmentReminder] '.$exception::class);
+
+            return redirect()->route('appointments.show', $cita)
+                ->withErrors(['q' => 'No fue posible solicitar el envío del recordatorio.']);
+        }
+
+        $message = match ($result) {
+            'AceptadoPorProveedor' => 'El correo aceptó el recordatorio. Revise la bandeja (y spam) del paciente.',
+            'Fallido' => 'El proveedor rechazó el envío. Revise la configuración de correo.',
+            default => 'El envío quedó con resultado '.$result.'.',
+        };
+
+        return redirect()->route('appointments.show', $cita)->with('status', $message);
     }
 
     public function showRescheduleAppointmentForm(PrepareRescheduleRequest $request, int $cita): View|RedirectResponse

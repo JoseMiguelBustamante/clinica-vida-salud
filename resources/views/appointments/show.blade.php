@@ -92,6 +92,52 @@
                 @endif
             </dl>
         </article>
+
+        @if ($canManageReminders ?? false)
+            <article class="list-card detail-card" aria-labelledby="reminder-title">
+                <h2 id="reminder-title">Recordatorio por correo</h2>
+                @if ($reminder)
+                    <dl class="detail-list">
+                        <div>
+                            <dt>Estado</dt>
+                            <dd>{{ $reminder['status_label'] }}</dd>
+                        </div>
+                        <div>
+                            <dt>Detalle</dt>
+                            <dd>{{ $reminder['detail'] }}</dd>
+                        </div>
+                        @if ($reminder['reminder'])
+                            <div>
+                                <dt>Programado</dt>
+                                <dd>{{ \Illuminate\Support\Carbon::parse((string) $reminder['reminder']->fecha_programada)->timezone('UTC')->format('Y-m-d H:i') }} UTC</dd>
+                            </div>
+                            @if ($reminder['reminder']->fecha_intento)
+                                <div>
+                                    <dt>Último intento</dt>
+                                    <dd>{{ \Illuminate\Support\Carbon::parse((string) $reminder['reminder']->fecha_intento)->timezone('UTC')->format('Y-m-d H:i') }} UTC</dd>
+                                </div>
+                            @endif
+                            @if ($reminder['reminder']->referencia_envio)
+                                <div>
+                                    <dt>Referencia</dt>
+                                    <dd>{{ $reminder['reminder']->referencia_envio }}</dd>
+                                </div>
+                            @endif
+                        @endif
+                    </dl>
+                    @if ($reminder['can_send_now'])
+                        <form method="post" action="{{ route('appointments.reminder.send', $appointment->id_cita, false) }}" class="status-form">
+                            @csrf
+                            <button class="button button-inline" type="submit">Enviar recordatorio ahora</button>
+                        </form>
+                        <p class="list-meta">Úselo para probar Gmail/SMTP. Adelanta el aviso pendiente y pide el envío al correo configurado. No confirma la cita.</p>
+                    @endif
+                @else
+                    <p class="list-meta">No se pudo consultar el estado del recordatorio.</p>
+                @endif
+            </article>
+        @endif
+
         <p class="list-meta">Programar o reprogramar no confirma la asistencia. Cancelar libera el horario y conserva el registro.</p>
     </section>
 @endsection

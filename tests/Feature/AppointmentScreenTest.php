@@ -97,8 +97,7 @@ class AppointmentScreenTest extends TestCase
         $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::BOOK_APPOINTMENTS]);
         $this->app->instance(IdentityRepository::class, $identities);
 
-        $appointments = Mockery::mock(AppointmentRepository::class);
-        $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn((object) [
+        $appointment = (object) [
             'id_cita' => 21,
             'codigo' => 'CIT-20261101080000ab',
             'inicio' => '2026-11-01T08:00:00+00:00',
@@ -106,6 +105,7 @@ class AppointmentScreenTest extends TestCase
             'motivo_consulta' => null,
             'modalidad' => 'Presencial',
             'estado' => 'Programada',
+            'id_paciente' => 8,
             'paciente_nombres' => 'Ana',
             'paciente_apellidos' => 'Rojas',
             'paciente_ci' => '123',
@@ -113,12 +113,29 @@ class AppointmentScreenTest extends TestCase
             'medico_apellidos' => 'Soto',
             'registro_profesional' => 'MP-1',
             'especialidad_nombre' => 'Pediatría',
+        ];
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($appointment);
+        $appointments->shouldReceive('getLatestReminderForAppointment')->once()->with(21)->andReturn((object) [
+            'id_recordatorio' => 9,
+            'fecha_programada' => '2026-10-31T08:00:00+00:00',
+            'fecha_intento' => null,
+            'estado' => 'Pendiente',
+            'referencia_envio' => null,
+            'id_cita' => 21,
+        ]);
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)->andReturn((object) [
+            'recordatorios_habilitados' => true,
+            'canal' => 'CorreoElectronico',
+            'destino' => 'ana@example.test',
+            'destino_verificado' => true,
         ]);
         $this->app->instance(AppointmentRepository::class, $appointments);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/citas/21')->assertOk()->assertSee('CIT-20261101080000ab')
-            ->assertSee('Programada')->assertSee('Ana')->assertSee('no confirma', false);
+            ->assertSee('Programada')->assertSee('Ana')->assertSee('no confirma', false)
+            ->assertSee('Recordatorio por correo')->assertSee('Enviar recordatorio ahora');
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

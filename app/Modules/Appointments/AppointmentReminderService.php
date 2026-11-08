@@ -63,6 +63,100 @@ final class AppointmentReminderService
         return $processed;
     }
 
+    /**
+     * @return array{
+     *     reminder: ?object,
+     *     preferences_ready: bool,
+     *     can_send_now: bool,
+     *     status_label: string,
+     *     detail: string
+     * }
+     */
+    public function overviewForAppointment(int $appointmentId): array
+    {
+        $appointment = $this->appointments->getAppointmentById($appointmentId);
+        if ($appointment === null) {
+            throw new AppointmentNotFound;
+        }
+
+        $reminder = $this->appointments->getLatestReminderForAppointment($appointmentId);
+        $preferences = $this->appointments->getNotificationPreferencesForPatient((int) $appointment->id_paciente);
+        $preferencesReady = $this->preferencesAllowSend($preferences);
+        $canSendNow = $reminder !== null && (string) $reminder->estado === 'Pendiente' && $preferencesReady
+            && $this->appointmentIsCurrent($appointment);
+
+        return [
+            'reminder' => $reminder,
+            'preferences_ready' => $preferencesReady,
+            'can_send_now' => $canSendNow,
+            'status_label' => $this->overviewStatusLabel($reminder, $preferencesReady),
+            'detail' => $this->overviewDetail($reminder, $preferencesReady, $appointment),
+        ];
+    }
+
+    public function sendPendingReminderNow(int $appointmentId): string
+    {
+        $overview = $this->overviewForAppointment($appointmentId);
+        $reminder = $overview['reminder'];
+        if (! $overview['can_send_now'] || $reminder === null) {
+            throw new ReminderNotSendable;
+        }
+
+        $now = Carbon::now('UTC')->toIso8601String();
+        if (! $this->appointments->markReminderDueNow((int) $reminder->id_recordatorio, $now)) {
+            throw new ReminderNotSendable;
+        }
+        if (! $this->appointments->claimReminder((int) $reminder->id_recordatorio, $now)) {
+            throw new ReminderNotSendable;
+        }
+
+        $this->dispatchClaimedReminder((int) $reminder->id_recordatorio, $now);
+        $updated = $this->appointments->getLatestReminderForAppointment($appointmentId);
+
+        return $updated === null ? 'ResultadoDesconocido' : (string) $updated->estado;
+    }
+
+    private function overviewStatusLabel(?object $reminder, bool $preferencesReady): string
+    {
+        if ($reminder === null) {
+            return $preferencesReady ? 'Sin planificar' : 'No elegible';
+        }
+
+        return match ((string) $reminder->estado) {
+            'Pendiente' => 'Pendiente de envío',
+            'EnProceso' => 'En proceso',
+            'AceptadoPorProveedor' => 'Aceptado por el correo',
+            'Fallido' => 'Fallido',
+            'ResultadoDesconocido' => 'Resultado desconocido',
+            'Descartado' => 'Descartado',
+            default => (string) $reminder->estado,
+        };
+    }
+
+    private function overviewDetail(?object $reminder, bool $preferencesReady, object $appointment): string
+    {
+        if (! $preferencesReady) {
+            return 'El paciente necesita cuenta de portal vinculada, recordatorios habilitados y correo verificado en Perfil.';
+        }
+        if ($reminder === null) {
+            if (! $this->appointmentIsCurrent($appointment)) {
+                return 'Solo se planifican recordatorios para citas Programada o Confirmada.';
+            }
+
+            return 'No hay fila de recordatorio. Suele ocurrir si al programar aún no cumplía las preferencias.';
+        }
+        if ((string) $reminder->estado === 'Pendiente') {
+            $when = Carbon::parse((string) $reminder->fecha_programada)->timezone('UTC')->format('Y-m-d H:i');
+
+            return 'Programado para enviarse desde '.$when.' UTC (por defecto 24 h antes de la cita).';
+        }
+        if ((string) $reminder->estado === 'AceptadoPorProveedor') {
+            return 'El proveedor de correo aceptó el aviso. Eso no prueba que el paciente lo haya leído.';
+        }
+
+        return 'Estado actual del aviso: '.$reminder->estado.'.';
+    }
+
     private function planIfEligible(int $appointmentId): void
     {
         if ($this->appointments->hasUndeliveredReminder($appointmentId)) {

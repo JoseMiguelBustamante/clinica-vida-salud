@@ -28,6 +28,9 @@ Route::middleware([
 ])->group(function (): void {
     Route::get('/citas/programar', [AppointmentController::class, 'showCreateAppointmentForm'])->name('appointments.create');
     Route::post('/citas', [AppointmentController::class, 'createAppointment'])->name('appointments.store');
+    Route::post('/citas/{cita}/recordatorio', [AppointmentController::class, 'sendAppointmentReminder'])
+        ->name('appointments.reminder.send')
+        ->whereNumber('cita');
 });
 
 Route::middleware([

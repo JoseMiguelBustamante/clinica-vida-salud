@@ -140,7 +140,12 @@ class PatientRepository
         $query = DB::table('usuario')
             ->join('rol', 'rol.id_rol', '=', 'usuario.id_rol')
             ->leftJoin('paciente', 'paciente.id_usuario', '=', 'usuario.id_usuario')
-            ->select('usuario.id_usuario', 'usuario.nombre_usuario', 'rol.nombre as rol_nombre')
+            ->select(
+                'usuario.id_usuario',
+                'usuario.nombre_usuario',
+                'usuario.correo_acceso',
+                'rol.nombre as rol_nombre',
+            )
             ->where('usuario.activo', true)
             ->where('rol.nombre', PermissionCatalog::PATIENT_ROLE)
             ->where(function ($inner) use ($currentPatientId): void {
@@ -152,6 +157,30 @@ class PatientRepository
             ->orderBy('usuario.nombre_usuario');
 
         return $query->get();
+    }
+
+    public function getLinkablePatientAccountById(int $userId, ?int $currentPatientId): ?object
+    {
+        $query = DB::table('usuario')
+            ->join('rol', 'rol.id_rol', '=', 'usuario.id_rol')
+            ->leftJoin('paciente', 'paciente.id_usuario', '=', 'usuario.id_usuario')
+            ->select(
+                'usuario.id_usuario',
+                'usuario.nombre_usuario',
+                'usuario.correo_acceso',
+                'rol.nombre as rol_nombre',
+            )
+            ->where('usuario.id_usuario', $userId)
+            ->where('usuario.activo', true)
+            ->where('rol.nombre', PermissionCatalog::PATIENT_ROLE)
+            ->where(function ($inner) use ($currentPatientId): void {
+                $inner->whereNull('paciente.id_paciente');
+                if ($currentPatientId !== null) {
+                    $inner->orWhere('paciente.id_paciente', $currentPatientId);
+                }
+            });
+
+        return $query->first();
     }
 
     public function documentTaken(string $ci, ?int $exceptId = null): bool

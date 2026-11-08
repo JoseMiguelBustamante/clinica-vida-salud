@@ -1,5 +1,8 @@
 @php
     $row = $patient ?? null;
+    $suggested = $suggestedAccount ?? null;
+    $selectedAccountId = (string) old('id_usuario', $row->id_usuario ?? $suggested->id_usuario ?? '');
+    $contactEmail = old('correo_contacto', $row->correo_contacto ?? $suggested->correo_acceso ?? '');
 @endphp
 <div class="field">
     <label for="ci">Documento de identidad (opcional)</label>
@@ -38,7 +41,7 @@
 <div class="field">
     <label for="correo_contacto">Correo de contacto (opcional)</label>
     <input id="correo_contacto" name="correo_contacto" type="text" maxlength="255"
-        value="{{ old('correo_contacto', $row->correo_contacto ?? '') }}" autocomplete="off">
+        value="{{ $contactEmail }}" autocomplete="off">
 </div>
 <div class="field">
     <label for="direccion">Dirección (opcional)</label>
@@ -51,10 +54,13 @@
         <option value="">Sin vincular</option>
         @foreach ($accounts ?? [] as $account)
             <option value="{{ $account->id_usuario }}"
-                @selected((string) old('id_usuario', $row->id_usuario ?? '') === (string) $account->id_usuario)>
-                {{ $account->nombre_usuario }}
+                @selected($selectedAccountId === (string) $account->id_usuario)>
+                {{ $account->nombre_usuario }}@if ($account->correo_acceso) — {{ $account->correo_acceso }}@endif
             </option>
         @endforeach
     </select>
-    <p>El vínculo aprobado asocia una cuenta con rol Paciente a esta ficha. El registro del portal no lo crea solo.</p>
+    <p>El vínculo aprobado asocia una cuenta con rol Paciente a esta ficha. El registro del portal solo aporta usuario y correo; nombres, apellidos y el resto de la ficha se completan aquí.</p>
+    @if ($suggested)
+        <p role="status">Cuenta seleccionada: {{ $suggested->nombre_usuario }}@if ($suggested->correo_acceso) ({{ $suggested->correo_acceso }})@endif. El correo de contacto se rellenó con el de acceso; complete nombres y apellidos.</p>
+    @endif
 </div>

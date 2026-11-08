@@ -71,4 +71,32 @@ class PatientServiceTest extends TestCase
 
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_empty_contact_email_is_filled_from_linked_portal_account(): void
+    {
+        $repository = Mockery::mock(PatientRepository::class);
+        $repository->shouldReceive('documentTaken')->never();
+        $repository->shouldReceive('patientAccountIsLinkable')->once()->with(42, null)->andReturn(true);
+        $repository->shouldReceive('getLinkablePatientAccountById')->once()->with(42, null)->andReturn((object) [
+            'id_usuario' => 42,
+            'nombre_usuario' => 'Jose Miguel BC',
+            'correo_acceso' => 'paciente@example.com',
+            'rol_nombre' => 'Paciente',
+        ]);
+        $repository->shouldReceive('createPatient')->once()->with(Mockery::on(function (array $values): bool {
+            return $values['correo_contacto'] === 'paciente@example.com'
+                && $values['id_usuario'] === 42
+                && $values['nombres'] === 'Jose'
+                && $values['apellidos'] === 'Bustamante';
+        }))->andReturn(9);
+
+        $id = (new PatientService($repository))->createPatient([
+            'nombres' => 'Jose',
+            'apellidos' => 'Bustamante',
+            'id_usuario' => 42,
+        ]);
+
+        $this->assertSame(9, $id);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

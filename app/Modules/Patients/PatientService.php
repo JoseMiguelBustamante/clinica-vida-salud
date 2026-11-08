@@ -32,6 +32,11 @@ final class PatientService
         return $this->patients->getLinkablePatientAccounts($currentPatientId);
     }
 
+    public function getLinkablePatientAccountById(int $userId, ?int $currentPatientId = null): ?object
+    {
+        return $this->patients->getLinkablePatientAccountById($userId, $currentPatientId);
+    }
+
     /**
      * @param  array{ci?: ?string, nombres: string, apellidos: string, fecha_nacimiento?: ?string, sexo?: ?string, telefono?: ?string, correo_contacto?: ?string, direccion?: ?string, id_usuario?: ?int}  $input
      */
@@ -77,6 +82,16 @@ final class PatientService
         $this->assertUniqueDocument($ci, $exceptId);
         $birthDate = $this->normalizedBirthDate($input['fecha_nacimiento'] ?? null);
         $email = $this->optionalText($input['correo_contacto'] ?? null, 255);
+        $accountId = $this->optionalAccountId($input['id_usuario'] ?? null, $exceptId);
+        if ($email === null && $accountId !== null) {
+            $account = $this->patients->getLinkablePatientAccountById($accountId, $exceptId);
+            if ($account !== null) {
+                $email = $this->optionalText(
+                    isset($account->correo_acceso) ? (string) $account->correo_acceso : null,
+                    255,
+                );
+            }
+        }
         if ($email !== null && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw new InvalidPatientInput;
         }
@@ -90,7 +105,7 @@ final class PatientService
             'telefono' => $this->optionalText($input['telefono'] ?? null, 30),
             'correo_contacto' => $email,
             'direccion' => $this->optionalText($input['direccion'] ?? null, 2000),
-            'id_usuario' => $this->optionalAccountId($input['id_usuario'] ?? null, $exceptId),
+            'id_usuario' => $accountId,
         ];
     }
 

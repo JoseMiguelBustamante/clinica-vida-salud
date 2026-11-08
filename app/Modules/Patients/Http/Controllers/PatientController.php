@@ -13,6 +13,7 @@ use App\Modules\Patients\InvalidPatientInput;
 use App\Modules\Patients\PatientNotFound;
 use App\Modules\Patients\PatientService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Throwable;
@@ -34,10 +35,18 @@ final class PatientController
         ]);
     }
 
-    public function showCreatePatientForm(): View
+    public function showCreatePatientForm(Request $request): View
     {
+        $accounts = $this->patients->getLinkablePatientAccounts(null);
+        $accountId = $request->query('cuenta');
+        $suggestedAccount = null;
+        if (is_numeric($accountId)) {
+            $suggestedAccount = $this->patients->getLinkablePatientAccountById((int) $accountId);
+        }
+
         return view('patients.create', [
-            'accounts' => $this->patients->getLinkablePatientAccounts(null),
+            'accounts' => $accounts,
+            'suggestedAccount' => $suggestedAccount,
         ]);
     }
 

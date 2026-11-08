@@ -75,6 +75,35 @@ class PatientScreenTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
+    public function test_create_form_loads_portal_account_email_without_sql(): void
+    {
+        $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true, 'id_rol' => 1]);
+        $identities = Mockery::mock(IdentityRepository::class);
+        $identities->shouldReceive('active')->once()->with(17)->andReturn($user);
+        $identities->shouldReceive('permissionCodes')->once()->with($user)->andReturn([PermissionCatalog::MANAGE_PATIENTS]);
+        $this->app->instance(IdentityRepository::class, $identities);
+
+        $account = (object) [
+            'id_usuario' => 42,
+            'nombre_usuario' => 'Jose Miguel BC',
+            'correo_acceso' => 'paciente@example.com',
+            'rol_nombre' => 'Paciente',
+        ];
+        $patients = Mockery::mock(PatientRepository::class);
+        $patients->shouldReceive('getLinkablePatientAccounts')->once()->with(null)->andReturn(collect([$account]));
+        $patients->shouldReceive('getLinkablePatientAccountById')->once()->with(42, null)->andReturn($account);
+        $this->app->instance(PatientRepository::class, $patients);
+
+        $this->withSession([Auth::guard('web')->getName() => 17]);
+        $this->get('/pacientes/registrar?cuenta=42')->assertOk()
+            ->assertSee('Registrar paciente')
+            ->assertSee('paciente@example.com')
+            ->assertSee('Jose Miguel BC')
+            ->assertSee('Cargar correo y vínculo')
+            ->assertDontSee('<script', false);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
     public function test_the_panel_shows_patient_management_when_permitted(): void
     {
         $user = (new User)->forceFill(['id_usuario' => 17, 'activo' => true]);

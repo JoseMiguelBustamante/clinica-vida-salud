@@ -77,6 +77,7 @@ final class AvailabilityController
             }
         }
 
+        $bookingPhysicians = collect();
         try {
             $physicians = $this->availability->getBoardPhysicians($specialtyId);
             $boardPhysicians = $this->boardPhysicians($physicians, $physicianId);
@@ -98,6 +99,18 @@ final class AvailabilityController
                     $this->slotDates($vista, $focus, $today),
                 );
             }
+            if ($bookingOpen && $specialtyId !== null) {
+                if ($horaInicio !== '' && $horaFin !== '') {
+                    $bookingPhysicians = $this->availability->getBookablePhysiciansForSlot(
+                        $specialtyId,
+                        $focus->toDateString(),
+                        $horaInicio,
+                        $horaFin,
+                    );
+                } else {
+                    $bookingPhysicians = $physicians;
+                }
+            }
         } catch (InvalidAvailabilityInput) {
             $status = 'Revise la especialidad, el médico y la fecha.';
         } catch (PhysicianNotEligible) {
@@ -113,6 +126,7 @@ final class AvailabilityController
             'specialties' => $this->availability->getConsultSpecialties(),
             'bookableSpecialties' => $this->availability->getBookableSpecialties(),
             'physicians' => $physicians,
+            'bookingPhysicians' => $bookingPhysicians,
             'slots' => $slots === [] && $specialtyId === null ? null : $slots,
             'events' => $events,
             'status' => $status,
@@ -141,7 +155,16 @@ final class AvailabilityController
             'patients' => $patients,
             'selectedPatient' => $selectedPatient,
             'clockOptions' => $this->boardClockOptions(),
-            'slotHint' => $this->bookingSlotHint($bookingOpen, $specialtyId, $physicianId, $focus->toDateString(), $horaInicio, $events),
+            'slotHint' => $this->bookingSlotHint(
+                $bookingOpen,
+                $specialtyId,
+                $physicianId,
+                $focus->toDateString(),
+                $horaInicio,
+                $horaFin,
+                $events,
+                $bookingPhysicians,
+            ),
             'bookingHeading' => $this->bookingHeading($focus, $horaInicio, $horaFin),
             'draftLayout' => ($bookingOpen && $horaInicio !== '' && $horaFin !== '')
                 ? $this->eventLayout($horaInicio, $horaFin, $hourHeight)
@@ -437,13 +460,19 @@ final class AvailabilityController
     /**
      * @param  list<array{kind: string, fecha: string, hora_inicio: string, id_medico: int}>  $events
      */
+    /**
+     * @param  list<array{kind: string, fecha: string, hora_inicio: string, id_medico: int}>  $events
+     * @param  Collection<int, object>  $bookingPhysicians
+     */
     private function bookingSlotHint(
         bool $bookingOpen,
         ?int $specialtyId,
         ?int $physicianId,
         string $fecha,
         string $horaInicio,
+        string $horaFin,
         array $events,
+        Collection $bookingPhysicians,
     ): ?string {
         if (! $bookingOpen || $horaInicio === '') {
             return null;
@@ -451,8 +480,17 @@ final class AvailabilityController
         if ($specialtyId === null) {
             return 'need-selection';
         }
+        if ($horaFin !== '' && $bookingPhysicians->isEmpty()) {
+            return 'no-physician-slot';
+        }
         if ($physicianId === null) {
             return 'need-physician';
+        }
+        $selectedIsBookable = $bookingPhysicians->contains(
+            static fn (object $physician): bool => (int) $physician->id_medico === $physicianId,
+        );
+        if ($horaFin !== '' && ! $selectedIsBookable) {
+            return 'no-physician-slot';
         }
         foreach ($events as $event) {
             if ($event['fecha'] === $fecha && $event['id_medico'] === $physicianId && $event['hora_inicio'] === $horaInicio) {

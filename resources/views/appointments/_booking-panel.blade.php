@@ -21,10 +21,11 @@
             'q' => $q,
             'escala' => $escala === 'normal' ? null : $escala,
         ], static fn ($value) => $value !== null && $value !== '');
+        $doctorsForBooking = $bookingPhysicians ?? collect();
         $chosenSpecialty = $specialties->first(
             fn ($specialty): bool => (string) $specialty->id_especialidad === (string) $especialidad,
         );
-        $chosenPhysician = $physicians->first(
+        $chosenPhysician = $doctorsForBooking->first(
             fn ($physician): bool => (string) $physician->id_medico === (string) old('id_medico', $medico),
         );
         $summaryDate = explode('-', (string) old('fecha', $fecha));
@@ -199,11 +200,22 @@
             </select>
         </div>
 
+        @php
+            $doctorSelectReady = $especialidad && $doctorsForBooking->isNotEmpty();
+            $selectedBookingPhysician = (string) old('id_medico', $medico);
+            if ($selectedBookingPhysician !== '' && ! $doctorsForBooking->contains(
+                static fn ($physician): bool => (string) $physician->id_medico === $selectedBookingPhysician,
+            )) {
+                $selectedBookingPhysician = '';
+            }
+        @endphp
         <div class="field">
             <label for="id_medico">Médico</label>
             @if (! $especialidad)
                 <p class="booking-hint">Elija una especialidad arriba para cargar médicos.</p>
-            @elseif ($physicians->isEmpty())
+            @elseif ($hora_inicio && $hora_fin && $doctorsForBooking->isEmpty())
+                <p class="booking-hint is-warn">Ningún médico de {{ $chosenSpecialty ? $chosenSpecialty->nombre : 'esa especialidad' }} tiene libre {{ $hora_inicio }} – {{ $hora_fin }} ese día. Elija otra hora o especialidad.</p>
+            @elseif ($doctorsForBooking->isEmpty())
                 <p class="booking-hint is-warn">
                     {{ $chosenSpecialty ? $chosenSpecialty->nombre : 'Esta especialidad' }} no tiene médicos activos asignados.
                     Elija otra especialidad de la lista
@@ -213,11 +225,13 @@
                         o pida a administración que asigne la especialidad a un médico.
                     @endif
                 </p>
+            @elseif ($hora_inicio && $hora_fin)
+                <p class="booking-hint">Solo médicos con ese intervalo libre en su horario.</p>
             @endif
-            <select id="id_medico" name="id_medico" required @disabled(! $especialidad || $physicians->isEmpty())>
+            <select id="id_medico" name="id_medico" required @disabled(! $doctorSelectReady)>
                 <option value="">Seleccione</option>
-                @foreach ($physicians as $physician)
-                    <option value="{{ $physician->id_medico }}" @selected((string) old('id_medico', $medico) === (string) $physician->id_medico)>
+                @foreach ($doctorsForBooking as $physician)
+                    <option value="{{ $physician->id_medico }}" @selected($selectedBookingPhysician === (string) $physician->id_medico)>
                         {{ $physician->nombres }} {{ $physician->apellidos }}
                     </option>
                 @endforeach
@@ -228,10 +242,12 @@
             <p class="booking-hint is-ok">Médico disponible en este horario.</p>
         @elseif ($slotHint === 'occupied')
             <p class="booking-hint is-warn">Ese intervalo ya está ocupado. El sistema lo volverá a comprobar al guardar.</p>
+        @elseif ($slotHint === 'no-physician-slot')
+            <p class="booking-hint is-warn">No hay médico disponible en ese horario. Cambie la hora o la especialidad.</p>
         @elseif ($slotHint === 'need-selection')
-            <p class="booking-hint">Elija especialidad y pulse Cargar médicos. El intervalo se comprueba al guardar.</p>
+            <p class="booking-hint">Elija especialidad para cargar médicos disponibles en este horario.</p>
         @elseif ($slotHint === 'need-physician')
-            <p class="booking-hint">Elija un médico. El intervalo se comprueba al guardar.</p>
+            <p class="booking-hint">Elija un médico de la lista. Solo aparecen quienes pueden atender ese intervalo.</p>
         @elseif ($slotHint === 'unknown')
             <p class="booking-hint">El intervalo se vuelve a comprobar al guardar. Programar no confirma la asistencia.</p>
         @endif

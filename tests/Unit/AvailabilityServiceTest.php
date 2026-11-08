@@ -187,4 +187,41 @@ class AvailabilityServiceTest extends TestCase
 
         $this->assertSame([], $this->app['db']->getConnections());
     }
+
+    public function test_bookable_physicians_for_a_slot_exclude_doctors_without_that_interval(): void
+    {
+        $day = Carbon::now('UTC')->addDays(12)->startOfDay();
+        $weekday = ScheduleService::WEEKDAYS[$day->isoWeekday() - 1];
+        $date = $day->toDateString();
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $specialties = Mockery::mock(SpecialtyRepository::class);
+        $specialties->shouldReceive('getSpecialtyById')->andReturn((object) ['id_especialidad' => 3, 'activo' => true]);
+        $appointments->shouldReceive('getActivePhysiciansForSpecialty')->once()->with(3)->andReturn(collect([
+            (object) ['id_medico' => 4, 'nombres' => 'Ana', 'apellidos' => 'Rojas', 'activo' => true],
+            (object) ['id_medico' => 5, 'nombres' => 'Luis', 'apellidos' => 'Soto', 'activo' => true],
+        ]));
+        $physicians->shouldReceive('getPhysicianById')->with(4)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true]);
+        $physicians->shouldReceive('getPhysicianById')->with(5)
+            ->andReturn((object) ['id_medico' => 5, 'activo' => true]);
+        $appointments->shouldReceive('physicianAttendsSpecialty')->with(4, 3)->andReturn(true);
+        $appointments->shouldReceive('physicianAttendsSpecialty')->with(5, 3)->andReturn(true);
+        $appointments->shouldReceive('getActiveSchedulesForPhysicianOnDay')->with(4, $weekday)
+            ->andReturn(collect([
+                (object) ['hora_inicio' => '08:00:00', 'hora_fin' => '12:00:00', 'duracion_cita_minutos' => 30],
+            ]));
+        $appointments->shouldReceive('getActiveSchedulesForPhysicianOnDay')->with(5, $weekday)
+            ->andReturn(collect([
+                (object) ['hora_inicio' => '14:00:00', 'hora_fin' => '18:00:00', 'duracion_cita_minutos' => 30],
+            ]));
+        $appointments->shouldReceive('getOccupyingAppointments')->andReturn(collect());
+
+        $matches = (new AvailabilityService($appointments, $physicians, $specialties))
+            ->getBookablePhysiciansForSlot(3, $date, '08:00', '08:30');
+
+        $this->assertCount(1, $matches);
+        $this->assertSame(4, (int) $matches->first()->id_medico);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
 }

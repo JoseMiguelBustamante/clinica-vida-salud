@@ -45,6 +45,48 @@ final class AvailabilityService
     }
 
     /**
+     * Physicians of the specialty who can take the exact requested interval (CU22).
+     *
+     * @return Collection<int, object>
+     */
+    public function getBookablePhysiciansForSlot(
+        int $specialtyId,
+        string $date,
+        string $startClock,
+        string $endClock,
+    ): Collection {
+        $candidates = $this->getConsultPhysicians($specialtyId);
+        try {
+            $from = Carbon::createFromFormat('!Y-m-d H:i', $date.' '.$startClock, 'UTC');
+            $until = Carbon::createFromFormat('!Y-m-d H:i', $date.' '.$endClock, 'UTC');
+        } catch (\Throwable) {
+            throw new InvalidAvailabilityInput;
+        }
+        if ($from === false || $until === false
+            || $from->format('Y-m-d H:i') !== $date.' '.$startClock
+            || $until->format('Y-m-d H:i') !== $date.' '.$endClock) {
+            throw new InvalidAvailabilityInput;
+        }
+
+        return $candidates
+            ->filter(function (object $physician) use ($specialtyId, $from, $until): bool {
+                try {
+                    $this->validateRequestedSlot(
+                        $specialtyId,
+                        (int) $physician->id_medico,
+                        $from->toIso8601String(),
+                        $until->toIso8601String(),
+                    );
+
+                    return true;
+                } catch (InvalidAvailabilityInput|PhysicianNotEligible|SlotUnavailable) {
+                    return false;
+                }
+            })
+            ->values();
+    }
+
+    /**
      * @return Collection<int, object>
      */
     public function getBoardAppointments(

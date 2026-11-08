@@ -210,7 +210,7 @@ class AvailabilityScreenTest extends TestCase
                 ->assertSee('Cargar médicos')
                 ->assertSee('Ver en el calendario')
                 ->assertSee('nombre o cédula', false)
-                ->assertSee('Elija especialidad y pulse Cargar médicos')
+                ->assertSee('Elija especialidad para cargar médicos')
                 ->assertSee('Nuevo turno')
                 ->assertDontSee('Confirmar programación')
                 ->assertDontSee('<script', false);

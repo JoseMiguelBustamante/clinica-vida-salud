@@ -268,6 +268,7 @@ class AppointmentRepository
                 'cita_medica.id_paciente',
                 'paciente.nombres as paciente_nombres',
                 'paciente.apellidos as paciente_apellidos',
+                'paciente.correo_contacto as correo_contacto',
                 'medico.nombres as medico_nombres',
                 'medico.apellidos as medico_apellidos',
                 'especialidad.nombre as especialidad_nombre',
@@ -278,6 +279,13 @@ class AppointmentRepository
             )
             ->where('recordatorio_cita.id_recordatorio', $reminderId)
             ->first();
+    }
+
+    public function getPatientContactEmail(int $patientId): ?string
+    {
+        $value = DB::table('paciente')->where('id_paciente', $patientId)->value('correo_contacto');
+
+        return is_string($value) ? $value : null;
     }
 
     public function confirmAppointment(int $id): void

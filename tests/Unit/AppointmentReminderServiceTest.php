@@ -285,7 +285,7 @@ class AppointmentReminderServiceTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-10-30T12:00:00Z'));
         $appointments = Mockery::mock(AppointmentRepository::class);
         $mailer = Mockery::mock(AppointmentReminderMailer::class);
-        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($this->appointment());
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn($this->appointment());
         $appointments->shouldReceive('getLatestReminderForAppointment')->twice()->with(21)->andReturn(
             (object) [
                 'id_recordatorio' => 9,
@@ -306,6 +306,7 @@ class AppointmentReminderServiceTest extends TestCase
         );
         $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)
             ->andReturn($this->enabledPreferences());
+        $appointments->shouldReceive('getPatientContactEmail')->once()->with(8)->andReturn(null);
         $appointments->shouldReceive('markReminderDueNow')->once()
             ->with(9, '2026-10-30T12:00:00+00:00')->andReturn(true);
         $appointments->shouldReceive('claimReminder')->once()
@@ -323,18 +324,89 @@ class AppointmentReminderServiceTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
-    public function test_send_pending_reminder_now_rejects_when_preferences_are_missing(): void
+    public function test_send_now_creates_a_reminder_when_none_is_pending(): void
     {
+        Carbon::setTestNow(Carbon::parse('2026-10-30T12:00:00Z'));
         $appointments = Mockery::mock(AppointmentRepository::class);
         $mailer = Mockery::mock(AppointmentReminderMailer::class);
         $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn($this->appointment());
-        $appointments->shouldReceive('getLatestReminderForAppointment')->once()->with(21)->andReturn((object) [
-            'id_recordatorio' => 9,
-            'fecha_programada' => '2026-10-31T08:00:00+00:00',
-            'estado' => 'Pendiente',
-            'id_cita' => 21,
-        ]);
+        $appointments->shouldReceive('getLatestReminderForAppointment')->twice()->with(21)->andReturn(
+            null,
+            (object) [
+                'id_recordatorio' => 11,
+                'fecha_programada' => '2026-10-30T12:00:00+00:00',
+                'fecha_intento' => '2026-10-30T12:00:00+00:00',
+                'estado' => 'AceptadoPorProveedor',
+                'referencia_envio' => 'aviso-11-20261030120000',
+                'id_cita' => 21,
+            ],
+        );
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)
+            ->andReturn($this->enabledPreferences());
+        $appointments->shouldReceive('getPatientContactEmail')->once()->with(8)->andReturn(null);
+        $appointments->shouldReceive('createReminder')->once()
+            ->with('2026-10-30T12:00:00+00:00', 21)->andReturn(11);
+        $appointments->shouldReceive('claimReminder')->once()
+            ->with(11, '2026-10-30T12:00:00+00:00')->andReturn(true);
+        $appointments->shouldReceive('getReminderDispatchContext')->once()->with(11)
+            ->andReturn($this->dispatchContext(11));
+        $mailer->shouldReceive('requestSend')->once()
+            ->with('ana@example.test', Mockery::type('string'), Mockery::type('string'))
+            ->andReturn(AppointmentReminderService::PROVIDER_ACCEPTED);
+        $appointments->shouldReceive('recordReminderResult')->once()
+            ->with(11, AppointmentReminderService::PROVIDER_ACCEPTED, Mockery::type('string'), '2026-10-30T12:00:00+00:00');
+
+        $status = $this->service($appointments, $mailer)->sendPendingReminderNow(21);
+        $this->assertSame('AceptadoPorProveedor', $status);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_send_now_uses_ficha_email_when_portal_preferences_are_missing(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-30T12:00:00Z'));
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $mailer = Mockery::mock(AppointmentReminderMailer::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn($this->appointment());
+        $appointments->shouldReceive('getLatestReminderForAppointment')->twice()->with(21)->andReturn(
+            null,
+            (object) [
+                'id_recordatorio' => 12,
+                'estado' => 'AceptadoPorProveedor',
+                'id_cita' => 21,
+            ],
+        );
         $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)->andReturn(null);
+        $appointments->shouldReceive('getPatientContactEmail')->once()->with(8)->andReturn('ficha@example.test');
+        $appointments->shouldReceive('createReminder')->once()
+            ->with('2026-10-30T12:00:00+00:00', 21)->andReturn(12);
+        $appointments->shouldReceive('claimReminder')->once()
+            ->with(12, '2026-10-30T12:00:00+00:00')->andReturn(true);
+        $context = $this->dispatchContext(12);
+        $context->recordatorios_habilitados = null;
+        $context->destino = null;
+        $context->destino_verificado = false;
+        $context->correo_contacto = 'ficha@example.test';
+        $appointments->shouldReceive('getReminderDispatchContext')->once()->with(12)->andReturn($context);
+        $mailer->shouldReceive('requestSend')->once()
+            ->with('ficha@example.test', Mockery::type('string'), Mockery::type('string'))
+            ->andReturn(AppointmentReminderService::PROVIDER_ACCEPTED);
+        $appointments->shouldReceive('recordReminderResult')->once()
+            ->with(12, AppointmentReminderService::PROVIDER_ACCEPTED, Mockery::type('string'), '2026-10-30T12:00:00+00:00');
+
+        $status = $this->service($appointments, $mailer)->sendPendingReminderNow(21);
+        $this->assertSame('AceptadoPorProveedor', $status);
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_send_pending_reminder_now_rejects_when_no_destination_exists(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-30T12:00:00Z'));
+        $appointments = Mockery::mock(AppointmentRepository::class);
+        $mailer = Mockery::mock(AppointmentReminderMailer::class);
+        $appointments->shouldReceive('getAppointmentById')->once()->with(21)->andReturn($this->appointment());
+        $appointments->shouldReceive('getLatestReminderForAppointment')->once()->with(21)->andReturn(null);
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)->andReturn(null);
+        $appointments->shouldReceive('getPatientContactEmail')->once()->with(8)->andReturn(null);
         $mailer->shouldReceive('requestSend')->never();
 
         try {
@@ -374,12 +446,12 @@ class AppointmentReminderServiceTest extends TestCase
         ];
     }
 
-    private function dispatchContext(): object
+    private function dispatchContext(int $reminderId = 9): object
     {
         return (object) [
-            'id_recordatorio' => 9,
+            'id_recordatorio' => $reminderId,
             'id_cita' => 21,
-            'fecha_programada' => '2026-10-31T08:00:00+00:00',
+            'fecha_programada' => '2026-10-30T12:00:00+00:00',
             'codigo' => 'CIT-1',
             'inicio' => '2026-11-01T08:00:00+00:00',
             'estado' => 'Programada',
@@ -387,6 +459,7 @@ class AppointmentReminderServiceTest extends TestCase
             'id_paciente' => 8,
             'paciente_nombres' => 'Ana',
             'paciente_apellidos' => 'Rojas',
+            'correo_contacto' => null,
             'medico_nombres' => 'Luis',
             'medico_apellidos' => 'Soto',
             'especialidad_nombre' => 'Pediatría',

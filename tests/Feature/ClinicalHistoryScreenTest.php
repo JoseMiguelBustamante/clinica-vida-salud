@@ -129,6 +129,7 @@ class ClinicalHistoryScreenTest extends TestCase
             'destino' => 'ana@example.test',
             'destino_verificado' => false,
         ]);
+        $appointments->shouldReceive('getPatientContactEmail')->once()->with(8)->andReturn(null);
         $this->app->instance(AppointmentRepository::class, $appointments);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);

@@ -100,8 +100,8 @@ class AppointmentScreenTest extends TestCase
         $appointment = (object) [
             'id_cita' => 21,
             'codigo' => 'CIT-20261101080000ab',
-            'inicio' => '2026-11-01T08:00:00+00:00',
-            'fin' => '2026-11-01T08:30:00+00:00',
+            'inicio' => '2026-12-01T08:00:00+00:00',
+            'fin' => '2026-12-01T08:30:00+00:00',
             'motivo_consulta' => null,
             'modalidad' => 'Presencial',
             'estado' => 'Programada',
@@ -118,7 +118,7 @@ class AppointmentScreenTest extends TestCase
         $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($appointment);
         $appointments->shouldReceive('getLatestReminderForAppointment')->once()->with(21)->andReturn((object) [
             'id_recordatorio' => 9,
-            'fecha_programada' => '2026-10-31T08:00:00+00:00',
+            'fecha_programada' => '2026-11-30T08:00:00+00:00',
             'fecha_intento' => null,
             'estado' => 'Pendiente',
             'referencia_envio' => null,
@@ -130,12 +130,14 @@ class AppointmentScreenTest extends TestCase
             'destino' => 'ana@example.test',
             'destino_verificado' => true,
         ]);
+        $appointments->shouldReceive('getPatientContactEmail')->once()->with(8)->andReturn(null);
         $this->app->instance(AppointmentRepository::class, $appointments);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/citas/21')->assertOk()->assertSee('CIT-20261101080000ab')
             ->assertSee('Programada')->assertSee('Ana')->assertSee('no confirma', false)
-            ->assertSee('Recordatorio por correo')->assertSee('Enviar recordatorio ahora');
+            ->assertSee('Recordatorio por correo')->assertSee('Enviar recordatorio ahora')
+            ->assertSee('sin esperar las 24 h', false);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 

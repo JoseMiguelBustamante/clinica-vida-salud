@@ -130,7 +130,9 @@
                             @csrf
                             <button class="button button-inline" type="submit">Enviar recordatorio ahora</button>
                         </form>
-                        <p class="list-meta">Úselo para probar Gmail/SMTP. Adelanta el aviso pendiente y pide el envío al correo configurado. No confirma la cita.</p>
+                        <p class="list-meta">Envía el aviso de inmediato (sin esperar las 24 h). Usa el correo verificado del portal si está listo; si no, el correo de contacto de la ficha. No confirma la cita.</p>
+                    @elseif (in_array($appointment->estado, ['Programada', 'Confirmada'], true))
+                        <p class="list-meta">No hay destino usable: complete Perfil del paciente (recordatorios + correo verificado) o cargue un correo de contacto en la ficha.</p>
                     @endif
                 @else
                     <p class="list-meta">No se pudo consultar el estado del recordatorio.</p>

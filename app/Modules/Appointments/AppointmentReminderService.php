@@ -82,44 +82,64 @@ final class AppointmentReminderService
         $reminder = $this->appointments->getLatestReminderForAppointment($appointmentId);
         $preferences = $this->appointments->getNotificationPreferencesForPatient((int) $appointment->id_paciente);
         $preferencesReady = $this->preferencesAllowSend($preferences);
-        $canSendNow = $reminder !== null && (string) $reminder->estado === 'Pendiente' && $preferencesReady
-            && $this->appointmentIsCurrent($appointment);
+        $contactEmail = $this->usableEmailString(
+            $this->appointments->getPatientContactEmail((int) $appointment->id_paciente),
+        );
+        $hasDestination = $preferencesReady || $contactEmail !== null;
+        $start = Carbon::parse((string) $appointment->inicio)->timezone('UTC');
+        $inFlight = $reminder !== null && (string) $reminder->estado === 'EnProceso';
+        $canSendNow = $this->appointmentIsCurrent($appointment)
+            && $start->greaterThan(Carbon::now('UTC'))
+            && $hasDestination
+            && ! $inFlight;
 
         return [
             'reminder' => $reminder,
             'preferences_ready' => $preferencesReady,
             'can_send_now' => $canSendNow,
-            'status_label' => $this->overviewStatusLabel($reminder, $preferencesReady),
-            'detail' => $this->overviewDetail($reminder, $preferencesReady, $appointment),
+            'status_label' => $this->overviewStatusLabel($reminder, $preferencesReady, $contactEmail !== null),
+            'detail' => $this->overviewDetail($reminder, $preferencesReady, $appointment, $contactEmail !== null),
         ];
     }
 
     public function sendPendingReminderNow(int $appointmentId): string
     {
         $overview = $this->overviewForAppointment($appointmentId);
-        $reminder = $overview['reminder'];
-        if (! $overview['can_send_now'] || $reminder === null) {
+        if (! $overview['can_send_now']) {
             throw new ReminderNotSendable;
         }
 
         $now = Carbon::now('UTC')->toIso8601String();
-        if (! $this->appointments->markReminderDueNow((int) $reminder->id_recordatorio, $now)) {
+        $reminder = $overview['reminder'];
+        if ($reminder !== null && (string) $reminder->estado === 'Pendiente') {
+            $reminderId = (int) $reminder->id_recordatorio;
+            if (! $this->appointments->markReminderDueNow($reminderId, $now)) {
+                throw new ReminderNotSendable;
+            }
+        } elseif ($reminder !== null && (string) $reminder->estado === 'EnProceso') {
             throw new ReminderNotSendable;
+        } else {
+            $reminderId = $this->appointments->createReminder($now, $appointmentId);
         }
-        if (! $this->appointments->claimReminder((int) $reminder->id_recordatorio, $now)) {
+
+        if (! $this->appointments->claimReminder($reminderId, $now)) {
             throw new ReminderNotSendable;
         }
 
-        $this->dispatchClaimedReminder((int) $reminder->id_recordatorio, $now);
+        $this->dispatchClaimedReminder($reminderId, $now, true);
         $updated = $this->appointments->getLatestReminderForAppointment($appointmentId);
 
         return $updated === null ? 'ResultadoDesconocido' : (string) $updated->estado;
     }
 
-    private function overviewStatusLabel(?object $reminder, bool $preferencesReady): string
+    private function overviewStatusLabel(?object $reminder, bool $preferencesReady, bool $hasContactEmail): string
     {
         if ($reminder === null) {
-            return $preferencesReady ? 'Sin planificar' : 'No elegible';
+            if ($preferencesReady) {
+                return 'Sin planificar';
+            }
+
+            return $hasContactEmail ? 'Sin aviso automático' : 'No elegible';
         }
 
         return match ((string) $reminder->estado) {
@@ -133,25 +153,33 @@ final class AppointmentReminderService
         };
     }
 
-    private function overviewDetail(?object $reminder, bool $preferencesReady, object $appointment): string
-    {
+    private function overviewDetail(
+        ?object $reminder,
+        bool $preferencesReady,
+        object $appointment,
+        bool $hasContactEmail,
+    ): string {
         if (! $preferencesReady) {
-            return 'El paciente necesita cuenta de portal vinculada, recordatorios habilitados y correo verificado en Perfil.';
+            if ($hasContactEmail) {
+                return 'El portal no está listo (vínculo, recordatorios y correo verificado). Puede mandar un aviso ahora al correo de contacto de la ficha; el envío automático a 24 h no se planifica hasta completar Perfil.';
+            }
+
+            return 'El paciente necesita cuenta de portal vinculada, recordatorios habilitados y correo verificado en Perfil, o un correo de contacto válido en la ficha.';
         }
         if ($reminder === null) {
             if (! $this->appointmentIsCurrent($appointment)) {
                 return 'Solo se planifican recordatorios para citas Programada o Confirmada.';
             }
 
-            return 'No hay fila de recordatorio. Suele ocurrir si al programar aún no cumplía las preferencias.';
+            return 'No hay fila de recordatorio. Puede enviar uno ahora sin esperar las 24 h, o reprogramar para planificarlo.';
         }
         if ((string) $reminder->estado === 'Pendiente') {
             $when = Carbon::parse((string) $reminder->fecha_programada)->timezone('UTC')->format('Y-m-d H:i');
 
-            return 'Programado para enviarse desde '.$when.' UTC (por defecto 24 h antes de la cita).';
+            return 'Programado para enviarse desde '.$when.' UTC (por defecto 24 h antes). Use el botón para mandarlo ahora.';
         }
         if ((string) $reminder->estado === 'AceptadoPorProveedor') {
-            return 'El proveedor de correo aceptó el aviso. Eso no prueba que el paciente lo haya leído.';
+            return 'El proveedor de correo aceptó el aviso. Eso no prueba que el paciente lo haya leído. Puede enviar otro aviso ahora.';
         }
 
         return 'Estado actual del aviso: '.$reminder->estado.'.';
@@ -201,7 +229,7 @@ final class AppointmentReminderService
         return $scheduledAt;
     }
 
-    private function dispatchClaimedReminder(int $reminderId, string $attemptedAt): void
+    private function dispatchClaimedReminder(int $reminderId, string $attemptedAt, bool $allowContactFallback = false): void
     {
         $context = $this->appointments->getReminderDispatchContext($reminderId);
         if ($context === null || ! $this->reminderMatchesCurrentSchedule($context) || ! $this->appointmentIsCurrent($context)) {
@@ -217,13 +245,17 @@ final class AppointmentReminderService
             return;
         }
 
-        if (! $this->preferencesAllowSend($context)) {
-            $this->appointments->discardReminder($reminderId);
-
-            return;
+        $destination = null;
+        if ($this->preferencesAllowSend($context)) {
+            $destination = $this->usableDestination($context);
+        } elseif ($allowContactFallback) {
+            $destination = $this->usableEmailString(
+                isset($context->correo_contacto) && is_string($context->correo_contacto)
+                    ? $context->correo_contacto
+                    : null,
+            );
         }
 
-        $destination = $this->usableDestination($context);
         if ($destination === null) {
             $this->appointments->discardReminder($reminderId);
 
@@ -296,9 +328,16 @@ final class AppointmentReminderService
 
     private function usableDestination(object $preferences): ?string
     {
-        $destination = isset($preferences->destino) && is_string($preferences->destino)
-            ? trim($preferences->destino)
-            : '';
+        return $this->usableEmailString(
+            isset($preferences->destino) && is_string($preferences->destino)
+                ? $preferences->destino
+                : null,
+        );
+    }
+
+    private function usableEmailString(?string $value): ?string
+    {
+        $destination = $value === null ? '' : trim($value);
         if ($destination === '' || filter_var($destination, FILTER_VALIDATE_EMAIL) === false) {
             return null;
         }

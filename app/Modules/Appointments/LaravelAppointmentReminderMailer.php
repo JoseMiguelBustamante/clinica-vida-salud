@@ -12,11 +12,11 @@ final class LaravelAppointmentReminderMailer implements AppointmentReminderMaile
 {
     public function __construct(private Mailer $mailer) {}
 
-    public function requestSend(string $destination, string $subject, string $body): string
+    public function requestSend(string $destination, string $subject, string $textBody, string $htmlBody): string
     {
         try {
-            $this->mailer->raw($body, function (Message $message) use ($destination, $subject): void {
-                $message->to($destination)->subject($subject);
+            $this->mailer->html($htmlBody, function (Message $message) use ($destination, $subject, $textBody): void {
+                $message->to($destination)->subject($subject)->text($textBody);
             });
 
             return AppointmentReminderService::PROVIDER_ACCEPTED;

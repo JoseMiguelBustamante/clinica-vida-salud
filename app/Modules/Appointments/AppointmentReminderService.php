@@ -262,10 +262,12 @@ final class AppointmentReminderService
             return;
         }
 
+        $message = $this->reminderMessage($context);
         $outcome = $this->mailer->requestSend(
             $destination,
-            'Recordatorio de cita '.$context->codigo,
-            $this->messageBody($context),
+            $message['subject'],
+            $message['text'],
+            $message['html'],
         );
         if (! in_array($outcome, [self::PROVIDER_ACCEPTED, self::PROVIDER_FAILED, self::PROVIDER_UNKNOWN], true)) {
             $outcome = self::PROVIDER_UNKNOWN;
@@ -345,21 +347,38 @@ final class AppointmentReminderService
         return $destination;
     }
 
-    private function messageBody(object $context): string
+    /**
+     * @return array{subject: string, text: string, html: string}
+     */
+    private function reminderMessage(object $context): array
     {
-        $start = Carbon::parse((string) $context->inicio)->timezone('UTC')->format('Y-m-d H:i');
+        $start = Carbon::parse((string) $context->inicio)->timezone('UTC');
+        $end = Carbon::parse((string) ($context->fin ?? $context->inicio))->timezone('UTC');
+        $patientName = trim((string) ($context->paciente_nombres ?? '').' '.(string) ($context->paciente_apellidos ?? ''));
+        if ($patientName === '') {
+            $patientName = 'paciente';
+        }
+        $medico = trim((string) $context->medico_apellidos.', '.(string) $context->medico_nombres);
+        $fecha = $start->format('d/m/Y');
+        $horario = $start->format('H:i').' – '.$end->format('H:i').' UTC';
+        $clinicName = (string) config('app.name', 'Clínica Vida Salud');
+        $payload = [
+            'clinicName' => $clinicName,
+            'patientName' => $patientName,
+            'codigo' => (string) $context->codigo,
+            'fecha' => $fecha,
+            'horario' => $horario,
+            'medico' => $medico,
+            'especialidad' => (string) $context->especialidad_nombre,
+            'modalidad' => (string) $context->modalidad,
+            'subject' => 'Recordatorio de cita · '.$fecha.' '.$start->format('H:i').' UTC · '.$context->codigo,
+        ];
 
-        return implode("\n", [
-            'Recordatorio de cita médica',
-            '',
-            'Código: '.$context->codigo,
-            'Fecha y hora: '.$start.' UTC',
-            'Médico: '.$context->medico_apellidos.', '.$context->medico_nombres,
-            'Especialidad: '.$context->especialidad_nombre,
-            'Modalidad: '.$context->modalidad,
-            '',
-            'Este mensaje no confirma la cita, no registra llegada ni acredita atención médica.',
-        ]);
+        return [
+            'subject' => $payload['subject'],
+            'text' => view('emails.appointment-reminder-text', $payload)->render(),
+            'html' => view('emails.appointment-reminder', $payload)->render(),
+        ];
     }
 
     private function leadHours(): int

@@ -147,11 +147,22 @@ class AppointmentReminderServiceTest extends TestCase
         $appointments->shouldReceive('claimReminder')->once()->with(9, '2026-10-31T12:00:00+00:00')->andReturn(true);
         $appointments->shouldReceive('getReminderDispatchContext')->once()->with(9)->andReturn($this->dispatchContext());
         $mailer->shouldReceive('requestSend')->once()
-            ->with('ana@example.test', 'Recordatorio de cita CIT-1', Mockery::on(function (string $body): bool {
-                return str_contains($body, 'CIT-1')
-                    && str_contains($body, 'no confirma la cita')
-                    && ! str_contains($body, 'diagnostico');
-            }))
+            ->with(
+                'ana@example.test',
+                Mockery::on(fn (string $subject): bool => str_contains($subject, 'CIT-1') && str_contains($subject, 'Recordatorio de cita')),
+                Mockery::on(function (string $body): bool {
+                    return str_contains($body, 'CIT-1')
+                        && str_contains($body, 'no registra llegada')
+                        && str_contains($body, 'Ana Rojas')
+                        && ! str_contains($body, 'diagnostico');
+                }),
+                Mockery::on(function (string $html): bool {
+                    return str_contains($html, 'CIT-1')
+                        && str_contains($html, 'Recordatorio de cita')
+                        && str_contains($html, 'Ana Rojas')
+                        && ! str_contains($html, 'diagnostico');
+                }),
+            )
             ->andReturn(AppointmentReminderService::PROVIDER_ACCEPTED);
         $appointments->shouldReceive('recordReminderResult')->once()->with(
             9,
@@ -314,7 +325,7 @@ class AppointmentReminderServiceTest extends TestCase
         $appointments->shouldReceive('getReminderDispatchContext')->once()->with(9)
             ->andReturn($this->dispatchContext());
         $mailer->shouldReceive('requestSend')->once()
-            ->with('ana@example.test', Mockery::type('string'), Mockery::type('string'))
+            ->with('ana@example.test', Mockery::type('string'), Mockery::type('string'), Mockery::type('string'))
             ->andReturn(AppointmentReminderService::PROVIDER_ACCEPTED);
         $appointments->shouldReceive('recordReminderResult')->once()
             ->with(9, AppointmentReminderService::PROVIDER_ACCEPTED, Mockery::type('string'), '2026-10-30T12:00:00+00:00');
@@ -351,7 +362,7 @@ class AppointmentReminderServiceTest extends TestCase
         $appointments->shouldReceive('getReminderDispatchContext')->once()->with(11)
             ->andReturn($this->dispatchContext(11));
         $mailer->shouldReceive('requestSend')->once()
-            ->with('ana@example.test', Mockery::type('string'), Mockery::type('string'))
+            ->with('ana@example.test', Mockery::type('string'), Mockery::type('string'), Mockery::type('string'))
             ->andReturn(AppointmentReminderService::PROVIDER_ACCEPTED);
         $appointments->shouldReceive('recordReminderResult')->once()
             ->with(11, AppointmentReminderService::PROVIDER_ACCEPTED, Mockery::type('string'), '2026-10-30T12:00:00+00:00');
@@ -388,7 +399,7 @@ class AppointmentReminderServiceTest extends TestCase
         $context->correo_contacto = 'ficha@example.test';
         $appointments->shouldReceive('getReminderDispatchContext')->once()->with(12)->andReturn($context);
         $mailer->shouldReceive('requestSend')->once()
-            ->with('ficha@example.test', Mockery::type('string'), Mockery::type('string'))
+            ->with('ficha@example.test', Mockery::type('string'), Mockery::type('string'), Mockery::type('string'))
             ->andReturn(AppointmentReminderService::PROVIDER_ACCEPTED);
         $appointments->shouldReceive('recordReminderResult')->once()
             ->with(12, AppointmentReminderService::PROVIDER_ACCEPTED, Mockery::type('string'), '2026-10-30T12:00:00+00:00');
@@ -454,6 +465,7 @@ class AppointmentReminderServiceTest extends TestCase
             'fecha_programada' => '2026-10-30T12:00:00+00:00',
             'codigo' => 'CIT-1',
             'inicio' => '2026-11-01T08:00:00+00:00',
+            'fin' => '2026-11-01T08:30:00+00:00',
             'estado' => 'Programada',
             'modalidad' => 'Presencial',
             'id_paciente' => 8,

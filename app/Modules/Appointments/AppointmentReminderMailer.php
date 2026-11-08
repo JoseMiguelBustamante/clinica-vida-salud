@@ -11,5 +11,5 @@ interface AppointmentReminderMailer
      *
      * @return 'AceptadoPorProveedor'|'Fallido'|'ResultadoDesconocido'
      */
-    public function requestSend(string $destination, string $subject, string $body): string;
+    public function requestSend(string $destination, string $subject, string $textBody, string $htmlBody): string;
 }

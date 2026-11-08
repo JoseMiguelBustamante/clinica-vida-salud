@@ -53,37 +53,45 @@
 
     @php
         $normalizeSearch = static function (object $patient): string {
-            return mb_strtolower(trim(preg_replace('/\s+/u', ' ', $patient->nombres.' '.$patient->apellidos.' '.($patient->ci ?? ''))), 'UTF-8');
+            $parts = trim(implode(' ', array_filter([
+                (string) ($patient->nombres ?? ''),
+                (string) ($patient->apellidos ?? ''),
+                (string) ($patient->ci ?? ''),
+            ], static fn (string $part): bool => $part !== '')));
+
+            return \Illuminate\Support\Str::lower($parts);
         };
-        $tokens = $q === '' ? [] : preg_split('/\s+/u', mb_strtolower(trim($q), 'UTF-8'), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $searchTokens = $q === ''
+            ? []
+            : (preg_split('/\s+/u', \Illuminate\Support\Str::lower(trim($q)), -1, PREG_SPLIT_NO_EMPTY) ?: []);
         $initialMatchCount = 0;
-        if ($tokens !== []) {
+        if ($searchTokens !== []) {
             foreach ($patients as $patient) {
                 $hay = $normalizeSearch($patient);
-                $ok = true;
-                foreach ($tokens as $token) {
+                $matchesAll = true;
+                foreach ($searchTokens as $token) {
                     if (! str_contains($hay, $token)) {
-                        $ok = false;
+                        $matchesAll = false;
                         break;
                     }
                 }
-                if ($ok) {
+                if ($matchesAll) {
                     $initialMatchCount++;
                 }
             }
         }
     @endphp
 
-    <p id="booking_no_match" class="booking-hint is-warn" @if ($tokens === [] || $initialMatchCount > 0) hidden @endif>@if ($tokens !== [] && $initialMatchCount === 0)Ningún paciente coincide con «{{ $q }}».@endif</p>
+    <p id="booking_no_match" class="booking-hint is-warn" @if ($searchTokens === [] || $initialMatchCount > 0) hidden @endif>@if ($searchTokens !== [] && $initialMatchCount === 0)Ningún paciente coincide con «{{ $q }}».@endif</p>
 
     <ul id="booking_matches" class="booking-matches" role="listbox" aria-label="Pacientes encontrados"
-        @if ($tokens === [] || $initialMatchCount === 0) hidden @endif>
+        @if ($searchTokens === [] || $initialMatchCount === 0) hidden @endif>
         @foreach ($patients as $patient)
             @php
                 $hay = $normalizeSearch($patient);
-                $isMatch = $tokens !== [];
+                $isMatch = $searchTokens !== [];
                 if ($isMatch) {
-                    foreach ($tokens as $token) {
+                    foreach ($searchTokens as $token) {
                         if (! str_contains($hay, $token)) {
                             $isMatch = false;
                             break;

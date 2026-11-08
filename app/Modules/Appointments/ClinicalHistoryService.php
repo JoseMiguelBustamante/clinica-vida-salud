@@ -13,6 +13,7 @@ final class ClinicalHistoryService
     public function __construct(
         private AppointmentRepository $appointments,
         private PatientRepository $patients,
+        private AppointmentReminderService $reminders,
     ) {}
 
     public function portalIsEnabled(): bool
@@ -36,7 +37,7 @@ final class ClinicalHistoryService
     }
 
     /**
-     * @return array{patient: object, record: object}
+     * @return array{patient: object, record: object, reminder: array{reminder: ?object, preferences_ready: bool, can_send_now: bool, status_label: string, detail: string}}
      */
     public function getOwnClinicalHistoryRecord(int $userId, int $appointmentId): array
     {
@@ -50,6 +51,7 @@ final class ClinicalHistoryService
         return [
             'patient' => $patient,
             'record' => $this->authorizedDetailRecord($appointment),
+            'reminder' => $this->reminders->overviewForAppointment($appointmentId),
         ];
     }
 

@@ -38,8 +38,8 @@ class PopulateClinicDemo extends Command
 
     protected $help = <<<'HELP'
         Requires an already migrated PostgreSQL database and an existing active Administrador.
-        Creates missing demo specialties with descriptions, weekday hours for every active
-        bookable physician (Saturday morning for the first), patients identified by DEMO-
+        Creates missing demo specialties with descriptions, Mon–Sat 08:00–18:00 hours for every
+        active bookable physician, patients identified by DEMO-
         CI values, and a reservation for every demo patient assigned to a physician
         (Programada, Confirmada, Cancelada, reprogrammed, arrived). Atendida with a care
         record is created only when a physician already has an active linked account.
@@ -103,9 +103,9 @@ class PopulateClinicDemo extends Command
             $this->catalog->synchronize();
             $this->ensureSpecialties();
             $physicians = $this->bookablePhysicians();
-            foreach ($physicians as $index => $physician) {
+            foreach ($physicians as $physician) {
                 try {
-                    $this->ensureWeekdayHours((int) $physician->id_medico, $index);
+                    $this->ensureWeekdayHours((int) $physician->id_medico);
                 } catch (Throwable $exception) {
                     Log::error('[PopulateClinicDemo - hours] '.$exception::class);
                 }
@@ -475,19 +475,13 @@ class PopulateClinicDemo extends Command
         return (int) $specialty->id_especialidad;
     }
 
-    private function ensureWeekdayHours(int $physicianId, int $index): void
+    private function ensureWeekdayHours(int $physicianId): void
     {
         $existingDays = $this->schedules->getAllSchedules(null)
             ->where('id_medico', $physicianId)
             ->where('activo', true)
             ->pluck('dia_semana');
-        $morning = $index % 2 === 0;
-        $start = $morning ? '08:00' : '14:00';
-        $end = $morning ? '12:00' : '18:00';
-        $days = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
-        if ($morning) {
-            $days[] = 'Sabado';
-        }
+        $days = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
 
         foreach ($days as $day) {
             if ($existingDays->contains($day)) {
@@ -498,8 +492,8 @@ class PopulateClinicDemo extends Command
                 $this->schedules->createSchedule([
                     'id_medico' => $physicianId,
                     'dia_semana' => $day,
-                    'hora_inicio' => $start,
-                    'hora_fin' => $end,
+                    'hora_inicio' => '08:00',
+                    'hora_fin' => '18:00',
                     'duracion_cita_minutos' => 30,
                     'activo' => true,
                 ]);

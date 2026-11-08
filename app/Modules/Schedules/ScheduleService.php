@@ -9,6 +9,7 @@ use App\Modules\MedicalStaff\PhysicianRepository;
 use DateTimeImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 final class ScheduleService
 {
@@ -32,6 +33,49 @@ final class ScheduleService
     public function getAllSchedules(?string $fragment): Collection
     {
         return $this->schedules->getAllSchedules($fragment === '' ? null : $fragment);
+    }
+
+    /**
+     * Fills missing Mon–Sat active windows for every active physician (08:00–18:00 / 30 min).
+     * Existing day rows are left unchanged so current appointments stay covered.
+     */
+    public function ensureMissingWeekdaySchedulesForActivePhysicians(): int
+    {
+        $created = 0;
+        $days = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+
+        foreach ($this->physicians->getAllPhysicians(null) as $physician) {
+            if (! $physician->activo) {
+                continue;
+            }
+            $physicianId = (int) $physician->id_medico;
+            $existingDays = $this->schedules->getAllSchedules(null)
+                ->where('id_medico', $physicianId)
+                ->where('activo', true)
+                ->pluck('dia_semana');
+
+            foreach ($days as $day) {
+                if ($existingDays->contains($day)) {
+                    continue;
+                }
+
+                try {
+                    $this->createSchedule([
+                        'id_medico' => $physicianId,
+                        'dia_semana' => $day,
+                        'hora_inicio' => '08:00',
+                        'hora_fin' => '18:00',
+                        'duracion_cita_minutos' => 30,
+                        'activo' => true,
+                    ]);
+                    $created++;
+                } catch (Throwable) {
+                    continue;
+                }
+            }
+        }
+
+        return $created;
     }
 
     public function getScheduleById(int $id): object

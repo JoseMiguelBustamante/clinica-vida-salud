@@ -73,6 +73,7 @@ final class ClinicalHistoryController
                 'unavailable' => false,
                 'patient' => null,
                 'record' => null,
+                'reminder' => null,
             ]);
         }
 
@@ -89,6 +90,7 @@ final class ClinicalHistoryController
                 'unavailable' => false,
                 'patient' => $payload['patient'],
                 'record' => $payload['record'],
+                'reminder' => $payload['reminder'],
             ]);
         } catch (PatientLinkRequired) {
             return view('appointments.clinical-history-show', [
@@ -98,6 +100,7 @@ final class ClinicalHistoryController
                 'unavailable' => false,
                 'patient' => null,
                 'record' => null,
+                'reminder' => null,
             ]);
         } catch (ClinicalHistoryRecordUnavailable) {
             return view('appointments.clinical-history-show', [
@@ -107,6 +110,7 @@ final class ClinicalHistoryController
                 'unavailable' => true,
                 'patient' => null,
                 'record' => null,
+                'reminder' => null,
             ]);
         } catch (Throwable $exception) {
             Log::error('[ClinicalHistoryController - getOwnClinicalHistoryRecord] '.$exception::class);
@@ -118,6 +122,7 @@ final class ClinicalHistoryController
                 'unavailable' => false,
                 'patient' => null,
                 'record' => null,
+                'reminder' => null,
             ]);
         }
     }

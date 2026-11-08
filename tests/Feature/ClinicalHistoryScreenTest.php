@@ -103,30 +103,38 @@ class ClinicalHistoryScreenTest extends TestCase
     {
         $this->authorizeClinicalHistory();
         $this->bindLinkedPatient();
+        $appointment = (object) [
+            'id_cita' => 21,
+            'codigo' => 'CIT-1',
+            'inicio' => '2026-11-01T08:00:00+00:00',
+            'fin' => '2026-11-01T08:30:00+00:00',
+            'estado' => 'Atendida',
+            'modalidad' => 'Presencial',
+            'motivo_consulta' => 'Dolor de cabeza',
+            'motivo_cancelacion' => null,
+            'id_paciente' => 8,
+            'diagnostico' => 'Migraña',
+            'resumen_atencion' => 'Nota profesional',
+            'medico_nombres' => 'Luis',
+            'medico_apellidos' => 'Soto',
+            'registro_profesional' => 'MP-1',
+            'especialidad_nombre' => 'Pediatría',
+        ];
         $appointments = Mockery::mock(AppointmentRepository::class);
-        $appointments->shouldReceive('getAppointmentById')->once()->with(21)
-            ->andReturn((object) [
-                'id_cita' => 21,
-                'codigo' => 'CIT-1',
-                'inicio' => '2026-11-01T08:00:00+00:00',
-                'fin' => '2026-11-01T08:30:00+00:00',
-                'estado' => 'Atendida',
-                'modalidad' => 'Presencial',
-                'motivo_consulta' => 'Dolor de cabeza',
-                'motivo_cancelacion' => null,
-                'id_paciente' => 8,
-                'diagnostico' => 'Migraña',
-                'resumen_atencion' => 'Nota profesional',
-                'medico_nombres' => 'Luis',
-                'medico_apellidos' => 'Soto',
-                'registro_profesional' => 'MP-1',
-                'especialidad_nombre' => 'Pediatría',
-            ]);
+        $appointments->shouldReceive('getAppointmentById')->twice()->with(21)->andReturn($appointment);
+        $appointments->shouldReceive('getLatestReminderForAppointment')->once()->with(21)->andReturn(null);
+        $appointments->shouldReceive('getNotificationPreferencesForPatient')->once()->with(8)->andReturn((object) [
+            'recordatorios_habilitados' => false,
+            'canal' => 'CorreoElectronico',
+            'destino' => 'ana@example.test',
+            'destino_verificado' => false,
+        ]);
         $this->app->instance(AppointmentRepository::class, $appointments);
 
         $this->withSession([Auth::guard('web')->getName() => 17]);
         $this->get('/historial-medico/21')->assertOk()->assertSee('CIT-1')
             ->assertSee('Dolor de cabeza')->assertSee('Motivo declarado')
+            ->assertSee('Recordatorio por correo')->assertSee('Perfil')
             ->assertDontSee('Migraña')->assertDontSee('Nota profesional');
         $this->assertSame([], $this->app['db']->getConnections());
     }

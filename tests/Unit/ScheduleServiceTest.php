@@ -9,6 +9,7 @@ use App\Modules\Schedules\OverlappingSchedule;
 use App\Modules\Schedules\ScheduleBlocksExistingAppointments;
 use App\Modules\Schedules\ScheduleRepository;
 use App\Modules\Schedules\ScheduleService;
+use Illuminate\Support\Facades\DB;
 use Mockery;
 use Tests\TestCase;
 
@@ -118,6 +119,39 @@ class ScheduleServiceTest extends TestCase
         } catch (ScheduleBlocksExistingAppointments) {
         }
 
+        $this->assertSame([], $this->app['db']->getConnections());
+    }
+
+    public function test_missing_weekday_windows_are_created_for_active_physicians_only(): void
+    {
+        $schedules = Mockery::mock(ScheduleRepository::class);
+        $physicians = Mockery::mock(PhysicianRepository::class);
+        $physicians->shouldReceive('getAllPhysicians')->once()->with(null)->andReturn(collect([
+            (object) ['id_medico' => 4, 'activo' => true],
+            (object) ['id_medico' => 5, 'activo' => false],
+        ]));
+        $schedules->shouldReceive('getAllSchedules')->once()->with(null)->andReturn(collect([
+            (object) ['id_medico' => 4, 'dia_semana' => 'Lunes', 'activo' => true],
+        ]));
+        $physicians->shouldReceive('getPhysicianById')->times(5)->with(4)
+            ->andReturn((object) ['id_medico' => 4, 'activo' => true]);
+        $schedules->shouldReceive('hasOverlappingActiveSchedule')->times(10)->andReturn(false);
+        $schedules->shouldReceive('lockPhysicianSchedules')->times(5)->with(4);
+        $schedules->shouldReceive('createSchedule')->times(5)->andReturnUsing(function (array $values): int {
+            $this->assertSame(4, $values['id_medico']);
+            $this->assertSame('08:00:00', $values['hora_inicio']);
+            $this->assertSame('18:00:00', $values['hora_fin']);
+            $this->assertSame(30, $values['duracion_cita_minutos']);
+            $this->assertTrue($values['activo']);
+
+            return 1;
+        });
+        DB::shouldReceive('transaction')->times(5)->andReturnUsing(fn (callable $callback) => $callback());
+
+        $created = (new ScheduleService($schedules, $physicians))
+            ->ensureMissingWeekdaySchedulesForActivePhysicians();
+
+        $this->assertSame(5, $created);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 }

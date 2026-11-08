@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Modules\Appointments\AppointmentReminderService;
 use App\Modules\Appointments\AppointmentRepository;
 use App\Modules\Appointments\ClinicalHistoryRecordUnavailable;
 use App\Modules\Appointments\ClinicalHistoryService;
@@ -54,8 +55,11 @@ class ClinicalHistoryServiceTest extends TestCase
         $appointments->shouldReceive('getAppointmentById')->once()->with(21)
             ->andReturn($this->storedAppointment(['id_paciente' => 99, 'diagnostico' => 'Asma']));
 
+        $reminders = Mockery::mock(AppointmentReminderService::class);
+        $reminders->shouldReceive('overviewForAppointment')->never();
+
         try {
-            $this->service($appointments, $patients)->getOwnClinicalHistoryRecord(17, 21);
+            $this->service($appointments, $patients, $reminders)->getOwnClinicalHistoryRecord(17, 21);
             $this->fail('Expected ClinicalHistoryRecordUnavailable');
         } catch (ClinicalHistoryRecordUnavailable) {
         }
@@ -67,6 +71,7 @@ class ClinicalHistoryServiceTest extends TestCase
     {
         $patients = Mockery::mock(PatientRepository::class);
         $appointments = Mockery::mock(AppointmentRepository::class);
+        $reminders = Mockery::mock(AppointmentReminderService::class);
         $patients->shouldReceive('getPatientByAccount')->once()->with(17)->andReturn($this->linkedPatient());
         $appointments->shouldReceive('getAppointmentById')->once()->with(21)
             ->andReturn($this->storedAppointment([
@@ -74,12 +79,20 @@ class ClinicalHistoryServiceTest extends TestCase
                 'diagnostico' => 'Migraña',
                 'resumen_atencion' => 'Nota profesional',
             ]));
+        $reminders->shouldReceive('overviewForAppointment')->once()->with(21)->andReturn([
+            'reminder' => null,
+            'preferences_ready' => false,
+            'can_send_now' => false,
+            'status_label' => 'No elegible',
+            'detail' => 'El paciente necesita cuenta de portal vinculada, recordatorios habilitados y correo verificado en Perfil.',
+        ]);
 
-        $result = $this->service($appointments, $patients)->getOwnClinicalHistoryRecord(17, 21);
+        $result = $this->service($appointments, $patients, $reminders)->getOwnClinicalHistoryRecord(17, 21);
 
         $this->assertSame('Dolor de cabeza', $result['record']->motivo_consulta);
         $this->assertFalse(isset($result['record']->diagnostico));
         $this->assertFalse(isset($result['record']->resumen_atencion));
+        $this->assertSame('No elegible', $result['reminder']['status_label']);
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
@@ -100,9 +113,16 @@ class ClinicalHistoryServiceTest extends TestCase
         $this->assertSame([], $this->app['db']->getConnections());
     }
 
-    private function service(AppointmentRepository $appointments, PatientRepository $patients): ClinicalHistoryService
-    {
-        return new ClinicalHistoryService($appointments, $patients);
+    private function service(
+        AppointmentRepository $appointments,
+        PatientRepository $patients,
+        ?AppointmentReminderService $reminders = null,
+    ): ClinicalHistoryService {
+        return new ClinicalHistoryService(
+            $appointments,
+            $patients,
+            $reminders ?? Mockery::mock(AppointmentReminderService::class),
+        );
     }
 
     private function linkedPatient(): object

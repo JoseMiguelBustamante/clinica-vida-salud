@@ -65,6 +65,34 @@
                     @endif
                 </dl>
             </article>
+
+            @if ($reminder)
+                <article class="list-card detail-card" aria-labelledby="reminder-title">
+                    <h2 id="reminder-title">Recordatorio por correo</h2>
+                    <dl class="detail-list">
+                        <div>
+                            <dt>Estado</dt>
+                            <dd>{{ $reminder['status_label'] }}</dd>
+                        </div>
+                        <div>
+                            <dt>Detalle</dt>
+                            <dd>{{ $reminder['detail'] }}</dd>
+                        </div>
+                        @if ($reminder['reminder']?->fecha_programada)
+                            <div>
+                                <dt>Envío previsto</dt>
+                                <dd>{{ \Illuminate\Support\Carbon::parse((string) $reminder['reminder']->fecha_programada)->timezone('UTC')->format('Y-m-d H:i') }} UTC</dd>
+                            </div>
+                        @endif
+                    </dl>
+                    @unless ($reminder['preferences_ready'])
+                        <p class="list-meta">Para recibir el aviso: en <a href="{{ route('portal.profile') }}">Perfil</a> active los recordatorios y marque el correo como verificado. Luego pida en recepción que reprogramen o envíen el aviso de esta cita.</p>
+                    @else
+                        <p class="list-meta">El envío lo hace el sistema (o recepción con «Enviar recordatorio ahora» en la ficha de la cita). Revise también la carpeta de spam.</p>
+                    @endunless
+                </article>
+            @endif
+
             <p><a href="{{ route('appointments.clinical-history') }}">Volver al historial</a></p>
         @endif
     </section>
